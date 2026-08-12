@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Camcrew Studio",
+    "slug": "camcrew-app",
+    "sdkVersion": "54.0.0",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#06080a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "in.camcrew.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#06080a"
+      },
+      "package": "in.camcrew.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "camcrew",
+    "plugins": [
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "25fbddc6-d8ce-484d-b7d8-9aae9f68dff1"
+      }
+    }
+  }
+}

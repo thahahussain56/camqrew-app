@@ -1,0 +1,28 @@
+name: React Native Tests
+
+# This triggers the automation on every push to your repository
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Run Jest Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Grab your code
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      # 2. Install Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      # 3. Install packages (using legacy-peer-deps like we did earlier)
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
+
+      # 4. Run the exact test command we used locally
+      - name: Run Tests
+        run: npm test
