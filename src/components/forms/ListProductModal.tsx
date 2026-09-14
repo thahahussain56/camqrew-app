@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Image, Alert, KeyboardAvoidingView, Platform, Switch } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -8,27 +8,45 @@ import { productApi } from '../../api/productApi';
 import { ProductType } from '../../types/product';
 import * as ImagePicker from 'expo-image-picker';
 import { ShoppingBag, X, Camera, Plus, Check } from 'lucide-react-native';
+import { cloudStorageApi } from '../../api/cloudStorageApi';
 
 interface ListProductModalProps {
   visible: boolean;
   onClose: () => void;
-  onSuccess: (msg: string) => void;
+  onSuccess: (message: string) => void;
 }
 
 const CATEGORIES = ['Camera Bodies', 'Lenses', 'Lighting', 'Audio', 'Drones & Gimbals'];
+const CONDITIONS = ['New', 'Like New', 'Good', 'Fair'];
 
 export const ListProductModal: React.FC<ListProductModalProps> = ({ visible, onClose, onSuccess }) => {
   const { colors } = useTheme();
-
-  const [name, setName] = useState('');
-  const [brand, setBrand] = useState('Sony');
-  const [category, setCategory] = useState('Camera Bodies');
+  
   const [type, setType] = useState<ProductType>('sale');
+  const [name, setName] = useState('');
+  const [brand, setBrand] = useState('');
+  const [category, setCategory] = useState(CATEGORIES[0]);
   const [price, setPrice] = useState('');
   const [rentalPricePerDay, setRentalPricePerDay] = useState('');
-  const [condition, setCondition] = useState('Like New');
-  const [imageUri, setImageUri] = useState('');
+  const [condition, setCondition] = useState<'New' | 'Like New' | 'Good' | 'Fair'>('Good');
+  const [imageUris, setImageUris] = useState<string[]>([]);
   const [description, setDescription] = useState('');
+  const [codEnabled, setCodEnabled] = useState(false);
+  
+  // Advanced e-commerce fields
+  const [gtin, setGtin] = useState('');
+  const [sku, setSku] = useState('');
+  const [bulletPoints, setBulletPoints] = useState('');
+  const [salePrice, setSalePrice] = useState('');
+  const [itemDimensions, setItemDimensions] = useState('');
+  const [packageDimensions, setPackageDimensions] = useState('');
+  const [itemWeight, setItemWeight] = useState('');
+  const [packageWeight, setPackageWeight] = useState('');
+  const [searchTerms, setSearchTerms] = useState('');
+  const [browseNodes, setBrowseNodes] = useState('');
+  const [batteryInfo, setBatteryInfo] = useState('');
+  const [countryOfOrigin, setCountryOfOrigin] = useState('');
+  const [safetyWarnings, setSafetyWarnings] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handlePickPhoto = async () => {
@@ -40,14 +58,19 @@ export const ListProductModal: React.FC<ListProductModalProps> = ({ visible, onC
 
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
+      allowsMultipleSelection: true,
+      allowsEditing: false,
       quality: 0.8,
     });
 
-    if (!res.canceled && res.assets[0]) {
-      setImageUri(res.assets[0].uri);
+    if (!res.canceled && res.assets && res.assets.length > 0) {
+      const newUris = res.assets.map(a => a.uri);
+      setImageUris(prev => [...prev, ...newUris]);
     }
+  };
+
+  const removePhoto = (index: number) => {
+    setImageUris(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
@@ -64,35 +87,67 @@ export const ListProductModal: React.FC<ListProductModalProps> = ({ visible, onC
       return;
     }
 
+    if (imageUris.length === 0) {
+      Alert.alert('Required', 'Please add at least one photo of the equipment');
+      return;
+    }
+
     setLoading(true);
     try {
-      // Create new product object
+      // 1. Upload all selected images to cloud storage
+      const uploadedUrls: string[] = [];
+      for (const uri of imageUris) {
+        if (uri.startsWith('http')) {
+          uploadedUrls.push(uri);
+        } else {
+          const response = await cloudStorageApi.uploadImage(uri, 'gear');
+          if (response?.url) uploadedUrls.push(response.url);
+        }
+      }
+
+      if (uploadedUrls.length === 0) {
+        throw new Error('Failed to upload images');
+      }
+
+      // 2. Create new product object
       const newProduct = {
-        id: 'prod_' + Date.now(),
         name,
-        brand: brand || 'Sony',
         category,
         type,
-        price: Number(price || rentalPricePerDay || 0),
-        rentalPricePerDay: Number(rentalPricePerDay || price || 0),
+        price: type === 'sale' ? Number(price) : undefined,
+        rentalPricePerDay: type === 'rental' ? Number(rentalPricePerDay) : undefined,
         condition,
-        image: imageUri || 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=800',
+        image: uploadedUrls[0],
+        gallery: uploadedUrls.slice(1),
         description,
-        specs: { Category: category, Condition: condition },
-        inStock: true,
-        rating: 5.0,
+        codEnabled,
+        gtin,
+        sku,
+        bulletPoints: bulletPoints ? bulletPoints.split('\n').filter(Boolean) : [],
+        salePrice: salePrice ? Number(salePrice) : undefined,
+        itemDimensions,
+        packageDimensions,
+        itemWeight,
+        packageWeight,
+        searchTerms: searchTerms ? searchTerms.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+        browseNodes: browseNodes ? browseNodes.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+        batteryInfo,
+        countryOfOrigin,
+        safetyWarnings,
       };
 
-      // Add product to store / database
-      await productApi.getProducts(); // Pre-fetch
+      // Add product to database
+      await productApi.createProduct(newProduct);
+      
       onSuccess(`Successfully listed "${name}" in the Gear Store!`);
       setLoading(false);
       onClose();
       // Reset form
       setName('');
+      setBrand('');
       setPrice('');
       setRentalPricePerDay('');
-      setImageUri('');
+      setImageUris([]);
       setDescription('');
     } catch (e) {
       setLoading(false);
@@ -102,12 +157,15 @@ export const ListProductModal: React.FC<ListProductModalProps> = ({ visible, onC
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView 
+        style={styles.overlay} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <View style={[styles.modalCard, { backgroundColor: colors.surfaceCard }]}>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.titleRow}>
-              <ShoppingBag size={20} color="#fc8019" style={{ marginRight: 8 }} />
+              <ShoppingBag size={20} color="#3fb668" style={{ marginRight: 8 }} />
               <Text style={[styles.title, { color: colors.textPrimary }]}>List Gear for Sale or Rent</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -115,12 +173,12 @@ export const ListProductModal: React.FC<ListProductModalProps> = ({ visible, onC
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={{ maxHeight: 480 }} showsVerticalScrollIndicator={false}>
+          <ScrollView style={{ maxHeight: 480 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {/* Listing Type Switcher (For Sale vs For Rent) */}
             <Text style={[styles.label, { color: colors.textSecondary }]}>Listing Purpose</Text>
             <View style={[styles.typeTabBar, { backgroundColor: colors.background }]}>
               <TouchableOpacity
-                style={[styles.typeTab, type === 'sale' && { backgroundColor: '#fc8019' }]}
+                style={[styles.typeTab, type === 'sale' && { backgroundColor: '#3fb668' }]}
                 onPress={() => setType('sale')}
               >
                 <Text style={[styles.typeTabText, { color: type === 'sale' ? '#ffffff' : colors.textSecondary }]}>
@@ -128,7 +186,7 @@ export const ListProductModal: React.FC<ListProductModalProps> = ({ visible, onC
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.typeTab, type === 'rental' && { backgroundColor: '#fc8019' }]}
+                style={[styles.typeTab, type === 'rental' && { backgroundColor: '#3fb668' }]}
                 onPress={() => setType('rental')}
               >
                 <Text style={[styles.typeTabText, { color: type === 'rental' ? '#ffffff' : colors.textSecondary }]}>
@@ -138,17 +196,22 @@ export const ListProductModal: React.FC<ListProductModalProps> = ({ visible, onC
             </View>
 
             {/* Photo Picker */}
-            <Text style={[styles.label, { color: colors.textSecondary, marginTop: 12 }]}>Equipment Photo</Text>
-            <TouchableOpacity style={[styles.photoPicker, { backgroundColor: colors.background }]} onPress={handlePickPhoto}>
-              {imageUri ? (
-                <Image source={{ uri: imageUri }} style={styles.photoPreview} />
-              ) : (
-                <View style={styles.photoPlaceholder}>
-                  <Camera size={24} color="#fc8019" />
-                  <Text style={[styles.photoText, { color: colors.textSecondary }]}>Upload Gear Photo</Text>
+            <Text style={[styles.label, { color: colors.textSecondary, marginTop: 12 }]}>Equipment Photos ({imageUris.length})</Text>
+            
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 8 }}>
+              {imageUris.map((uri, index) => (
+                <View key={index} style={styles.photoPreviewWrapper}>
+                  <Image source={{ uri }} style={styles.photoPreview} />
+                  <TouchableOpacity style={styles.removePhotoBtn} onPress={() => removePhoto(index)}>
+                    <X size={14} color="#fff" />
+                  </TouchableOpacity>
                 </View>
-              )}
-            </TouchableOpacity>
+              ))}
+              <TouchableOpacity style={[styles.photoAddBtn, { backgroundColor: colors.background }]} onPress={handlePickPhoto}>
+                <Camera size={24} color="#3fb668" />
+                <Text style={[styles.photoAddText, { color: colors.textSecondary }]}>Add Photos</Text>
+              </TouchableOpacity>
+            </ScrollView>
 
             <Input label="Equipment Name" placeholder="e.g. Sony FX3 Cinema Line Camera" value={name} onChangeText={setName} />
             <Input label="Brand / Manufacturer" placeholder="e.g. Sony, Canon, RED, Aputure" value={brand} onChangeText={setBrand} />
@@ -167,20 +230,84 @@ export const ListProductModal: React.FC<ListProductModalProps> = ({ visible, onC
               <Input label="Daily Rental Rate (₹ / day)" placeholder="e.g. 3500" value={rentalPricePerDay} onChangeText={setRentalPricePerDay} keyboardType="numeric" />
             )}
 
-            <Input label="Equipment Condition" placeholder="e.g. Like New / Excellent / Brand New" value={condition} onChangeText={setCondition} />
+            <Input label="Equipment Condition" placeholder="e.g. Like New / Excellent / Brand New" value={condition} onChangeText={(text) => setCondition(text as any)} />
             <Input label="Description & Included Accessories" placeholder="e.g. Includes 2 batteries, charger, and protective hard case." value={description} onChangeText={setDescription} multiline numberOfLines={3} style={{ height: 70 }} />
+            
+            {type === 'sale' && (
+              <View style={[styles.codContainer, { backgroundColor: colors.surfaceElevated }]}>
+                <View>
+                  <Text style={[styles.codTitle, { color: colors.textPrimary }]}>Cash on Delivery</Text>
+                  <Text style={[styles.codDesc, { color: colors.textSecondary }]}>Allow buyers to pay upon delivery.</Text>
+                </View>
+                <Switch
+                  value={codEnabled}
+                  onValueChange={setCodEnabled}
+                  trackColor={{ false: colors.border, true: '#3fb668' }}
+                />
+              </View>
+            )}
 
+            {/* ── Advanced E-Commerce Fields ── */}
+            <Text style={[styles.label, { color: colors.textPrimary, marginTop: 16, fontSize: 16, fontWeight: '700' }]}>Advanced Retail Details</Text>
+            
+            {type === 'sale' && (
+              <Input label="Sale Price (₹) - Optional" placeholder="Discounted price" value={salePrice} onChangeText={setSalePrice} keyboardType="numeric" />
+            )}
+            
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Input label="SKU" placeholder="Internal code" value={sku} onChangeText={setSku} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Input label="GTIN" placeholder="UPC/EAN" value={gtin} onChangeText={setGtin} />
+              </View>
+            </View>
+
+            <Input label="Bullet Points (One per line)" placeholder="Feature 1\nFeature 2..." value={bulletPoints} onChangeText={setBulletPoints} multiline numberOfLines={4} style={{ height: 80 }} />
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Input label="Item Dimensions" placeholder="10 x 5 x 2 cm" value={itemDimensions} onChangeText={setItemDimensions} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Input label="Item Weight" placeholder="200g" value={itemWeight} onChangeText={setItemWeight} />
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Input label="Package Dims" placeholder="12 x 7 x 4 cm" value={packageDimensions} onChangeText={setPackageDimensions} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Input label="Pkg Weight" placeholder="250g" value={packageWeight} onChangeText={setPackageWeight} />
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Input label="Country of Origin" placeholder="e.g. India" value={countryOfOrigin} onChangeText={setCountryOfOrigin} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Input label="Battery Info" placeholder="Lithium-ion included" value={batteryInfo} onChangeText={setBatteryInfo} />
+              </View>
+            </View>
+
+            <Input label="Safety Warnings" placeholder="e.g. Choking hazard - small parts" value={safetyWarnings} onChangeText={setSafetyWarnings} />
+            <Input label="Search Terms" placeholder="camera, lens, dslr (comma separated)" value={searchTerms} onChangeText={setSearchTerms} />
+            <Input label="Browse Nodes" placeholder="Electronics > Cameras (comma separated)" value={browseNodes} onChangeText={setBrowseNodes} />
+            
+            <View style={{ height: 40 }} />
             <Button
               title={type === 'sale' ? 'Publish Gear for Sale' : 'Publish Gear for Rent'}
               variant="primary"
               size="lg"
               loading={loading}
               onPress={handleSubmit}
-              style={{ backgroundColor: '#fc8019', marginTop: 16, marginBottom: 20 }}
+              style={{ backgroundColor: '#3fb668', marginTop: 16, marginBottom: 20 }}
             />
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -247,20 +374,42 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   photoPicker: {
-    height: 140,
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
+    height: 140, borderRadius: 16, overflow: 'hidden', justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderStyle: 'dashed', borderColor: '#3fb668',
+  },
+  photoPreviewWrapper: {
+    width: 120, height: 120, borderRadius: 12, overflow: 'hidden', marginRight: 12, position: 'relative'
+  },
+  photoPreview: { width: '100%', height: '100%' },
+  removePhotoBtn: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 12,
+    padding: 4,
+  },
+  codContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 8,
   },
-  photoPreview: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
+  codTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 2,
   },
+  codDesc: {
+    fontSize: 12,
+  },
+  photoAddBtn: {
+    width: 120, height: 120, borderRadius: 12, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderStyle: 'dashed', borderColor: '#3fb668'
+  },
+  photoAddText: { fontSize: 12, marginTop: 8, fontWeight: '600' },
   photoPlaceholder: {
     alignItems: 'center',
     gap: 6,

@@ -1,83 +1,132 @@
-import { apiClient } from './client';
+import { supabase } from './supabaseClient';
 import { Order, CartItem, ShippingAddress } from '../types/order';
 
-const MOCK_ORDERS: Order[] = [
-  {
-    id: 'ORD-9821',
-    items: [
-      {
-        product: {
-          id: 'prod_1',
-          name: 'Sony FX3 Cinema Camera',
-          brand: 'Sony',
-          category: 'Cameras',
-          type: 'rental',
-          price: 299900,
-          rentalPricePerDay: 2500,
-          condition: 'New',
-          image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=800',
-          description: 'Full-frame Cinema Line camera with 4K 120p capability, dual native ISO, and S-Cinetone.',
-          specs: { Resolution: '4K 120p', Sensor: 'Full Frame', Mount: 'E-Mount' },
-          inStock: true,
-          rating: 4.9,
-        },
-        quantity: 1,
-        daysCount: 2,
-      },
-    ],
-    shippingAddress: {
-      fullName: 'John Doe',
-      phone: '9876543210',
-      addressLine1: '123 Main Street',
-      state: 'Maharashtra',
-      district: 'Mumbai',
-      city: 'Mumbai',
-      pincode: '400001',
-    },
-    subtotal: 5000,
-    shippingFee: 150,
-    tax: 900,
-    discount: 0,
-    total: 6050,
-    status: 'placed',
-    createdAt: new Date().toISOString(),
-    estimatedDelivery: '3-5 Business Days',
-  },
-];
+const mapOrder = (row: any): Order => {
+  return {
+    id: String(row.id),
+    orderType: row.order_type || 'sale',
+    items: Array.isArray(row.items) ? row.items : [],
+    shippingAddress: typeof row.shipping_address === 'object' ? row.shipping_address : {},
+    subtotal: Number(row.subtotal || 0),
+    shippingFee: Number(row.shipping_fee || 150),
+    tax: Number(row.tax || 0),
+    discount: Number(row.discount || 0),
+    total: Number(row.total_amount || row.total || 0),
+    status: row.status || 'placed',
+    createdAt: row.created_at,
+    estimatedDelivery: row.estimated_delivery || '3-5 Business Days',
+    awb_code: row.awb_code,
+    courier_name: row.courier_name,
+    shiprocket_order_id: row.shiprocket_order_id,
+  };
+};
 
 export const orderApi = {
-  createOrder: async (items: CartItem[], shippingAddress: ShippingAddress, subtotal: number, tax: number, total: number): Promise<Order> => {
-    try {
-      const res = await apiClient.post('/orders', { items, shippingAddress, subtotal, tax, total });
-      return res.data;
-    } catch (e) {
-      const newOrder: Order = {
-        id: 'ORD-' + Math.floor(1000 + Math.random() * 9000),
-        items,
-        shippingAddress,
-        subtotal,
-        shippingFee: 150,
-        tax,
-        discount: 0,
-        total,
-        status: 'placed',
-        createdAt: new Date().toISOString(),
-        estimatedDelivery: '3-5 Business Days',
-      };
-      MOCK_ORDERS.unshift(newOrder);
-      return newOrder;
+  createOrder: async (items: CartItem[], shippingAddress: ShippingAddress, subtotal: number, tax: number, total: number, paymentMethod: string = 'online'): Promise<Order> => {
+    const { data: userData } = await supabase.auth.getUser();
+    const clientId = userData?.user?.id;
+    if (!clientId) throw new Error('Not authenticated');
+
+    // Ensure the user exists in the public 'users' table to prevent foreign key constraint violations
+    const { data: existingUser } = await supabase.from('users').select('id').eq('id', clientId).single();
+    if (!existingUser) {
+      await supabase.from('users').insert([{
+        id: clientId,
+        name: userData.user?.user_metadata?.name || shippingAddress.fullName || 'Customer',
+        phone: userData.user?.phone || userData.user?.user_metadata?.phone || shippingAddress.phone || '0000000000',
+        email: userData.user?.email || '',
+        role: 'customer'
+      }]);
     }
+
+    const newOrderRow = {
+      user_id: clientId,          // schema uses user_id not client_id
+      order_type: 'sale',
+      total_amount: total,        // schema column is total_amount
+      status: 'pending',
+      fulfillment_mode: 'courier',
+      items,
+      shipping_address: shippingAddress,
+      subtotal,
+      tax,
+      shipping_fee: 150, // Assuming fixed fee as per UI
+      discount: subtotal + tax + 150 - total > 0 ? subtotal + tax + 150 - total : 0,
+      payment_method: paymentMethod
+    };
+
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([newOrderRow])
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+    
+    return mapOrder(data);
   },
 
   getOrders: async (): Promise<Order[]> => {
-    try {
-      const res = await apiClient.get('/orders');
-      if (Array.isArray(res.data)) return res.data;
-      if (res.data && Array.isArray(res.data.orders)) return res.data.orders;
-      if (res.data && Array.isArray(res.data.data)) return res.data.data;
-      throw new Error('Not an array');
-    } catch (e) {
-      return MOCK_ORDERS;
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return [];
+
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('user_id', userData.user.id)   // fixed: user_id not client_id
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Error fetching orders:', error);
+      return [];
     }
+
+    return (data || []).map(mapOrder);
+  },
+
+  createRentalOrder: async (item: CartItem, subtotal: number, tax: number, total: number, shippingAddress?: ShippingAddress, paymentMethod: string = 'online'): Promise<Order> => {
+    const { data: userData } = await supabase.auth.getUser();
+    const customerId = userData?.user?.id;
+    if (!customerId) throw new Error('Not authenticated');
+
+    // Ensure the user exists in the public 'users' table to prevent foreign key constraint violations
+    const { data: existingUser } = await supabase.from('users').select('id').eq('id', customerId).single();
+    if (!existingUser) {
+      await supabase.from('users').insert([{
+        id: customerId,
+        name: userData.user?.user_metadata?.name || shippingAddress?.fullName || 'Customer',
+        phone: userData.user?.phone || userData.user?.user_metadata?.phone || shippingAddress?.phone || '0000000000',
+        email: userData.user?.email || '',
+        role: 'customer'
+      }]);
+    }
+
+    const newOrderRow = {
+      user_id: customerId,
+      order_type: 'rental',
+      total_amount: total,
+      status: 'confirmed',
+      fulfillment_mode: 'courier',
+      items: [item],
+      shipping_address: shippingAddress || {},
+      subtotal,
+      tax,
+      shipping_fee: 0,
+      discount: 0,
+      payment_method: paymentMethod
+    };
+
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([newOrderRow])
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+    
+    return mapOrder(data);
   },
 };

@@ -80,7 +80,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             size="lg"
             loading={loading}
             onPress={handleSubmit}
-            style={{ backgroundColor: '#fc8019', marginTop: 16 }}
+            style={{ backgroundColor: '#3fb668', marginTop: 16 }}
           />
         </View>
       </View>

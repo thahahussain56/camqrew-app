@@ -9,9 +9,11 @@ import {
   TextInput,
   Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import { useNotificationStore } from '../../store/notificationStore';
 import { professionalApi } from '../../api/professionalApi';
+import { studioApi } from '../../api/studioApi';
 import { productApi } from '../../api/productApi';
 import { ProfessionalProfile } from '../../types/professional';
 import { Product } from '../../types/product';
@@ -31,65 +33,39 @@ import {
   X,
   Star,
   Zap,
+  MessageSquare,
+  Video,
+  Building2,
+  Film,
+  Package,
+  Briefcase,
 } from 'lucide-react-native';
-
-const POPULAR_CITIES = [
-  { city: 'Mumbai', state: 'Maharashtra' },
-  { city: 'Bengaluru', state: 'Karnataka' },
-  { city: 'Hyderabad', state: 'Telangana' },
-  { city: 'Delhi NCR', state: 'Delhi' },
-  { city: 'Pune', state: 'Maharashtra' },
-  { city: 'Chennai', state: 'Tamil Nadu' },
-  { city: 'Kochi', state: 'Kerala' },
-  { city: 'Goa', state: 'Goa' },
-  { city: 'Kolkata', state: 'West Bengal' },
-  { city: 'Ahmedabad', state: 'Gujarat' },
-  { city: 'Jaipur', state: 'Rajasthan' },
-  { city: 'Chandigarh', state: 'Punjab' },
-];
-
-const CATEGORY_BUBBLES = [
-  {
-    id: 'cat_1',
-    name: 'Wedding',
-    icon: 'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=200',
-  },
-  {
-    id: 'cat_2',
-    name: 'Cinema',
-    icon: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=200',
-  },
-  {
-    id: 'cat_3',
-    name: 'Fashion',
-    icon: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=200',
-  },
-  {
-    id: 'cat_4',
-    name: 'Catering',
-    icon: 'https://images.unsplash.com/photo-1555244162-803834f70033?q=80&w=200',
-  },
-  {
-    id: 'cat_5',
-    name: 'Web Dev',
-    icon: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=200',
-  },
-  {
-    id: 'cat_6',
-    name: 'Drone FX',
-    icon: 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=200',
-  },
-];
-
 import { ALL_INDIAN_CITIES } from '../../constants/locations';
-import * as Location from 'expo-location';
+import { useLocationStore } from '../../store/locationStore';
+
+const CREATOR_BUBBLES = [
+  { id: 'cat_1', name: 'Photographers', icon: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=200' },
+  { id: 'cat_2', name: 'Videographers', icon: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=200' },
+  { id: 'cat_3', name: 'Designers', icon: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=200' },
+  { id: 'cat_4', name: 'Developers', icon: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=200' },
+  { id: 'cat_5', name: 'Organisers', icon: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=200' },
+  { id: 'cat_6', name: 'Caterers', icon: 'https://images.unsplash.com/photo-1555244162-803834f70033?q=80&w=200' },
+];
+
+const STUDIO_BUBBLES = [
+  { id: 'st_1', name: 'Green Screen', icon: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=200' },
+  { id: 'st_2', name: 'Sound Stage', icon: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=200' },
+  { id: 'st_3', name: 'Photo Bay', icon: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=200' },
+  { id: 'st_4', name: 'VFX Bay', icon: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=200' },
+  { id: 'st_5', name: 'Podcast', icon: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?q=80&w=200' },
+];
 
 export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors, isDark } = useTheme();
   const { notifications, unreadCount } = useNotificationStore();
   const { addItem } = useCartStore();
+  const { selectedCity, setSelectedCity, loadPersistedLocation, isLoadingLocation } = useLocationStore();
 
-  const [selectedCity, setSelectedCity] = useState({ city: 'Mumbai', state: 'Maharashtra' });
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [locationSearch, setLocationSearch] = useState('');
 
@@ -99,8 +75,8 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     c.district.toLowerCase().includes(locationSearch.toLowerCase())
   );
 
-  const [activeSegment, setActiveSegment] = useState<'creators' | 'rentals' | 'store'>('creators');
-  const [selectedBubble, setSelectedBubble] = useState('Wedding');
+  const [activeSegment, setActiveSegment] = useState<'creators' | 'studios' | 'rentals' | 'store'>('creators');
+  const [selectedBubble, setSelectedBubble] = useState('');
   const [verifiedOnly, setVerifiedOnly] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -109,95 +85,49 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const [toastMsg, setToastMsg] = useState('');
   const [featuredPros, setFeaturedPros] = useState<ProfessionalProfile[]>([]);
+  const [featuredStudios, setFeaturedStudios] = useState<ProfessionalProfile[]>([]);
   const [featuredGear, setFeaturedGear] = useState<Product[]>([]);
 
   useEffect(() => {
+    loadPersistedLocation();
     professionalApi.getProfessionals().then(res => setFeaturedPros(Array.isArray(res) ? res : []));
+    studioApi.getStudios().then(res => setFeaturedStudios(Array.isArray(res) ? res : []));
     productApi.getProducts().then(res => setFeaturedGear(Array.isArray(res) ? res : []));
   }, []);
 
-  useEffect(() => {
-    const detectLocation = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          console.log('Location permission denied');
-          return;
-        }
-
-        const loc = await Location.getCurrentPositionAsync({});
-        const geocodes = await Location.reverseGeocodeAsync({
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-        });
-
-        if (geocodes && geocodes.length > 0) {
-          const geocode = geocodes[0];
-          const detectedCity = geocode.city || geocode.subregion || geocode.district;
-          
-          if (detectedCity) {
-            // Find a match in our location database
-            const match = ALL_INDIAN_CITIES.find(
-              c =>
-                c.city.toLowerCase().includes(detectedCity.toLowerCase()) ||
-                detectedCity.toLowerCase().includes(c.city.toLowerCase())
-            );
-
-            if (match) {
-              setSelectedCity({ city: match.city, state: match.state });
-              setToastMsg(`Location auto-detected: ${match.city}, ${match.state}`);
-            } else {
-              // Try matching district
-              const matchDist = ALL_INDIAN_CITIES.find(
-                c =>
-                  geocode.district &&
-                  (c.district.toLowerCase().includes(geocode.district.toLowerCase()) ||
-                    geocode.district.toLowerCase().includes(c.district.toLowerCase()))
-              );
-              if (matchDist) {
-                setSelectedCity({ city: matchDist.city, state: matchDist.state });
-                setToastMsg(`Location auto-detected: ${matchDist.city}, ${matchDist.state}`);
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.warn('Error auto-detecting location:', error);
+  const getFilteredList = (list: ProfessionalProfile[]) => {
+    return list.filter(pro => {
+      if (selectedBubble && !(pro.categories || []).includes(selectedBubble)) return false;
+      if (verifiedOnly && !pro.verified) return false;
+      if (ratingFilter && (pro.rating ?? 0) < 4.5) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matchName = pro.name.toLowerCase().includes(q);
+        const matchCat = (pro.categories || []).some(c => c.toLowerCase().includes(q));
+        if (!matchName && !matchCat) return false;
       }
-    };
+      return true;
+    });
+  };
 
-    detectLocation();
-  }, []);
-
-  const safePros = (Array.isArray(featuredPros) ? featuredPros : []).filter(pro => {
-    if (verifiedOnly && !pro.verified) return false;
-    if (ratingFilter && (pro.rating ?? 0) < 4.5) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const matchName = pro.name.toLowerCase().includes(q);
-      const matchCat = (pro.categories || []).some(c => c.toLowerCase().includes(q));
-      if (!matchName && !matchCat) return false;
-    }
-    return true;
-  });
-
+  const safePros = getFilteredList(featuredPros);
+  const safeStudios = getFilteredList(featuredStudios);
   const safeGear = Array.isArray(featuredGear) ? featuredGear : [];
   const recentNotification = notifications && notifications.length > 0 ? notifications[0] : null;
 
+  const currentBubbles = activeSegment === 'studios' ? STUDIO_BUBBLES : CREATOR_BUBBLES;
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <Toast visible={!!toastMsg} message={toastMsg} type="success" onDismiss={() => setToastMsg('')} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Brand Logo Row Above Location */}
         <View style={styles.brandHeaderRow}>
           <Image
-            source={
-              isDark
-                ? require('../../../assets/camcrew-logo-white.png')
-                : require('../../../assets/camcrew-logo-dark.png')
-            }
+            source={isDark ? require('../../../assets/camcrew-logo-white.png') : require('../../../assets/camcrew-logo-dark.png')}
             style={styles.brandLogo}
+            resizeMode="contain"
           />
         </View>
 
@@ -209,128 +139,123 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             onPress={() => setShowLocationModal(true)}
           >
             <View style={styles.locationLabelRow}>
-              <MapPin size={14} color="#fc8019" />
-              <Text style={styles.locationLabel}>LOCATION</Text>
-              <ChevronDown size={14} color="#fc8019" />
+              <MapPin size={12} color={colors.accent} strokeWidth={3} />
+              <Text style={[styles.locationLabel, { color: colors.textSecondary }]}>CURRENT LOCATION</Text>
             </View>
             <Text style={[styles.selectedCityText, { color: colors.textPrimary }]} numberOfLines={1}>
-              {selectedCity.city}, {selectedCity.state}
+              {isLoadingLocation ? 'Detecting...' : `${selectedCity.city}, ${selectedCity.state}`}
             </Text>
           </TouchableOpacity>
 
-          {/* Top Bell Button */}
-          <TouchableOpacity
-            style={[styles.topBellBtn, { backgroundColor: colors.surfaceCard }]}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('Notifications')}
-          >
-            <Bell size={20} color={colors.textPrimary} />
-            {unreadCount > 0 && (
-              <View style={styles.bellBadgeDot}>
-                <Text style={styles.bellBadgeText}>{unreadCount}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            {/* Create Job Request Button */}
+            <TouchableOpacity
+              style={[styles.topBellBtn, { backgroundColor: colors.accentGlow, borderColor: colors.accent, borderWidth: 1 }]}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('CreateJob')}
+            >
+              <Briefcase size={20} color={colors.accent} />
+            </TouchableOpacity>
+
+            {/* Top Message Button */}
+            <TouchableOpacity
+              style={[styles.topBellBtn, { backgroundColor: colors.surfaceCard }]}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('ChatList')}
+            >
+              <MessageSquare size={20} color={colors.textPrimary} />
+              <View style={[styles.bellBadgeDot, { backgroundColor: '#ef4444' }]}>
+                <Text style={styles.bellBadgeText}>3</Text>
               </View>
-            )}
-          </TouchableOpacity>
+            </TouchableOpacity>
+
+            {/* Top Bell Button */}
+            <TouchableOpacity
+              style={[styles.topBellBtn, { backgroundColor: colors.surfaceCard }]}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('Notifications')}
+            >
+              <Bell size={20} color={colors.textPrimary} />
+              {unreadCount > 0 && (
+                <View style={[styles.bellBadgeDot, { backgroundColor: '#ef4444' }]}>
+                  <Text style={styles.bellBadgeText}>{unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* 2. Top Segmented Mode Pills (Fully Functioning Navigation) */}
-        <View style={styles.modePillsRow}>
+        {/* 2. Top Segmented Mode Pills */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.modePillsScroll}>
           <TouchableOpacity
-            style={[
-              styles.modePill,
-              activeSegment === 'creators' && styles.modePillActive,
-              { backgroundColor: colors.surfaceCard },
-            ]}
+            style={[styles.modePill, { backgroundColor: colors.surfaceCard }, activeSegment === 'creators' && { backgroundColor: colors.accentGlow }]}
             onPress={() => setActiveSegment('creators')}
           >
-            <Text style={styles.modeEmoji}>🎥</Text>
-            <Text
-              style={[
-                styles.modePillText,
-                { color: activeSegment === 'creators' ? '#fc8019' : colors.textPrimary },
-              ]}
-            >
+            <Video size={16} color={activeSegment === 'creators' ? colors.accent : colors.textPrimary} style={{ marginRight: 6 }} />
+            <Text style={[styles.modePillText, { color: activeSegment === 'creators' ? colors.accent : colors.textPrimary }]}>
               Creators
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.modePill,
-              activeSegment === 'rentals' && styles.modePillActive,
-              { backgroundColor: colors.surfaceCard },
-            ]}
+            style={[styles.modePill, { backgroundColor: colors.surfaceCard }, activeSegment === 'studios' && { backgroundColor: colors.accentGlow }]}
+            onPress={() => setActiveSegment('studios')}
+          >
+            <Building2 size={16} color={activeSegment === 'studios' ? colors.accent : colors.textPrimary} style={{ marginRight: 6 }} />
+            <Text style={[styles.modePillText, { color: activeSegment === 'studios' ? colors.accent : colors.textPrimary }]}>
+              Studios
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.modePill, { backgroundColor: colors.surfaceCard }, activeSegment === 'rentals' && { backgroundColor: colors.accentGlow }]}
             onPress={() => {
               setActiveSegment('rentals');
-              navigation.navigate('MarketplaceTab', { screen: 'MarketplaceMain', params: { initialType: 'rental' } });
+              navigation.navigate('MarketplaceTab', { screen: 'MarketplaceScreen', params: { initialType: 'rental' } });
             }}
           >
-            <Text style={styles.modeEmoji}>🎬</Text>
-            <Text
-              style={[
-                styles.modePillText,
-                { color: activeSegment === 'rentals' ? '#fc8019' : colors.textPrimary },
-              ]}
-            >
+            <Film size={16} color={activeSegment === 'rentals' ? colors.accent : colors.textPrimary} style={{ marginRight: 6 }} />
+            <Text style={[styles.modePillText, { color: activeSegment === 'rentals' ? colors.accent : colors.textPrimary }]}>
               Gear Rental
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.modePill,
-              activeSegment === 'store' && styles.modePillActive,
-              { backgroundColor: colors.surfaceCard },
-            ]}
+            style={[styles.modePill, { backgroundColor: colors.surfaceCard }, activeSegment === 'store' && { backgroundColor: colors.accentGlow }]}
             onPress={() => {
               setActiveSegment('store');
-              navigation.navigate('MarketplaceTab', { screen: 'MarketplaceMain', params: { initialType: 'sale' } });
+              navigation.navigate('MarketplaceTab', { screen: 'MarketplaceScreen', params: { initialType: 'sale' } });
             }}
           >
-            <Text style={styles.modeEmoji}>📦</Text>
-            <Text
-              style={[
-                styles.modePillText,
-                { color: activeSegment === 'store' ? '#fc8019' : colors.textPrimary },
-              ]}
-            >
+            <Package size={16} color={activeSegment === 'store' ? colors.accent : colors.textPrimary} style={{ marginRight: 6 }} />
+            <Text style={[styles.modePillText, { color: activeSegment === 'store' ? colors.accent : colors.textPrimary }]}>
               Gear Store
             </Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
 
         {/* 3. Search & Voice Mic Bar */}
         <View style={styles.searchBarRow}>
           <View style={[styles.searchInputWrapper, { backgroundColor: colors.surfaceCard }]}>
             <Search size={18} color={colors.textFaint} style={{ marginLeft: 14 }} />
             <TextInput
-              placeholder="Search for 'Wedding', 'Sony FX3'..."
+              placeholder={activeSegment === 'studios' ? "Search 'Green Screen', 'VFX'..." : "Search 'Wedding', 'Sony FX3'..."}
               placeholderTextColor={colors.textFaint}
               value={searchQuery}
               onChangeText={setSearchQuery}
               style={[styles.searchInput, { color: colors.textPrimary }]}
             />
-            <TouchableOpacity
-              style={styles.micBtn}
-              onPress={() => {
-                setToastMsg('Listening for voice search query...');
-              }}
-            >
-              <Mic size={18} color="#fc8019" />
+            <TouchableOpacity style={styles.micBtn}>
+              <Mic size={18} color={colors.accent} />
             </TouchableOpacity>
           </View>
 
           <TouchableOpacity
-            style={[
-              styles.verifiedToggleBtn,
-              {
-                backgroundColor: verifiedOnly ? 'rgba(22, 163, 74, 0.12)' : colors.surfaceCard,
-              },
-            ]}
+            style={[styles.verifiedToggleBtn, { backgroundColor: verifiedOnly ? 'rgba(34, 197, 94, 0.15)' : colors.surfaceCard }]}
             onPress={() => setVerifiedOnly(!verifiedOnly)}
           >
-            <Text style={[styles.verifiedToggleLabel, { color: verifiedOnly ? '#16a34a' : colors.textFaint }]}>VERIFIED</Text>
-            <View style={[styles.toggleDot, { backgroundColor: verifiedOnly ? '#16a34a' : colors.textFaint }]}>
+            <Text style={[styles.verifiedToggleLabel, { color: verifiedOnly ? colors.success : colors.textFaint }]}>VERIFIED</Text>
+            <View style={[styles.toggleDot, { backgroundColor: verifiedOnly ? colors.success : colors.textFaint }]}>
               {verifiedOnly && <Check size={8} color="#ffffff" />}
             </View>
           </TouchableOpacity>
@@ -338,26 +263,25 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         {/* 4. Circular Category Story Bubbles */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bubblesScroll}>
-          {CATEGORY_BUBBLES.map(b => {
+          {currentBubbles.map(b => {
             const isActive = selectedBubble === b.name;
             return (
               <TouchableOpacity
                 key={b.id}
                 style={styles.bubbleItem}
                 onPress={() => {
-                  setSelectedBubble(b.name);
-                  navigation.navigate('ExploreTab', { screen: 'ServicesList', params: { category: b.name } });
+                  setSelectedBubble(isActive ? '' : b.name);
                 }}
               >
-                <View style={[styles.bubbleRing, isActive && styles.bubbleRingActive]}>
+                <View style={[styles.bubbleRing, isActive && { borderColor: colors.accent }]}>
                   <Image source={{ uri: b.icon }} style={styles.bubbleImg} />
                   {isActive && (
-                    <View style={styles.checkBadge}>
+                    <View style={[styles.checkBadge, { backgroundColor: colors.accent, borderColor: colors.background }]}>
                       <Check size={8} color="#ffffff" />
                     </View>
                   )}
                 </View>
-                <Text style={[styles.bubbleName, { color: isActive ? '#fc8019' : colors.textPrimary }]}>
+                <Text style={[styles.bubbleName, { color: isActive ? colors.accent : colors.textPrimary }]}>
                   {b.name}
                 </Text>
               </TouchableOpacity>
@@ -367,81 +291,55 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         {/* 5. Filter Chips Bar */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
-          <TouchableOpacity
-            style={[styles.filterChip, { backgroundColor: colors.surfaceCard }]}
-            onPress={() => navigation.navigate('ExploreTab', { screen: 'ServicesList' })}
-          >
+          <TouchableOpacity style={[styles.filterChip, { backgroundColor: colors.surfaceCard }]} onPress={() => navigation.navigate('ExploreTab', { screen: 'ServicesList' })}>
             <SlidersHorizontal size={14} color={colors.textPrimary} />
             <Text style={[styles.filterChipText, { color: colors.textPrimary }]}>Filter</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.filterChip, { backgroundColor: colors.surfaceCard }]}
-            onPress={() => {
-              setToastMsg('Sorted by Rating & Popularity');
-            }}
-          >
+          <TouchableOpacity style={[styles.filterChip, { backgroundColor: colors.surfaceCard }]}>
             <Text style={[styles.filterChipText, { color: colors.textPrimary }]}>Sort By</Text>
             <ChevronDown size={14} color={colors.textPrimary} />
           </TouchableOpacity>
-
           <TouchableOpacity
-            style={[
-              styles.filterChip,
-              { backgroundColor: instantFilter ? 'rgba(252, 128, 25, 0.2)' : 'rgba(252, 128, 25, 0.12)' },
-            ]}
-            onPress={() => {
-              setInstantFilter(!instantFilter);
-              setToastMsg(instantFilter ? 'Showing all bookings' : 'Filtered by Instant Booking');
-            }}
+            style={[styles.filterChip, { backgroundColor: instantFilter ? colors.accentGlow : colors.surfaceCard }]}
+            onPress={() => setInstantFilter(!instantFilter)}
           >
-            <Text style={[styles.filterChipText, { color: '#fc8019' }]}>⚡ Instant Booking</Text>
+            <Text style={[styles.filterChipText, { color: instantFilter ? colors.accent : colors.textPrimary }]}>Instant Booking</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
-            style={[
-              styles.filterChip,
-              { backgroundColor: ratingFilter ? 'rgba(245, 158, 11, 0.2)' : colors.surfaceCard },
-            ]}
-            onPress={() => {
-              setRatingFilter(!ratingFilter);
-              setToastMsg(ratingFilter ? 'Showing all ratings' : 'Filtered 4.5+ Rated creators');
-            }}
+            style={[styles.filterChip, { backgroundColor: ratingFilter ? 'rgba(245, 158, 11, 0.15)' : colors.surfaceCard }]}
+            onPress={() => setRatingFilter(!ratingFilter)}
           >
-            <Text style={[styles.filterChipText, { color: ratingFilter ? '#f59e0b' : colors.textPrimary }]}>
-              ⭐ 4.5+ Rated
-            </Text>
+            <Text style={[styles.filterChipText, { color: ratingFilter ? colors.warning : colors.textPrimary }]}>4.5+ Rated</Text>
           </TouchableOpacity>
         </ScrollView>
 
-        {/* 6. Section Header */}
+        {/* 6. Main Feed Segment */}
         <View style={styles.sectionHeader}>
           <View>
             <Text style={[styles.exploreCount, { color: colors.textPrimary }]}>
-              {safePros.length} Creators & Studios in {selectedCity.city}
+              {activeSegment === 'studios' ? safeStudios.length : safePros.length} {activeSegment === 'studios' ? 'Studios' : 'Creators'} in {selectedCity.city}
             </Text>
-            <Text style={[styles.sectionSub, { color: colors.textFaint }]}>Top Rated Creative Studios</Text>
+            <Text style={[styles.sectionSub, { color: colors.textFaint }]}>Top Rated {activeSegment === 'studios' ? 'Studio Bays' : 'Creative Professionals'}</Text>
           </View>
         </View>
 
-        {/* 7. Creators List */}
-        {safePros.map(pro => (
+        {(activeSegment === 'studios' ? safeStudios : safePros).map(pro => (
           <ProCard
             key={pro.id}
             professional={{ ...pro, city: pro.city || selectedCity.city, state: pro.state || selectedCity.state }}
-            onPressProfile={() => navigation.navigate('PublicProfile', { id: pro.id })}
-            onPressBook={() => navigation.navigate('Booking', { proId: pro.id })}
+            onPressProfile={() => navigation.navigate('PublicProfile', { id: pro.id, type: activeSegment === 'studios' ? 'studios' : 'professionals' })}
+            onPressBook={() => navigation.navigate('Booking', { proId: pro.id, type: activeSegment === 'studios' ? 'studios' : 'professionals' })}
           />
         ))}
 
-        {/* 8. Cinema Gear Section */}
-        <View style={styles.sectionHeader}>
+        {/* 7. Cinema Gear Section */}
+        <View style={[styles.sectionHeader, { marginTop: 24 }]}>
           <View>
             <Text style={[styles.exploreCount, { color: colors.textPrimary }]}>Cinema Gear Marketplace</Text>
             <Text style={[styles.sectionSub, { color: colors.textFaint }]}>Rent or Buy Professional Equipment</Text>
           </View>
           <TouchableOpacity onPress={() => navigation.navigate('MarketplaceTab')}>
-            <Text style={[styles.seeAllText, { color: '#fc8019' }]}>Shop All →</Text>
+            <Text style={[styles.seeAllText, { color: colors.accent }]}>Shop All →</Text>
           </TouchableOpacity>
         </View>
 
@@ -460,51 +358,22 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         </View>
       </ScrollView>
 
-      {/* 9. Recent Notification Banner */}
-      {recentNotification && (
-        <TouchableOpacity
-          style={[styles.recentNotifBanner, { backgroundColor: colors.surfaceCard }]}
-          activeOpacity={0.88}
-          onPress={() => navigation.navigate('Notifications')}
-        >
-          <View style={styles.notifIconBox}>
-            <Bell size={18} color="#ffffff" />
-          </View>
-
-          <View style={styles.notifMeta}>
-            <View style={styles.notifHeaderRow}>
-              <Text style={[styles.notifTitle, { color: colors.textPrimary }]} numberOfLines={1}>
-                {recentNotification.title}
-              </Text>
-              <Text style={styles.notifTime}>{recentNotification.timestamp}</Text>
-            </View>
-            <Text style={[styles.notifBody, { color: colors.textSecondary }]} numberOfLines={1}>
-              {recentNotification.body}
-            </Text>
-          </View>
-
-          <ChevronRight size={18} color={colors.textFaint} />
-        </TouchableOpacity>
-      )}
-
-      {/* 10. Editable Location City Selector Modal */}
+      {/* Editable Location City Selector Modal */}
       <Modal visible={showLocationModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: colors.surfaceCard }]}>
             <View style={styles.modalHeader}>
               <View>
                 <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Select Your City</Text>
-                <Text style={[styles.modalSub, { color: colors.textFaint }]}>
-                  Show creators & gear available in your location
-                </Text>
+                <Text style={[styles.modalSub, { color: colors.textFaint }]}>Show creators, studios & gear in your location</Text>
               </View>
-              <TouchableOpacity onPress={() => setShowLocationModal(false)} style={styles.closeBtn}>
-                <X size={20} color={colors.textPrimary} />
+              <TouchableOpacity onPress={() => setShowLocationModal(false)} style={[styles.closeBtn, { backgroundColor: colors.background }]}>
+                <X size={24} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
             <View style={[styles.modalSearchWrapper, { backgroundColor: colors.background }]}>
-              <Search size={16} color={colors.textFaint} style={{ marginLeft: 12 }} />
+              <Search size={18} color={colors.textFaint} style={{ marginLeft: 14 }} />
               <TextInput
                 placeholder="Search city or state..."
                 placeholderTextColor={colors.textFaint}
@@ -514,30 +383,25 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               />
             </View>
 
-            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
               {filteredCities.map(item => {
                 const isSelected = selectedCity.city === item.city;
                 return (
                   <TouchableOpacity
                     key={`${item.state}-${item.district}-${item.city}`}
-                    style={[
-                      styles.cityRow,
-                      isSelected && { backgroundColor: 'rgba(252, 128, 25, 0.1)' },
-                    ]}
+                    style={[styles.cityRow, isSelected && { backgroundColor: colors.accentGlow }]}
                     onPress={() => {
                       setSelectedCity(item);
                       setShowLocationModal(false);
                       setToastMsg(`Location updated to ${item.city}, ${item.state}`);
                     }}
                   >
-                    <MapPin size={18} color={isSelected ? '#fc8019' : colors.textFaint} />
+                    <MapPin size={20} color={isSelected ? colors.accent : colors.textFaint} />
                     <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={[styles.cityName, { color: isSelected ? '#fc8019' : colors.textPrimary }]}>
-                        {item.city}
-                      </Text>
-                      <Text style={[styles.stateName, { color: colors.textFaint }]}>{item.state}</Text>
+                      <Text style={[styles.cityName, { color: isSelected ? colors.accent : colors.textPrimary }]}>{item.city}</Text>
+                      <Text style={[styles.stateName, { color: colors.textSecondary }]}>{item.state}</Text>
                     </View>
-                    {isSelected && <Check size={18} color="#fc8019" />}
+                    {isSelected && <Check size={20} color={colors.accent} />}
                   </TouchableOpacity>
                 );
               })}
@@ -545,362 +409,82 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-    paddingTop: 64,
-    paddingBottom: 165,
-  },
-  brandHeaderRow: {
-    marginBottom: 10,
-    alignItems: 'flex-start',
-  },
-  brandLogo: {
-    width: 160,
-    height: 34,
-    resizeMode: 'contain',
-  },
-  topLocationRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  locationMeta: {
-    flex: 1,
-  },
-  locationLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  locationLabel: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#fc8019',
-    letterSpacing: 1,
-  },
-  selectedCityText: {
-    fontSize: 18,
-    fontWeight: '900',
-    marginTop: 2,
-  },
+  container: { flex: 1 },
+  content: { padding: 16, paddingTop: 10, paddingBottom: 160 },
+  brandHeaderRow: { marginBottom: 12, alignItems: 'flex-start' },
+  brandLogo: { width: 160, height: 40 },
+  topLocationRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  locationMeta: { flex: 1 },
+  locationLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  locationLabel: { fontSize: 11, fontWeight: '900', letterSpacing: 1 },
+  selectedCityText: { fontSize: 20, fontWeight: '900', marginTop: 4 },
   topBellBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
-    position: 'relative',
+    width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 3, position: 'relative',
   },
   bellBadgeDot: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: '#fc8019',
-    borderRadius: 10,
-    minWidth: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
+    position: 'absolute', top: 6, right: 6, borderRadius: 10, minWidth: 16, height: 16,
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
   },
-  bellBadgeText: {
-    color: '#ffffff',
-    fontSize: 9,
-    fontWeight: '900',
-  },
-  modePillsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
+  bellBadgeText: { color: '#ffffff', fontSize: 10, fontWeight: '900' },
+  
+  modePillsScroll: { marginBottom: 16, flexGrow: 0 },
   modePill: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, paddingHorizontal: 16,
+    borderRadius: 16, marginRight: 10,
   },
-  modePillActive: {
-    backgroundColor: 'rgba(252, 128, 25, 0.12)',
-  },
-  modeEmoji: {
-    fontSize: 16,
-    marginRight: 6,
-  },
-  modePillText: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  searchBarRow: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    marginBottom: 18,
-  },
+  modeEmoji: { fontSize: 16, marginRight: 6 },
+  modePillText: { fontSize: 14, fontWeight: '800' },
+  
+  searchBarRow: { flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 20 },
   searchInputWrapper: {
-    flex: 1,
-    height: 50,
-    borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    flex: 1, height: 54, borderRadius: 16, flexDirection: 'row', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    paddingHorizontal: 8,
-    height: '100%',
-  },
-  micBtn: {
-    padding: 12,
-  },
+  searchInput: { flex: 1, fontSize: 15, paddingHorizontal: 12, height: '100%' },
+  micBtn: { padding: 14 },
   verifiedToggleBtn: {
-    height: 50,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    height: 54, paddingHorizontal: 14, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
   },
-  verifiedToggleLabel: {
-    fontSize: 9,
-    fontWeight: '900',
-  },
-  toggleDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  bubblesScroll: {
-    marginBottom: 18,
-  },
-  bubbleItem: {
-    alignItems: 'center',
-    marginRight: 16,
-    width: 64,
-  },
-  bubbleRing: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    padding: 2,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    position: 'relative',
-  },
-  bubbleRingActive: {
-    borderColor: '#fc8019',
-  },
-  bubbleImg: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 27,
-  },
-  checkBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: '#fc8019',
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bubbleName: {
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  filtersScroll: {
-    marginBottom: 22,
-  },
+  verifiedToggleLabel: { fontSize: 10, fontWeight: '900' },
+  toggleDot: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  
+  bubblesScroll: { marginBottom: 20, flexGrow: 0 },
+  bubbleItem: { alignItems: 'center', marginRight: 18, width: 70 },
+  bubbleRing: { width: 64, height: 64, borderRadius: 32, padding: 3, borderWidth: 2, borderColor: 'transparent', position: 'relative' },
+  bubbleImg: { width: '100%', height: '100%', borderRadius: 30 },
+  checkBadge: { position: 'absolute', top: 0, right: 0, width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
+  bubbleName: { fontSize: 12, fontWeight: '700', marginTop: 6, textAlign: 'center' },
+  
+  filtersScroll: { marginBottom: 24, flexGrow: 0 },
   filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 12,
-    marginRight: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 10,
+    borderRadius: 14, marginRight: 10,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 1,
   },
-  filterChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 16,
-    marginTop: 6,
-  },
-  exploreCount: {
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  sectionSub: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  seeAllText: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  gearGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  recentNotifBanner: {
-    position: 'absolute',
-    bottom: 96,
-    left: 16,
-    right: 16,
-    borderRadius: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
-    elevation: 12,
-    zIndex: 20,
-  },
-  notifIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#fc8019',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  notifMeta: {
-    flex: 1,
-    marginRight: 8,
-  },
-  notifHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  notifTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    flex: 1,
-    marginRight: 6,
-  },
-  notifTime: {
-    fontSize: 10,
-    color: '#fc8019',
-    fontWeight: '700',
-  },
-  notifBody: {
-    fontSize: 11,
-    marginTop: 2,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    justifyContent: 'flex-end',
-  },
-  modalCard: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
-    borderWidth: 0,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-  },
-  modalSub: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  closeBtn: {
-    padding: 6,
-  },
-  modalSearchWrapper: {
-    height: 48,
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  modalSearchInput: {
-    flex: 1,
-    fontSize: 14,
-    paddingHorizontal: 8,
-    height: '100%',
-  },
-  cityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    borderRadius: 14,
-    marginBottom: 4,
-  },
-  cityName: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  stateName: {
-    fontSize: 12,
-    marginTop: 1,
-  },
+  filterChipText: { fontSize: 13, fontWeight: '700' },
+  
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 },
+  exploreCount: { fontSize: 20, fontWeight: '900' },
+  sectionSub: { fontSize: 13, fontWeight: '600', marginTop: 4 },
+  seeAllText: { fontSize: 14, fontWeight: '800' },
+  gearGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  modalCard: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40, maxHeight: '85%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+  modalTitle: { fontSize: 24, fontWeight: '900' },
+  modalSub: { fontSize: 14, fontWeight: '500', marginTop: 4 },
+  closeBtn: { padding: 4, borderRadius: 20 },
+  modalSearchWrapper: { height: 54, borderRadius: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  modalSearchInput: { flex: 1, fontSize: 16, paddingHorizontal: 12, height: '100%' },
+  cityRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 12, borderRadius: 16, marginBottom: 4 },
+  cityName: { fontSize: 16, fontWeight: '700' },
+  stateName: { fontSize: 13, marginTop: 2, fontWeight: '500' },
 });

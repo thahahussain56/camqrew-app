@@ -21,17 +21,19 @@ export const OrderDetailScreen: React.FC<{ navigation: any; route: any }> = ({ n
   }, []);
 
   const loadData = async () => {
-    const records = await escrowService.getEscrowRecords();
-    const found = records.find(r => r.orderId === orderId);
-    if (found) {
-      setEscrow(found);
-    } else {
-      setEscrow({
-        orderId,
-        depositAmount: 5000,
-        status: 'held_in_escrow',
-        heldAt: new Date().toISOString(),
-      });
+    if (route.params?.orderType === 'rental') {
+      const records = await escrowService.getEscrowRecords();
+      const found = records.find(r => r.orderId === orderId);
+      if (found) {
+        setEscrow(found);
+      } else {
+        setEscrow({
+          orderId,
+          depositAmount: 5000,
+          status: 'held_in_escrow',
+          heldAt: new Date().toISOString(),
+        });
+      }
     }
 
     const track = await trackingService.getLiveTracking(orderId);

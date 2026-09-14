@@ -1,4 +1,4 @@
-import { apiClient } from '../api/client';
+import { supabase } from '../api/supabaseClient';
 
 export interface DeliveryTrackingStep {
   title: string;
@@ -22,54 +22,101 @@ export interface LiveDeliveryTracking {
 }
 
 export const trackingService = {
-  getLiveTracking: async (orderId: string): Promise<LiveDeliveryTracking> => {
+  getLiveTracking: async (orderId: string): Promise<LiveDeliveryTracking | null> => {
     try {
-      const res = await apiClient.get(`/tracking/${orderId}`);
-      if (res.data && res.data.tracking) return res.data.tracking;
-      throw new Error('Not found');
-    } catch (e) {
-      // Fallback live Dunzo/Shiprocket tracking object
+      // First, fetch order from Supabase
+      const { data, error } = await supabase
+        .from('orders')
+        .select('awb_code, courier_name, status, created_at')
+        .eq('id', orderId)
+        .single();
+
+      if (error) {
+        console.warn('Error fetching tracking info from Supabase:', error.message);
+        return null;
+      }
+
+      if (!data || !data.awb_code) {
+        return null; // Tracking not yet initiated
+      }
+
+      const awbNumber = data.awb_code;
+      const courierPartner = data.courier_name || 'Shiprocket Direct';
+      
+      // Simulate Shiprocket live status based on DB status
+      let currentStatus: any = 'order_confirmed';
+      let timeline = [];
+
+      timeline.push({
+        title: 'Order Confirmed',
+        subtitle: 'Payment Verified',
+        timestamp: new Date(data.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        completed: true,
+        current: false,
+      });
+
+      if (data.status === 'shipped') {
+        currentStatus = 'out_for_delivery';
+        timeline.push({
+          title: 'Picked up by Courier',
+          subtitle: `Package handed over to ${courierPartner}`,
+          timestamp: 'In Transit',
+          completed: true,
+          current: false,
+        });
+        timeline.push({
+          title: 'Out for Delivery',
+          subtitle: 'Arriving Today',
+          timestamp: 'Estimated 2:30 PM',
+          completed: true,
+          current: true,
+        });
+        timeline.push({
+          title: 'Delivered',
+          subtitle: 'Waiting for handover',
+          timestamp: 'Pending',
+          completed: false,
+          current: false,
+        });
+      } else if (data.status === 'delivered') {
+         currentStatus = 'delivered';
+         timeline.push({
+          title: 'Picked up by Courier',
+          subtitle: `Package handed over to ${courierPartner}`,
+          timestamp: 'In Transit',
+          completed: true,
+          current: false,
+         });
+         timeline.push({
+          title: 'Out for Delivery',
+          subtitle: 'Arriving Today',
+          timestamp: 'Completed',
+          completed: true,
+          current: false,
+         });
+         timeline.push({
+          title: 'Delivered',
+          subtitle: 'Handed over successfully',
+          timestamp: 'Completed',
+          completed: true,
+          current: true,
+         });
+      }
+
       return {
         orderId,
-        courierPartner: 'Dunzo Express',
-        awbNumber: `DUNZO-MUM-${Math.floor(100000 + Math.random() * 900000)}`,
-        riderName: 'Vikram Singh',
-        riderPhone: '+91 98201 54321',
-        riderVehicle: 'EV Scooter (MH-02-CB-9021)',
-        estimatedArrival: 'Today, 2:30 PM (25 Mins away)',
-        currentStatus: 'out_for_delivery',
-        timeline: [
-          {
-            title: 'Order Confirmed & Payment Escrowed',
-            subtitle: 'Camera gear reserved in inventory',
-            timestamp: '10:00 AM',
-            completed: true,
-            current: false,
-          },
-          {
-            title: 'Sensor & Lens Quality Inspection Passed',
-            subtitle: 'Camera sanitized & sealed in waterproof hard case',
-            timestamp: '11:15 AM',
-            completed: true,
-            current: false,
-          },
-          {
-            title: 'Out for Delivery (Dunzo Express)',
-            subtitle: 'Rider Vikram Singh en route to your address',
-            timestamp: '1:45 PM',
-            completed: true,
-            current: true,
-          },
-          {
-            title: 'Handover & Aadhaar OTP Delivery',
-            subtitle: 'Arriving at Flat 402, Sunset Towers',
-            timestamp: 'Estimated 2:30 PM',
-            completed: false,
-            current: false,
-          },
-        ],
-        trackingUrl: 'https://shiprocket.co/tracking/DUNZO-MUM-981273',
+        courierPartner: courierPartner as any,
+        awbNumber: awbNumber,
+        riderName: 'Shiprocket Rider',
+        riderPhone: '+91 99999 00000',
+        riderVehicle: 'Delivery Van',
+        estimatedArrival: 'Today, 2:30 PM',
+        currentStatus,
+        timeline,
+        trackingUrl: `https://shiprocket.co/tracking/${awbNumber}`,
       };
+    } catch (e) {
+      return null;
     }
   },
 };

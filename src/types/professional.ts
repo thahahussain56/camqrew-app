@@ -1,10 +1,12 @@
 export interface ServiceItem {
   id: string;
+  type?: 'standard' | 'package';
   title: string;
   category: string;
   rate: number;
   unit: string;
   description: string;
+  deliverables?: string;
 }
 
 export interface ReviewItem {

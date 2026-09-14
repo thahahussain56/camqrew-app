@@ -36,8 +36,8 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
               style={[
                 styles.slotChip,
                 {
-                  backgroundColor: isSelected ? '#fc8019' : colors.background,
-                  borderColor: isSelected ? '#fc8019' : colors.border,
+                  backgroundColor: isSelected ? '#3fb668' : colors.background,
+                  borderColor: isSelected ? '#3fb668' : colors.border,
                 },
               ]}
               onPress={() => {
@@ -68,7 +68,7 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.titleRow}>
-              <Clock size={18} color="#fc8019" style={{ marginRight: 8 }} />
+              <Clock size={18} color="#3fb668" style={{ marginRight: 8 }} />
               <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>

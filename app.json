@@ -2,7 +2,7 @@
   "expo": {
     "name": "Camcrew Studio",
     "slug": "camcrew-app",
-    "sdkVersion": "54.0.0",
+    "sdkVersion": "57.0.0",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "in.camcrew.app"
+      "bundleIdentifier": "in.camcrew.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -28,7 +31,17 @@
     },
     "scheme": "camcrew",
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-web-browser",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "enableApplePay": true,
+          "merchantIdentifier": "merchant.in.camcrew.app"
+        }
+      ],
+      "expo-image",
+      "expo-status-bar"
     ],
     "extra": {
       "eas": {

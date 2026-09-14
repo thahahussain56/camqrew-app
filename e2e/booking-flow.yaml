@@ -1,0 +1,95 @@
+appId: host.exp.exponent
+---
+# ============================================================
+# FLOW 2: Booking Flow (with auto-login fallback)
+# ============================================================
+
+- openLink: exp://127.0.0.1:8081
+
+# Wait for either Home screen OR Login screen to appear
+- extendedWaitUntil:
+    visible: "CURRENT LOCATION|Welcome Back|Skip"
+    timeout: 25000
+
+# If we hit Onboarding, skip it
+- runFlow:
+    when:
+      visible: "Skip"
+    commands:
+      - tapOn: "Skip"
+
+# If we hit the Login screen, log in first
+- runFlow:
+    when:
+      visible: "Welcome Back"
+    commands:
+      - tapOn:
+          id: "input-email"
+      - inputText: "Thahapro@gmail.com"
+      - tapOn:
+          id: "input-password"
+      - inputText: "Qwerty"
+      - tapOn: "Welcome Back"
+      - tapOn:
+          id: "btn-login"
+      - extendedWaitUntil:
+          visible: "CURRENT LOCATION"
+          timeout: 10000
+
+# Now we are on Home screen — scroll to reveal pro cards
+- scroll
+
+- extendedWaitUntil:
+    visible: "Book Now"
+    timeout: 8000
+
+- tapOn: "Book Now"
+
+# Step 1 — Select Package (auto-selected, just continue)
+- extendedWaitUntil:
+    visible: "Select Package"
+    timeout: 10000
+
+- tapOn:
+    id: "btn-booking-next"
+
+# Step 2 — Schedule & Location
+- extendedWaitUntil:
+    visible: "Schedule Details"
+    timeout: 5000
+
+# Tap location input by its label text
+- tapOn: "Location / Venue Address"
+- inputText: "Koramangala, Bengaluru"
+
+# Dismiss keyboard by tapping section heading
+- tapOn: "Schedule Details"
+
+# Continue to Step 3
+- tapOn:
+    id: "btn-booking-next"
+
+# Step 3 — Contract
+- extendedWaitUntil:
+    visible: "Service Contract"
+    timeout: 5000
+
+# Agree to terms
+- tapOn: "I agree to the legally binding terms"
+
+# Continue to Step 4
+- tapOn:
+    id: "btn-booking-next"
+
+# Step 4 — Send Request
+- extendedWaitUntil:
+    visible: "Send Booking Request"
+    timeout: 5000
+
+- tapOn:
+    id: "btn-booking-next"
+
+# Verify success
+- extendedWaitUntil:
+    visible: "Request Sent"
+    timeout: 10000

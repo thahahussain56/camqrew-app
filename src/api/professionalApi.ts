@@ -1,6 +1,5 @@
-import { apiClient } from './client';
-import { ProfessionalProfile } from '../types/professional';
-import { MOCK_PROFESSIONALS } from './mockData';
+import { supabase } from './supabaseClient';
+import { ProfessionalProfile, ReviewItem } from '../types/professional';
 
 export interface GetProfessionalsFilter {
   category?: string;
@@ -11,161 +10,230 @@ export interface GetProfessionalsFilter {
   searchQuery?: string;
 }
 
-const API_CATEGORIES = ['Photographers', 'Videographers', 'Designers', 'Developers', 'Caterers'];
-
-const mapPro = (p: any): ProfessionalProfile => {
-  let rateNum = 15000;
-  if (p.rate) {
-    const match = String(p.rate).match(/[\d,]+/);
-    if (match) {
-      rateNum = Number(match[0].replace(/,/g, ''));
-    }
-  } else if (p.rate_per_day || p.ratePerDay) {
-    rateNum = Number(p.rate_per_day || p.ratePerDay);
-  }
-
-  let city = 'Mumbai';
-  let state = 'Maharashtra';
-  if (p.location && typeof p.location === 'string') {
-    const parts = p.location.split(',').map((s: string) => s.trim());
-    if (parts.length >= 2) {
-      city = parts[0];
-      state = parts[1];
-    } else if (parts.length === 1 && parts[0]) {
-      city = parts[0];
-    }
-  } else {
-    if (p.city) city = p.city;
-    if (p.state) state = p.state;
-  }
-
-  const avatar =
-    p.avatarUrl ||
-    p.avatar_url ||
-    p.avatar ||
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400';
-
-  const banner =
-    p.bannerUrl ||
-    p.banner_url ||
-    p.bannerImage ||
-    'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1200';
-
-  const name = p.display_name || p.name || p.username || 'Creative Studio';
+const mapPro = (row: any): ProfessionalProfile => {
+  const user = row.users || {};
+  
+  const name = user.name || 'Creative Studio';
+  const avatar = user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400';
+  const banner = 'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1200'; // Temporary fallback
 
   return {
-    id: String(p.id || p.username || 'pro_' + Math.random()),
-    userId: String(p.user_id || p.userId || 'usr_' + Math.random()),
+    id: String(row.id),
+    userId: String(row.id),
     name,
-    title: p.title || (Array.isArray(p.categories) ? p.categories.join(' • ') : 'Creative Creator'),
-    bio: p.bio || `${name} is a verified creative professional on Camcrew Studio.`,
-    experienceYears: Number(p.experience_years || p.experienceYears || 5),
+    title: row.title || 'Creative Creator',
+    bio: row.bio || `${name} is a verified professional.`,
+    experienceYears: Number(row.experience_years || 5),
     avatar,
     bannerImage: banner,
-    verified: p.verified !== undefined ? Boolean(p.verified) : true,
-    rating: Number(p.rating || 4.9),
-    reviewCount: Number(p.review_count || p.reviewCount || 18),
-    city,
-    state,
-    district: p.district || city,
-    locations: Array.isArray(p.locations) ? p.locations : [city],
-    categories: Array.isArray(p.categories) && p.categories.length > 0 ? p.categories : ['Photographers'],
-    ratePerDay: rateNum,
-    equipment: Array.isArray(p.equipment) ? p.equipment : ['Cinema Camera', 'Prime Lenses', 'Lighting Rig'],
-    certifications: Array.isArray(p.certifications) ? p.certifications : ['Camcrew Verified Creator'],
-    portfolio: Array.isArray(p.portfolio) && p.portfolio.length > 0 ? p.portfolio : [
-      'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=800',
-      'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=800',
-      'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=800'
-    ],
-    services: Array.isArray(p.services) ? p.services.map((s: any) => ({
-      id: String(s.id || Math.random()),
-      title: s.name || s.title || 'Studio Package',
-      category: s.category || 'Photography',
-      rate: Number(s.price || s.rate || 2000),
-      unit: s.unit || 'per day',
-      description: s.desc || s.description || ''
-    })) : [],
-    reviews: Array.isArray(p.reviews) ? p.reviews : [],
-    weeklyAvailability: p.weeklyAvailability || { mon: true, tue: true, wed: true, thu: true, fri: true, sat: true, sun: false },
-    blockedDates: Array.isArray(p.blockedDates) ? p.blockedDates : [],
+    verified: row.verified !== undefined ? Boolean(row.verified) : true,
+    rating: Number(row.rating || 5.0),
+    reviewCount: Number(row.review_count || 0),
+    city: row.city || 'Mumbai',
+    state: row.state || 'Maharashtra',
+    district: row.district || row.city || 'Mumbai',
+    locations: Array.isArray(row.locations) ? row.locations : [row.city || 'Mumbai'],
+    categories: Array.isArray(row.categories) && row.categories.length > 0 ? row.categories : ['Photographers'],
+    ratePerDay: Number(row.rate_per_day || 15000),
+    equipment: Array.isArray(row.equipment) ? row.equipment : ['Cinema Camera', 'Prime Lenses', 'Lighting Rig'],
+    certifications: Array.isArray(row.certifications) ? row.certifications : ['Camcrew Verified Creator'],
+    portfolio: Array.isArray(row.portfolio_items) ? row.portfolio_items.map((i: any) => i.media_url) : [],
+    services: Array.isArray(row.services) ? row.services : [], 
+    reviews: [],
+    weeklyAvailability: { mon: true, tue: true, wed: true, thu: true, fri: true, sat: true, sun: false },
+    blockedDates: [],
   };
 };
 
 export const professionalApi = {
   getProfessionals: async (filters: GetProfessionalsFilter = {}): Promise<ProfessionalProfile[]> => {
-    try {
-      const selectedCategory = filters.category && filters.category !== 'All' ? filters.category : null;
-      let rawList: any[] = [];
+    let query = supabase.from('professional_profiles').select(`
+      *,
+      users (
+        name,
+        avatar
+      ),
+      portfolio_items (
+        media_url
+      )
+    `);
 
-      if (selectedCategory) {
-        const res = await apiClient.get('/professionals', { params: { category: selectedCategory } });
-        if (Array.isArray(res.data)) rawList = res.data;
-        else if (res.data && Array.isArray(res.data.professionals)) rawList = res.data.professionals;
-      } else {
-        // Fetch all backend categories concurrently
-        const responses = await Promise.allSettled(
-          API_CATEGORIES.map(cat => apiClient.get('/professionals', { params: { category: cat } }))
-        );
-        const seenUsernames = new Set<string>();
-
-        responses.forEach(r => {
-          if (r.status === 'fulfilled' && r.value.data) {
-            const list = Array.isArray(r.value.data) ? r.value.data : r.value.data.professionals || [];
-            list.forEach((p: any) => {
-              const key = p.username || p.display_name || p.id;
-              if (key && !seenUsernames.has(key)) {
-                seenUsernames.add(key);
-                rawList.push(p);
-              }
-            });
-          }
-        });
-      }
-
-      if (rawList.length > 0) return rawList.map(mapPro);
-      return MOCK_PROFESSIONALS;
-    } catch (e) {
-      let list = [...MOCK_PROFESSIONALS];
-      if (filters.category && filters.category !== 'All') {
-        const catClean = filters.category.toLowerCase();
-        list = list.filter(p => p.categories.some(c => c.toLowerCase().includes(catClean)));
-      }
-      if (filters.searchQuery) {
-        const q = filters.searchQuery.toLowerCase();
-        list = list.filter(p => p.name.toLowerCase().includes(q) || p.title.toLowerCase().includes(q) || p.city.toLowerCase().includes(q));
-      }
-      return list;
+    if (filters.location) {
+      query = query.ilike('city', `%${filters.location}%`);
     }
+
+    const { data, error } = await query;
+    if (error) {
+      console.warn('Error fetching professionals:', error);
+      return [];
+    }
+
+    let results = (data || []).map(mapPro);
+
+    // Apply memory filters
+    if (filters.category && filters.category !== 'All') {
+      const catClean = filters.category.toLowerCase();
+      results = results.filter(p => p.categories.some(c => c.toLowerCase().includes(catClean)));
+    }
+    
+    if (filters.searchQuery) {
+      const q = filters.searchQuery.toLowerCase();
+      results = results.filter(p => 
+        p.name.toLowerCase().includes(q) || 
+        p.title.toLowerCase().includes(q) || 
+        p.city.toLowerCase().includes(q)
+      );
+    }
+
+    return results;
   },
 
   getProfileById: async (id: string): Promise<ProfessionalProfile> => {
-    try {
-      const allPros = await professionalApi.getProfessionals();
-      if (allPros && allPros.length > 0) {
-        const targetId = String(id || '').toLowerCase();
-        const found = allPros.find(
-          p =>
-            String(p.id).toLowerCase() === targetId ||
-            String(p.name).toLowerCase() === targetId ||
-            String(p.userId).toLowerCase() === targetId
-        );
-        if (found) return found;
-        return allPros[0];
-      }
-      return MOCK_PROFESSIONALS[0];
-    } catch (e) {
-      const found = MOCK_PROFESSIONALS.find(p => p.id === id);
-      return found || MOCK_PROFESSIONALS[0];
+    const [profileRes, reviews] = await Promise.all([
+      supabase.from('professional_profiles').select(`
+        *,
+        users (
+          name,
+          avatar
+        ),
+        portfolio_items (
+          media_url
+        )
+      `).eq('id', id).single(),
+      professionalApi.getReviews(id).catch(() => [])
+    ]);
+
+    const { data, error } = profileRes;
+
+    if (error || !data) {
+      throw new Error(error?.message || 'Profile not found');
     }
+
+    const pro = mapPro(data);
+    pro.reviews = reviews || [];
+    if (pro.reviews.length > 0) {
+      pro.reviewCount = pro.reviews.length;
+    }
+    return pro;
+  },
+
+  getReviews: async (proId: string): Promise<ReviewItem[]> => {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('*, users!reviewer_id(name, avatar)')
+      .eq('target_user_id', proId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Error fetching reviews:', error);
+      return [];
+    }
+
+    return (data || []).map((r: any) => ({
+      id: String(r.id),
+      clientName: r.users?.name || 'Verified Client',
+      clientAvatar: r.users?.avatar,
+      rating: Number(r.rating || 5),
+      date: r.created_at ? new Date(r.created_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently',
+      comment: r.comment || '',
+    }));
+  },
+
+  addReview: async (proId: string, rating: number, comment: string): Promise<ReviewItem> => {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+    if (!userId) throw new Error('You must be signed in to leave a review.');
+
+    const { data, error } = await supabase
+      .from('reviews')
+      .insert([{
+        reviewer_id: userId,
+        target_user_id: proId,
+        rating,
+        comment: comment.trim(),
+      }])
+      .select('*, users!reviewer_id(name, avatar)')
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    // Recalculate and update pro profile rating & review_count
+    try {
+      const { data: allRevs } = await supabase
+        .from('reviews')
+        .select('rating')
+        .eq('target_user_id', proId);
+
+      if (allRevs && allRevs.length > 0) {
+        const avg = Number((allRevs.reduce((acc, cur) => acc + Number(cur.rating || 0), 0) / allRevs.length).toFixed(1));
+        await supabase
+          .from('professional_profiles')
+          .update({ rating: avg, review_count: allRevs.length })
+          .eq('id', proId);
+      }
+    } catch (err) {
+      console.warn('Error updating pro rating stats:', err);
+    }
+
+    return {
+      id: String(data.id),
+      clientName: data.users?.name || userData.user?.user_metadata?.name || 'Verified Client',
+      clientAvatar: data.users?.avatar,
+      rating: Number(data.rating || rating),
+      date: 'Just now',
+      comment: data.comment || comment,
+    };
   },
 
   updateProfile: async (data: Partial<ProfessionalProfile>): Promise<ProfessionalProfile> => {
-    try {
-      const res = await apiClient.patch('/profile', data);
-      return res.data;
-    } catch (e) {
-      return { ...MOCK_PROFESSIONALS[0], ...data };
+    const { data: userData } = await supabase.auth.getUser();
+    const ownerId = userData?.user?.id;
+    
+    if (!ownerId) throw new Error('Not authenticated');
+
+    const { name, avatar, bannerImage, portfolio, ...proFields } = data;
+
+    if (name || avatar) {
+      await supabase.from('users').update({
+        name: name,
+        avatar: avatar,
+      }).eq('id', ownerId);
     }
+
+    if (portfolio) {
+      await supabase.from('portfolio_items').delete().eq('professional_id', ownerId);
+      if (portfolio.length > 0) {
+        const inserts = portfolio.map(url => ({
+          professional_id: ownerId,
+          media_url: url,
+          media_type: 'image',
+        }));
+        await supabase.from('portfolio_items').insert(inserts);
+      }
+    }
+
+    const updatePayload: any = {};
+    if (proFields.title) updatePayload.title = proFields.title;
+    if (proFields.bio) updatePayload.bio = proFields.bio;
+    if (proFields.experienceYears) updatePayload.experience_years = proFields.experienceYears;
+    if (proFields.ratePerDay) updatePayload.rate_per_day = proFields.ratePerDay;
+    if (proFields.city) updatePayload.city = proFields.city;
+    if (proFields.district) updatePayload.district = proFields.district;
+    if (proFields.state) updatePayload.state = proFields.state;
+    if (proFields.equipment) updatePayload.equipment = proFields.equipment;
+    if (proFields.categories) updatePayload.categories = proFields.categories;
+    if (proFields.certifications) updatePayload.skills = proFields.certifications; // Maps to skills in db
+    if (proFields.services) updatePayload.services = proFields.services;
+
+    const { data: updated, error } = await supabase
+      .from('professional_profiles')
+      .update(updatePayload)
+      .eq('id', ownerId)
+      .select(`*, users (name, avatar), portfolio_items (media_url)`)
+      .single();
+      
+    if (error) throw new Error(error.message);
+
+    return mapPro(updated);
   },
 };

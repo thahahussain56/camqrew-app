@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
@@ -7,7 +7,7 @@ import { Toast } from '../../components/ui/Toast';
 import { Lock } from 'lucide-react-native';
 
 export const ResetPasswordScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,13 +30,17 @@ export const ResetPasswordScreen: React.FC<{ navigation: any }> = ({ navigation 
       <Toast visible={!!toastMessage} message={toastMessage} type="error" onDismiss={() => setToastMessage('')} />
 
       <View style={styles.header}>
+        <Image
+          source={isDark ? require('../../../assets/camcrew-logo-white.png') : require('../../../assets/camcrew-logo-dark.png')}
+          style={styles.logo}
+        />
         <Text style={[styles.title, { color: colors.textPrimary }]}>Reset Password</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Enter your new password below
         </Text>
       </View>
 
-      <View style={styles.form}>
+      <View style={[styles.card, { backgroundColor: colors.surfaceCard }]}>
         <Input
           label="New Password"
           placeholder="••••••••"
@@ -74,14 +78,27 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 30,
+    alignItems: 'center',
   },
+  logo: { width: 180, height: 42, resizeMode: 'contain', marginBottom: 24 },
   title: {
     fontSize: 26,
     fontWeight: '800',
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
     marginTop: 6,
+    textAlign: 'center',
+  },
+  card: {
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 20,
+    elevation: 10,
   },
   form: {},
 });

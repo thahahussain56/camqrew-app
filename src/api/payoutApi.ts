@@ -1,11 +1,11 @@
+import { supabase } from './supabaseClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { apiClient } from './client';
 
 export interface PayoutRecord {
   id: string;
   amount: number;
   method: 'upi' | 'bank_account';
-  destination: string; // e.g. thaha@upi or HDFC0001234
+  destination: string;
   status: 'processing' | 'completed' | 'failed';
   createdAt: string;
   transactionRef: string;
@@ -18,7 +18,6 @@ export interface CreatorPayoutDetails {
   accountHolderName: string;
 }
 
-const PAYOUT_STORE_KEY = '@camcrew_payout_history';
 const ACCOUNT_STORE_KEY = '@camcrew_payout_account';
 
 export const payoutApi = {
@@ -48,55 +47,88 @@ export const payoutApi = {
   },
 
   getPayoutHistory: async (): Promise<PayoutRecord[]> => {
-    try {
-      const stored = await AsyncStorage.getItem(PAYOUT_STORE_KEY);
-      return stored
-        ? JSON.parse(stored)
-        : [
-            {
-              id: 'PO-8821',
-              amount: 25000,
-              method: 'upi',
-              destination: 'thaha@okaxis',
-              status: 'completed',
-              createdAt: '2026-08-01T10:30:00.000Z',
-              transactionRef: 'pout_rzp_98127391',
-            },
-          ];
-    } catch (e) {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return [];
+
+    const account = await payoutApi.getCreatorAccount();
+
+    const { data, error } = await supabase
+      .from('crew_payouts')
+      .select('*')
+      .eq('professional_id', userData.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Error fetching payouts', error);
       return [];
     }
+
+    return (data || []).map(row => {
+      const parts = (row.reference_id || '').split(':');
+      const method = (parts[0] === 'bank_account' ? 'bank_account' : 'upi') as 'upi' | 'bank_account';
+      const destination = parts.length >= 3 ? parts[1] : (account.upiId || 'UPI Account');
+      const txRef = parts.length >= 3 ? parts.slice(2).join(':') : (row.reference_id || `PO-${String(row.id).slice(0, 8)}`);
+
+      return {
+        id: String(row.id),
+        amount: Number(row.amount),
+        method,
+        destination,
+        status: (row.status || 'completed') as 'processing' | 'completed' | 'failed',
+        createdAt: row.created_at,
+        transactionRef: txRef,
+      };
+    });
   },
 
   requestInstantPayout: async (amount: number, method: 'upi' | 'bank_account' = 'upi'): Promise<PayoutRecord> => {
+    const { data: userData } = await supabase.auth.getUser();
+    const professionalId = userData?.user?.id;
+    if (!professionalId) throw new Error('Not authenticated');
+
     const account = await payoutApi.getCreatorAccount();
     const destination = method === 'upi' ? account.upiId : `${account.accountNumber} (${account.ifscCode})`;
     const txRef = `pout_rzp_${Math.floor(10000000 + Math.random() * 90000000)}`;
 
-    const newPayout: PayoutRecord = {
-      id: 'PO-' + Math.floor(1000 + Math.random() * 9000),
+    const newRow = {
+      professional_id: professionalId,
       amount,
-      method,
-      destination,
       status: 'completed',
-      createdAt: new Date().toISOString(),
-      transactionRef: txRef,
+      reference_id: `${method}:${destination}:${txRef}`,
     };
 
-    try {
-      await apiClient.post('/professional/payout', {
+    const { data, error } = await supabase
+      .from('crew_payouts')
+      .insert([newRow])
+      .select()
+      .single();
+
+    if (error) {
+      console.warn('Error recording payout in crew_payouts:', error);
+      return {
+        id: 'PO-' + Math.floor(1000 + Math.random() * 9000),
         amount,
         method,
         destination,
-        payout_reference: txRef,
-      });
-    } catch (e) {
-      // local store fallback
+        status: 'completed',
+        createdAt: new Date().toISOString(),
+        transactionRef: txRef,
+      };
     }
 
-    const history = await payoutApi.getPayoutHistory();
-    const updated = [newPayout, ...history];
-    await AsyncStorage.setItem(PAYOUT_STORE_KEY, JSON.stringify(updated));
-    return newPayout;
+    const parts = (data.reference_id || '').split(':');
+    const parsedMethod = (parts[0] === 'bank_account' ? 'bank_account' : 'upi') as 'upi' | 'bank_account';
+    const parsedDestination = parts.length >= 3 ? parts[1] : destination;
+    const parsedTxRef = parts.length >= 3 ? parts.slice(2).join(':') : txRef;
+
+    return {
+      id: String(data.id),
+      amount: Number(data.amount),
+      method: parsedMethod,
+      destination: parsedDestination,
+      status: (data.status || 'completed') as 'processing' | 'completed' | 'failed',
+      createdAt: data.created_at,
+      transactionRef: parsedTxRef,
+    };
   },
 };

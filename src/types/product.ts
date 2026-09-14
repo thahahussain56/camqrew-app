@@ -15,4 +15,23 @@ export interface Product {
   specs?: { [key: string]: string };
   inStock: boolean;
   rating: number;
+  isOfficial?: boolean;
+  isUsed?: boolean;
+  isRental?: boolean;
+  codEnabled?: boolean;
+  
+  // Advanced E-commerce Fields
+  gtin?: string;
+  sku?: string;
+  bulletPoints?: string[];
+  salePrice?: number;
+  itemDimensions?: string;
+  packageDimensions?: string;
+  itemWeight?: string;
+  packageWeight?: string;
+  searchTerms?: string[];
+  browseNodes?: string[];
+  batteryInfo?: string;
+  countryOfOrigin?: string;
+  safetyWarnings?: string;
 }

@@ -1,32 +1,54 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { useNotificationStore } from '../../store/notificationStore';
+import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Bell, CheckCheck, Trash2 } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
 
 export const NotificationsScreen: React.FC = () => {
   const { colors } = useTheme();
-  const { notifications, markAsRead, markAllAsRead, dismissNotification } = useNotificationStore();
+  const navigation = useNavigation<any>();
+  const { user } = useAuthStore();
+  const { notifications, loading, fetchNotifications, markAsRead, markAllAsRead, dismissNotification } = useNotificationStore();
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchNotifications(user.id);
+    }
+  }, [user?.id]);
+
+  const handleTap = (n: any) => {
+    if (!n.read) markAsRead(n.id);
+    
+    if (n.targetScreen) {
+      navigation.navigate(n.targetScreen, n.targetParams);
+    }
+  };
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>Notifications</Text>
-        <TouchableOpacity onPress={markAllAsRead}>
+        <TouchableOpacity onPress={() => user?.id && markAllAsRead(user.id)}>
           <Text style={[styles.markAll, { color: colors.accent }]}>Mark all as read</Text>
         </TouchableOpacity>
       </View>
 
-      {notifications.length === 0 ? (
+      {loading && notifications.length === 0 ? (
+        <View style={styles.emptyBox}>
+          <ActivityIndicator size="large" color={colors.accent} />
+        </View>
+      ) : notifications.length === 0 ? (
         <View style={styles.emptyBox}>
           <Text style={[styles.emptyText, { color: colors.textFaint }]}>No notifications yet.</Text>
         </View>
       ) : (
         notifications.map(n => (
           <Card key={n.id} style={[styles.notifCard, !n.read ? { borderColor: colors.accent } : {}]}>
-            <TouchableOpacity activeOpacity={0.8} onPress={() => markAsRead(n.id)} style={styles.notifRow}>
+            <TouchableOpacity activeOpacity={0.8} onPress={() => handleTap(n)} style={styles.notifRow}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.notifTitle, { color: colors.textPrimary }]}>{n.title}</Text>
                 <Text style={[styles.notifBody, { color: colors.textSecondary }]}>{n.body}</Text>

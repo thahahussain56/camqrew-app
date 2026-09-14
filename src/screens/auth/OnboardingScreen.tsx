@@ -31,7 +31,7 @@ const SLIDES = [
 ];
 
 export const OnboardingScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const handleNext = () => {
@@ -47,9 +47,15 @@ export const OnboardingScreen: React.FC<{ navigation: any }> = ({ navigation }) 
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <TouchableOpacity style={styles.skipButton} onPress={() => navigation.navigate('SignIn')}>
-        <Text style={[styles.skipText, { color: colors.textSecondary }]}>Skip</Text>
-      </TouchableOpacity>
+      <View style={styles.header}>
+        <Image
+          source={isDark ? require('../../../assets/camcrew-logo-white.png') : require('../../../assets/camcrew-logo-dark.png')}
+          style={styles.logo}
+        />
+        <TouchableOpacity style={styles.skipButton} onPress={() => navigation.navigate('SignIn')}>
+          <Text style={[styles.skipText, { color: colors.textSecondary }]}>Skip</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.contentContainer}>
         <View style={styles.imageContainer}>
@@ -99,8 +105,19 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     justifyContent: 'space-between',
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logo: {
+    width: 130,
+    height: 30,
+    resizeMode: 'contain',
+  },
   skipButton: {
-    alignSelf: 'flex-end',
+    padding: 8,
   },
   skipText: {
     fontSize: 14,

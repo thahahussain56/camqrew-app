@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { notificationApi, DBNotification } from '../api/notificationApi';
+import * as Notifications from 'expo-notifications';
 
 export interface AppNotification {
   id: string;
@@ -6,69 +8,99 @@ export interface AppNotification {
   body: string;
   timestamp: string;
   read: boolean;
-  type: 'booking' | 'payment' | 'order' | 'review' | 'system';
+  type: string;
   targetScreen?: string;
+  targetParams?: any;
 }
 
 interface NotificationStoreState {
   notifications: AppNotification[];
   unreadCount: number;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  dismissNotification: (id: string) => void;
+  loading: boolean;
+  fetchNotifications: (userId: string) => Promise<void>;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: (userId: string) => Promise<void>;
+  dismissNotification: (id: string) => Promise<void>;
+  addLocalNotification: (notif: DBNotification) => void;
 }
 
-const SAMPLE_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: 'notif_1',
-    title: '🟢 Booking Confirmed',
-    body: 'Mohammad Thaha has confirmed your fashion shoot booking for August 15.',
-    timestamp: '10m ago',
-    read: false,
-    type: 'booking',
-  },
-  {
-    id: 'notif_2',
-    title: '📦 Gear Order Shipped',
-    body: 'Order #ORD-8921 (Sony FX3 Cinema Camera) is on the way!',
-    timestamp: '2h ago',
-    read: false,
-    type: 'order',
-  },
-  {
-    id: 'notif_3',
-    title: '💰 Payment Received',
-    body: 'You received ₹18,500 for Booking #BK-4092.',
-    timestamp: '1d ago',
-    read: true,
-    type: 'payment',
-  },
-  {
-    id: 'notif_4',
-    title: '⭐ New 5-Star Review',
-    body: '"Absolute genius behind the camera!" — Priya S.',
-    timestamp: '2d ago',
-    read: true,
-    type: 'review',
-  },
-];
+const mapDBToAppNotification = (dbn: DBNotification): AppNotification => {
+  let targetScreen = undefined;
+  let targetParams = undefined;
+
+  if (dbn.target_url) {
+    if (dbn.target_url.startsWith('camcrew://chat/')) {
+      targetScreen = 'Chat';
+      targetParams = { otherUserId: dbn.target_url.replace('camcrew://chat/', '') };
+    } else if (dbn.target_url.startsWith('camcrew://booking/')) {
+      targetScreen = 'Booking';
+      targetParams = { bookingId: dbn.target_url.replace('camcrew://booking/', '') };
+    }
+  }
+
+  return {
+    id: dbn.id,
+    title: dbn.title,
+    body: dbn.body,
+    timestamp: new Date(dbn.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    read: dbn.is_read,
+    type: dbn.type,
+    targetScreen,
+    targetParams,
+  };
+};
 
 export const useNotificationStore = create<NotificationStoreState>((set, get) => ({
-  notifications: SAMPLE_NOTIFICATIONS,
-  unreadCount: SAMPLE_NOTIFICATIONS.filter(n => !n.read).length,
+  notifications: [],
+  unreadCount: 0,
+  loading: false,
 
-  markAsRead: (id) => {
+  fetchNotifications: async (userId: string) => {
+    set({ loading: true });
+    const dbNotifs = await notificationApi.getNotifications(userId);
+    const appNotifs = dbNotifs.map(mapDBToAppNotification);
+    const unreadCount = appNotifs.filter(n => !n.read).length;
+    Notifications.setBadgeCountAsync(unreadCount).catch(() => {});
+    set({ 
+      notifications: appNotifs, 
+      unreadCount,
+      loading: false 
+    });
+  },
+
+  markAsRead: async (id) => {
+    // Optimistic update
     const list = get().notifications.map(n => n.id === id ? { ...n, read: true } : n);
-    set({ notifications: list, unreadCount: list.filter(n => !n.read).length });
+    const unreadCount = list.filter(n => !n.read).length;
+    Notifications.setBadgeCountAsync(unreadCount).catch(() => {});
+    set({ notifications: list, unreadCount });
+    
+    // DB update
+    await notificationApi.markAsRead(id);
   },
 
-  markAllAsRead: () => {
+  markAllAsRead: async (userId) => {
     const list = get().notifications.map(n => ({ ...n, read: true }));
+    Notifications.setBadgeCountAsync(0).catch(() => {});
     set({ notifications: list, unreadCount: 0 });
+    
+    await notificationApi.markAllAsRead(userId);
   },
 
-  dismissNotification: (id) => {
+  dismissNotification: async (id) => {
     const list = get().notifications.filter(n => n.id !== id);
-    set({ notifications: list, unreadCount: list.filter(n => !n.read).length });
+    const unreadCount = list.filter(n => !n.read).length;
+    Notifications.setBadgeCountAsync(unreadCount).catch(() => {});
+    set({ notifications: list, unreadCount });
+    
+    await notificationApi.deleteNotification(id);
   },
+
+  addLocalNotification: (dbn: DBNotification) => {
+    const newNotif = mapDBToAppNotification(dbn);
+    const list = [newNotif, ...get().notifications];
+    const unreadCount = list.filter(n => !n.read).length;
+    Notifications.setBadgeCountAsync(unreadCount).catch(() => {});
+    set({ notifications: list, unreadCount });
+  }
 }));

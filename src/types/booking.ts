@@ -27,7 +27,8 @@ export interface Review {
 
 export interface Booking {
   id: string;
-  professionalId: string;
+  professionalId?: string;
+  studioId?: string;
   professionalName: string;
   professionalAvatar?: string;
   professionalTitle?: string;

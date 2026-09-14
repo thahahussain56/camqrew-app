@@ -1,18 +1,40 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { Button } from '../../components/ui/Button';
 import { Bell, Lock, Shield, Info, LogOut } from 'lucide-react-native';
+import { supabase } from '../../api/supabaseClient';
 
 export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors, isDark } = useTheme();
-  const { logout } = useAuthStore();
+  const { user, logout } = useAuthStore();
 
-  const [bookingNotifs, setBookingNotifs] = React.useState(true);
-  const [promoNotifs, setPromoNotifs] = React.useState(false);
+  const [prefs, setPrefs] = useState({ booking: true, chat: true, marketing: false });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.id) {
+      supabase.from('users').select('push_preferences').eq('id', user.id).single()
+        .then(({ data }) => {
+          if (data?.push_preferences) {
+            setPrefs(data.push_preferences as any);
+          }
+          setLoading(false);
+        });
+    }
+  }, [user?.id]);
+
+  const updatePref = async (key: string, value: boolean) => {
+    const newPrefs = { ...prefs, [key]: value };
+    setPrefs(newPrefs);
+    if (user?.id) {
+      const { error } = await supabase.from('users').update({ push_preferences: newPrefs }).eq('id', user.id);
+      if (error) Alert.alert('Error', 'Failed to save preference');
+    }
+  };
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
@@ -38,13 +60,18 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
         <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>Push Notifications</Text>
 
         <View style={styles.row}>
+          <Text style={[styles.rowTitle, { color: colors.textSecondary }]}>Chat Messages</Text>
+          <Switch disabled={loading} value={prefs.chat} onValueChange={(v) => updatePref('chat', v)} thumbColor={colors.accent} />
+        </View>
+
+        <View style={[styles.row, { marginTop: 12 }]}>
           <Text style={[styles.rowTitle, { color: colors.textSecondary }]}>Booking & Order Updates</Text>
-          <Switch value={bookingNotifs} onValueChange={setBookingNotifs} thumbColor={colors.accent} />
+          <Switch disabled={loading} value={prefs.booking} onValueChange={(v) => updatePref('booking', v)} thumbColor={colors.accent} />
         </View>
 
         <View style={[styles.row, { marginTop: 12 }]}>
           <Text style={[styles.rowTitle, { color: colors.textSecondary }]}>Promotions & Offers</Text>
-          <Switch value={promoNotifs} onValueChange={setPromoNotifs} thumbColor={colors.accent} />
+          <Switch disabled={loading} value={prefs.marketing} onValueChange={(v) => updatePref('marketing', v)} thumbColor={colors.accent} />
         </View>
       </Card>
 
@@ -66,9 +93,8 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
         variant="danger"
         size="lg"
         icon={<LogOut size={18} color="#ffffff" />}
-        onPress={() => {
-          logout();
-          navigation.replace('Auth');
+        onPress={async () => {
+          await logout();
         }}
         style={{ marginTop: 20 }}
       />

@@ -11,7 +11,7 @@ interface ProCardProps {
 }
 
 export const ProCard: React.FC<ProCardProps> = ({ professional, onPressProfile, onPressBook }) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   const specsText = professional.categories
     ? professional.categories.join(' | ')
@@ -26,7 +26,7 @@ export const ProCard: React.FC<ProCardProps> = ({ professional, onPressProfile, 
         </View>
 
         {/* Bottom Floating White/Surface Details Box (Exact Layout as Screenshot) */}
-        <View style={[styles.contentBox, { backgroundColor: colors.surfaceElevated }]}>
+        <View style={[styles.contentBox, { backgroundColor: isDark ? '#151a1e' : colors.surfaceElevated }]}>
           {/* Header Info Row with Profile Picture */}
           <View style={styles.headerInfoRow}>
             <Image source={{ uri: professional.avatar }} style={[styles.avatarImage, { borderColor: colors.border }]} />
@@ -59,7 +59,7 @@ export const ProCard: React.FC<ProCardProps> = ({ professional, onPressProfile, 
           {/* Action Buttons Row: View Profile  +  Book Now */}
           <View style={styles.buttonsRow}>
             <TouchableOpacity
-              style={[styles.profileBtn, { backgroundColor: colors.background }]}
+              style={[styles.profileBtn, { backgroundColor: isDark ? '#2c2f34' : colors.background }]}
               onPress={onPressProfile}
               activeOpacity={0.8}
             >

@@ -164,23 +164,5 @@ export const MOCK_PRODUCTS: Product[] = [
   },
 ];
 
-export const MOCK_BOOKINGS: Booking[] = [
-  {
-    id: 'BK-4092',
-    professionalId: 'mohammad_thaha_hussain_2',
-    professionalName: 'Mohammad Thaha Hussain',
-    professionalAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=400',
-    professionalTitle: 'Videographer • Photographer • Director',
-    customerId: 'usr_demo_123',
-    customerName: 'Thaha Hussain',
-    serviceTitle: 'Full Day Shoot',
-    startDate: '2026-08-15',
-    endDate: '2026-08-15',
-    daysCount: 1,
-    location: 'Mumbai, Maharashtra',
-    status: 'confirmed',
-    ratePerDay: 20000,
-    totalAmount: 20000,
-    createdAt: '2026-08-01',
-  },
-];
+// Empty initial state for clean manual testing from scratch
+export const MOCK_BOOKINGS: Booking[] = [];

@@ -5,20 +5,29 @@ import { useAuthStore } from '../store/authStore';
 import { useTheme } from '../hooks/useTheme';
 import { AuthStack } from './AuthStack';
 import { CustomerTabs } from './CustomerTabs';
-import { ProfessionalTabs } from './ProfessionalTabs';
 import { AdminStack } from './AdminStack';
 
 const Stack = createStackNavigator();
 
+import { ProPaywallScreen } from '../screens/professional/ProPaywallScreen';
+import { CreateJobScreen } from '../screens/customer/CreateJobScreen';
+
 const MainAppContainer: React.FC = () => {
-  const { activeRole } = useAuthStore();
+  const { activeRole, user } = useAuthStore();
   const { colors } = useTheme();
+
+  const isProLocked = activeRole === 'professional' && user?.subscription_status !== 'active';
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {activeRole === 'customer' && <CustomerTabs />}
-      {activeRole === 'professional' && <ProfessionalTabs />}
-      {activeRole === 'admin' && <AdminStack />}
+      {isProLocked ? (
+        <ProPaywallScreen />
+      ) : (
+        <>
+          {(activeRole === 'customer' || activeRole === 'professional') && <CustomerTabs />}
+          {activeRole === 'admin' && <AdminStack />}
+        </>
+      )}
     </View>
   );
 };

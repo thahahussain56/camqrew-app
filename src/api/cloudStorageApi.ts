@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { supabase } from './supabaseClient';
 
 export interface UploadResponse {
   url: string;
@@ -7,40 +7,50 @@ export interface UploadResponse {
 }
 
 export const cloudStorageApi = {
-  uploadImage: async (imageUri: string, folder: 'avatars' | 'aadhaar' | 'portfolio' | 'gear' = 'gear'): Promise<UploadResponse> => {
+  /**
+   * Upload an image from a local URI directly to Supabase Storage.
+   * Returns the public URL of the uploaded file.
+   */
+  uploadImage: async (
+    imageUri: string,
+    folder: 'avatars' | 'aadhaar' | 'portfolio' | 'gear' | 'chat' = 'gear'
+  ): Promise<UploadResponse> => {
     try {
-      // Create FormData for multipart image upload
+      const ext = imageUri.split('.').pop()?.split('?')[0] || 'jpg';
+      const filename = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
       const formData = new FormData();
-      const filename = imageUri.split('/').pop() || `upload_${Date.now()}.jpg`;
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : `image/jpeg`;
+      formData.append('file', {
+        uri: imageUri,
+        name: filename,
+        type: `image/${ext === 'png' ? 'png' : 'jpeg'}`,
+      } as any);
 
-      // @ts-ignore: React Native FormData file object structure
-      formData.append('file', { uri: imageUri, name: filename, type });
-      formData.append('folder', folder);
+      const { data, error } = await supabase.storage
+        .from(folder)
+        .upload(filename, formData, {
+          upsert: true,
+        });
 
-      const res = await apiClient.post('/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      if (res.data && res.data.url) {
-        return { url: res.data.url, publicId: res.data.public_id, success: true };
+      if (error) {
+        throw new Error(error.message);
       }
-      throw new Error('Upload URL missing');
-    } catch (e) {
-      // Fallback cloud URL handler for offline/demo mode (generates accessible HTTPS Cloudinary mock URL)
-      const mockId = Math.floor(100000 + Math.random() * 900000);
-      const mockUrl = imageUri.startsWith('http') 
-        ? imageUri 
-        : `https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=800&cloud_id=${mockId}&folder=${folder}`;
-      
+
+      // 4. Get the public URL
+      const { data: publicData } = supabase.storage
+        .from(folder)
+        .getPublicUrl(data.path);
+
+      const publicUrl = publicData.publicUrl;
+
       return {
-        url: mockUrl,
-        publicId: `cloud_${folder}_${mockId}`,
+        url: publicUrl,
+        publicId: data.path,
         success: true,
       };
+    } catch (e: any) {
+      console.error('Upload failed:', e.message);
+      throw new Error('Image upload failed: ' + e.message);
     }
   },
 };

@@ -1,114 +1,199 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { apiClient } from './client';
+import { supabase } from './supabaseClient';
 import { Product, ProductType } from '../types/product';
-import { MOCK_PRODUCTS } from './mockData';
 
-const STORE_KEY = '@camcrew_user_products';
-
-const mapProduct = (p: any): Product => ({
-  id: String(p.id || 'prod_' + Math.random()),
+const mapOfficialProduct = (p: any): Product => ({
+  id: String(p.id),
   name: p.name || 'Equipment item',
-  brand: p.brand || 'Sony',
+  brand: p.brand || 'Camcrew',
   category: p.category || 'Cameras',
-  type: (p.type as ProductType) || (p.rental_price_per_day ? 'rental' : 'sale'),
+  type: 'sale',
   price: Number(p.price || 0),
-  rentalPricePerDay: p.rental_price_per_day ? Number(p.rental_price_per_day) : (p.rentalPricePerDay || 2500),
-  condition: p.condition || 'New',
-  image: p.image_url || p.image || 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=800',
+  condition: 'New',
+  image: Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : (p.image_url || 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=800'),
+  gallery: Array.isArray(p.images) ? p.images : [],
   description: p.description || '',
-  specs: p.specs || { Resolution: '4K 120p', Sensor: 'Full Frame' },
+  specs: p.specifications || {},
   inStock: p.in_stock !== undefined ? Boolean(p.in_stock) : true,
-  rating: Number(p.rating || 5.0),
+  rating: 5.0,
+  isOfficial: true,
+  codEnabled: Boolean(p.cod_enabled),
+  gtin: p.gtin || undefined,
+  sku: p.sku || undefined,
+  bulletPoints: Array.isArray(p.bullet_points) ? p.bullet_points : undefined,
+  salePrice: p.sale_price ? Number(p.sale_price) : undefined,
+  itemDimensions: p.item_dimensions || undefined,
+  packageDimensions: p.package_dimensions || undefined,
+  itemWeight: p.item_weight || undefined,
+  packageWeight: p.package_weight || undefined,
+  searchTerms: Array.isArray(p.search_terms) ? p.search_terms : undefined,
+  browseNodes: Array.isArray(p.browse_nodes) ? p.browse_nodes : undefined,
+  batteryInfo: p.battery_info || undefined,
+  countryOfOrigin: p.country_of_origin || undefined,
+  safetyWarnings: p.safety_warnings || undefined,
+});
+
+const mapProSaleItem = (p: any): Product => ({
+  id: String(p.id),
+  name: p.title || 'Used Equipment',
+  brand: 'Used Gear',
+  category: p.category || 'Accessories',
+  type: 'sale',
+  price: Number(p.price || 0),
+  condition: p.condition || 'Good',
+  image: Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=800',
+  gallery: Array.isArray(p.images) ? p.images : [],
+  description: p.description || '',
+  inStock: p.status !== 'sold',
+  rating: 4.8,
+  isUsed: true,
+  codEnabled: Boolean(p.cod_enabled),
+});
+
+const mapRentalEquipment = (p: any): Product => ({
+  id: String(p.id),
+  name: p.name || 'Rental Equipment',
+  brand: 'Rental',
+  category: p.category || 'Lenses',
+  type: 'rental',
+  price: Number(p.daily_rate || 0),
+  rentalPricePerDay: Number(p.daily_rate || 0),
+  condition: 'Good',
+  image: Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=800',
+  gallery: Array.isArray(p.images) ? p.images : [],
+  description: p.description || '',
+  inStock: p.status !== 'rented',
+  rating: 4.9,
+  isRental: true,
 });
 
 export const productApi = {
   getUserProducts: async (): Promise<Product[]> => {
-    try {
-      const stored = await AsyncStorage.getItem(STORE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-      return [];
-    }
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return [];
+    return productApi.getProductsByOwner(userData.user.id);
+  },
+
+  getProductsByOwner: async (ownerId: string): Promise<Product[]> => {
+    const results: Product[] = [];
+
+    const [salesRes, rentalsRes] = await Promise.all([
+      supabase.from('pro_sale_items').select('*').eq('seller_id', ownerId),
+      supabase.from('rental_equipment').select('*').eq('owner_id', ownerId),
+    ]);
+
+    if (salesRes.data) results.push(...salesRes.data.map(mapProSaleItem));
+    if (rentalsRes.data) results.push(...rentalsRes.data.map(mapRentalEquipment));
+
+    return results;
   },
 
   createProduct: async (productData: Partial<Product>): Promise<Product> => {
-    const newProduct: Product = {
-      id: 'prod_' + Date.now(),
-      name: productData.name || 'New Studio Gear',
-      brand: productData.brand || 'Sony',
-      category: productData.category || 'Cameras',
-      type: productData.type || 'rental',
-      price: productData.price || 50000,
-      rentalPricePerDay: productData.rentalPricePerDay || 2500,
-      condition: productData.condition || 'Like New',
-      image: productData.image || 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=800',
-      description: productData.description || 'Professional cinema gear ready for shoot rentals.',
-      specs: productData.specs || { Resolution: '4K 120fps', Condition: 'Verified' },
-      inStock: true,
-      rating: 5.0,
-    };
+    const { data: userData } = await supabase.auth.getUser();
+    const ownerId = userData?.user?.id;
 
-    try {
-      await apiClient.post('/products', newProduct);
-    } catch (e) {
-      // Persist in local storage
+    if (!ownerId) throw new Error('Must be logged in to create product');
+
+    if (productData.type === 'rental') {
+      const row = {
+        owner_id: ownerId,
+        name: productData.name,
+        category: productData.category,
+        daily_rate: productData.rentalPricePerDay || productData.price || 2500,
+        security_deposit: (productData.rentalPricePerDay || productData.price || 2500) * 10,
+        description: productData.description,
+        images: productData.image ? [productData.image, ...(productData.gallery || [])] : [],
+        status: 'available',
+      };
+      const { data, error } = await supabase.from('rental_equipment').insert([row]).select().single();
+      if (error) throw new Error(error.message);
+      return mapRentalEquipment(data);
+    } else {
+      const row = {
+        seller_id: ownerId,
+        title: productData.name,
+        category: productData.category,
+        price: productData.price || 0,
+        condition: productData.condition || 'Good',
+        description: productData.description,
+        images: productData.image ? [productData.image, ...(productData.gallery || [])] : [],
+        status: 'active',
+        cod_enabled: Boolean(productData.codEnabled),
+        gtin: productData.gtin,
+        sku: productData.sku,
+        bullet_points: productData.bulletPoints || [],
+        sale_price: productData.salePrice || null,
+        item_dimensions: productData.itemDimensions,
+        package_dimensions: productData.packageDimensions,
+        item_weight: productData.itemWeight,
+        package_weight: productData.packageWeight,
+        search_terms: productData.searchTerms || [],
+        browse_nodes: productData.browseNodes || [],
+        battery_info: productData.batteryInfo,
+        country_of_origin: productData.countryOfOrigin,
+        safety_warnings: productData.safetyWarnings,
+      };
+      const { data, error } = await supabase.from('pro_sale_items').insert([row]).select().single();
+      if (error) throw new Error(error.message);
+      return mapProSaleItem(data);
     }
-
-    const current = await productApi.getUserProducts();
-    const updated = [newProduct, ...current];
-    await AsyncStorage.setItem(STORE_KEY, JSON.stringify(updated));
-    return newProduct;
   },
 
   getProducts: async (type?: ProductType, category?: string, searchQuery?: string): Promise<Product[]> => {
-    let dbProducts: Product[] = [];
-    try {
-      const res = await apiClient.get('/products', { params: { type, category, searchQuery } });
-      let rawList: any[] = [];
-      if (Array.isArray(res.data)) rawList = res.data;
-      else if (res.data && Array.isArray(res.data.products)) rawList = res.data.products;
-      else if (res.data && Array.isArray(res.data.data)) rawList = res.data.data;
+    let results: Product[] = [];
 
-      dbProducts = rawList.map(mapProduct);
-    } catch (e) {
-      // fallback
+    const fetchSales = async () => {
+      let q1 = supabase.from('products').select('*');
+      let q2 = supabase.from('pro_sale_items').select('*');
+      
+      if (category && category !== 'All') {
+        q1 = q1.ilike('category', `%${category}%`);
+        q2 = q2.ilike('category', `%${category}%`);
+      }
+      if (searchQuery) {
+        q1 = q1.ilike('name', `%${searchQuery}%`);
+        q2 = q2.ilike('title', `%${searchQuery}%`);
+      }
+
+      const [res1, res2] = await Promise.all([q1, q2]);
+      if (res1.data) results.push(...res1.data.map(mapOfficialProduct));
+      if (res2.data) results.push(...res2.data.map(mapProSaleItem));
+    };
+
+    const fetchRentals = async () => {
+      let q = supabase.from('rental_equipment').select('*');
+      if (category && category !== 'All') {
+        q = q.ilike('category', `%${category}%`);
+      }
+      if (searchQuery) {
+        q = q.ilike('name', `%${searchQuery}%`);
+      }
+      const res = await q;
+      if (res.data) results.push(...res.data.map(mapRentalEquipment));
+    };
+
+    if (type === 'sale') {
+      await fetchSales();
+    } else if (type === 'rental') {
+      await fetchRentals();
+    } else {
+      await Promise.all([fetchSales(), fetchRentals()]);
     }
 
-    const userProducts = await productApi.getUserProducts();
-    let combined = [...userProducts, ...dbProducts, ...MOCK_PRODUCTS];
-
-    // Remove duplicate IDs
-    const map = new Map<string, Product>();
-    combined.forEach(p => {
-      if (!map.has(p.id)) map.set(p.id, p);
-    });
-    let list: Product[] = Array.from(map.values());
-
-    if (type) list = list.filter(p => p.type === type);
-    if (category && category !== 'All') {
-      const catClean = category.toLowerCase();
-      list = list.filter(p => p.category.toLowerCase().includes(catClean));
-    }
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(p => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q));
-    }
-    return list;
+    return results;
   },
 
   getProductById: async (id: string): Promise<Product> => {
-    const userProducts = await productApi.getUserProducts();
-    const userFound = userProducts.find(p => p.id === id);
-    if (userFound) return userFound;
+    // We don't know the type, so check all three sequentially or in parallel
+    const [res1, res2, res3] = await Promise.all([
+      supabase.from('products').select('*').eq('id', id).maybeSingle(),
+      supabase.from('pro_sale_items').select('*').eq('id', id).maybeSingle(),
+      supabase.from('rental_equipment').select('*').eq('id', id).maybeSingle()
+    ]);
 
-    try {
-      const res = await apiClient.get(`/products/${id}`);
-      const raw = res.data?.product || res.data;
-      if (raw) return mapProduct(raw);
-      throw new Error('Not found');
-    } catch (e) {
-      const found = MOCK_PRODUCTS.find(p => p.id === id);
-      return found || MOCK_PRODUCTS[0];
-    }
+    if (res1.data) return mapOfficialProduct(res1.data);
+    if (res2.data) return mapProSaleItem(res2.data);
+    if (res3.data) return mapRentalEquipment(res3.data);
+
+    throw new Error('Product not found');
   },
 };

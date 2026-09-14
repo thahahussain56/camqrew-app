@@ -5,6 +5,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Toast } from '../../components/ui/Toast';
+import { supabase } from '../../api/supabaseClient';
 import { Mail, Phone, MessageSquare, Send } from 'lucide-react-native';
 
 export const ContactScreen: React.FC = () => {
@@ -17,19 +18,31 @@ export const ContactScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!name || !email || !message) {
       setToastMessage('Please fill in required fields.');
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    
+    const { error } = await supabase.from('contact_messages').insert([{
+      name,
+      email,
+      subject: subject || 'No Subject',
+      message,
+      status: 'new'
+    }]);
+
+    setLoading(false);
+    if (error) {
+      setToastMessage('Failed to send message.');
+    } else {
       setToastMessage('Message sent successfully!');
       setName('');
       setEmail('');
+      setSubject('');
       setMessage('');
-    }, 1000);
+    }
   };
 
   const openWhatsApp = () => {

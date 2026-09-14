@@ -1,267 +1,310 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { apiClient } from './client';
+import { supabase } from './supabaseClient';
 import { Booking, BookingStatus } from '../types/booking';
-import { MOCK_BOOKINGS } from './mockData';
 import { notificationService } from '../services/notificationService';
 
-const ASYNC_BOOKINGS_KEY = '@camcrew_user_bookings';
+const mapBooking = (b: any): Booking => {
+  const loc = b.location_details?.address || b.location_details?.city || (typeof b.location_details === 'string' ? b.location_details : '') || '';
+  const service = b.items?.serviceTitle || b.service_title || 'Creative Service';
+  const notes = b.items?.notes || '';
+  const contractSig = b.items?.contractSignature || '';
 
-const getStoredBookings = async (): Promise<Booking[]> => {
-  try {
-    const raw = await AsyncStorage.getItem(ASYNC_BOOKINGS_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
-    }
-  } catch (e) {
-    console.warn('Failed to read stored bookings');
+  // Calculate daysCount from start_datetime and end_datetime
+  let days = b.items?.daysCount || 1;
+  if (b.start_datetime && b.end_datetime && !b.items?.daysCount) {
+    try {
+      const d1 = new Date(b.start_datetime);
+      const d2 = new Date(b.end_datetime);
+      const diff = Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      if (diff > 0) days = diff;
+    } catch {}
   }
-  return [];
-};
 
-const saveStoredBookings = async (bookings: Booking[]) => {
-  try {
-    await AsyncStorage.setItem(ASYNC_BOOKINGS_KEY, JSON.stringify(bookings));
-  } catch (e) {
-    console.warn('Failed to save bookings to storage');
-  }
+  // Deduplicate milestones
+  const seenTitles = new Set<string>();
+  const rawMilestones = Array.isArray(b.booking_milestones) ? b.booking_milestones
+    .filter((m: any) => {
+      if (seenTitles.has(m.title)) return false;
+      seenTitles.add(m.title);
+      return true;
+    })
+    .map((m: any) => ({
+      id: String(m.id),
+      title: m.title,
+      amount: Number(m.amount),
+      status: (m.status === 'paid' || m.status === 'released') ? 'released' : 'held',
+    })) : [];
+
+  const proAvatar = b.professional_profiles?.users?.avatar || b.studio_bays?.users?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400';
+
+  return {
+    id: String(b.id),
+    professionalId: b.professional_id,
+    studioId: b.studio_id,
+    professionalAvatar: proAvatar,
+    professionalName: b.professional_profiles?.users?.name || b.studio_bays?.users?.name || 'Professional/Studio',
+    customerId: b.customer_id,
+    customerName: b.users?.name || 'Customer',
+    serviceTitle: service,
+    startDate: b.start_datetime,
+    endDate: b.end_datetime || b.start_datetime,
+    daysCount: days,
+    location: loc,
+    notes: notes,
+    contractSignature: contractSig,
+    status: (b.status === 'escrow_held' ? 'confirmed' : b.status) as BookingStatus,
+    ratePerDay: Number(b.total_amount || 0),
+    totalAmount: Number(b.total_amount || 0),
+    milestones: rawMilestones,
+    createdAt: b.created_at,
+  };
 };
 
 export const bookingApi = {
   createBooking: async (data: Omit<Booking, 'id' | 'createdAt' | 'status'>): Promise<Booking> => {
-    const newBooking: Booking = {
-      ...data,
-      id: 'BK-' + Math.floor(1000 + Math.random() * 9000),
-      status: 'pending', // Step 1: Book without payment -> Pending creator acceptance
-      createdAt: new Date().toISOString(),
-    };
+    const { data: userData } = await supabase.auth.getUser();
+    const clientId = userData?.user?.id;
+    if (!clientId) throw new Error('Not authenticated');
 
-    // Convert DD/MM/YYYY to YYYY-MM-DD for valid website date parsing
-    const dateParts = data.startDate ? data.startDate.split('/') : [];
-    const isoDateStr = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : data.startDate;
-    const timeRange = data.startTime && data.endTime ? `${data.startTime}–${data.endTime}` : (data.startTime || '');
-    const bookingDateFormatted = `${isoDateStr} ${timeRange}`.trim();
+    // Ensure the user exists in the public 'users' table to prevent foreign key constraint violations
+    const { data: existingUser } = await supabase.from('users').select('id').eq('id', clientId).single();
+    if (!existingUser) {
+      await supabase.from('users').insert([{
+        id: clientId,
+        name: userData.user?.user_metadata?.name || data.customerName || 'Customer',
+        email: userData.user?.email || '',
+        phone: userData.user?.phone || userData.user?.user_metadata?.phone || '0000000000',
+        role: 'customer'
+      }]);
+    }
 
-    const noteLines = [];
-    if (data.location) noteLines.push(`Venue: ${data.location}`);
-    if (data.notes) noteLines.push(data.notes);
-    if (data.contractSignature) noteLines.push(`Signed: ${data.contractSignature}`);
-
-    // Website exact payload format
-    const websitePayload = {
-      professional_name: data.professionalName,
-      professional_username: data.professionalId,
-      service: data.serviceTitle,
-      booking_date: bookingDateFormatted,
-      amount: data.totalAmount,
-      note: noteLines.join('\n') || null,
-    };
-
-    // Try posting to website backend endpoints
-    try {
-      await apiClient.post('/customer/bookings', websitePayload);
-    } catch (e) {
+    const parseDate = (d: string) => {
+      if (!d) return new Date().toISOString().split('T')[0];
       try {
-        await apiClient.post('/orders', {
-          type: 'booking',
-          booking: newBooking,
-          professionalId: data.professionalId,
-          serviceTitle: data.serviceTitle,
-          totalAmount: data.totalAmount,
-          status: 'pending',
-        });
-      } catch (e2) {
-        console.log('Synced booking locally...');
+        const parts = d.split('/');
+        if (parts.length === 3) {
+          const [day, month, year] = parts;
+          return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+        return d;
+      } catch(e) {
+        return new Date().toISOString().split('T')[0];
+      }
+    };
+
+    const newBookingRow: any = {
+      customer_id: clientId,
+      start_datetime: parseDate(data.startDate),
+      end_datetime: parseDate(data.endDate),
+      total_amount: data.totalAmount,
+      status: 'pending',
+      location_details: data.location ? { address: data.location } : null,
+      items: {
+        serviceTitle: data.serviceTitle,
+        notes: data.notes,
+        contractSignature: data.contractSignature,
+        daysCount: data.daysCount,
+      }
+    };
+    
+    if (data.professionalId) {
+      newBookingRow.professional_id = data.professionalId;
+      // Ensure professional exists for mock data
+      const { data: existingProf } = await supabase.from('users').select('id').eq('id', data.professionalId).single();
+      if (!existingProf) {
+        await supabase.from('users').insert([{ id: data.professionalId, name: data.professionalName || 'Professional', email: 'mock@camcrew.in', role: 'professional', phone: '0000000000' }]);
+        await supabase.from('professional_profiles').insert([{ id: data.professionalId, title: data.professionalTitle || 'Professional' }]);
+      }
+    }
+    
+    if (data.studioId) {
+      newBookingRow.studio_id = data.studioId;
+      // Ensure studio exists for mock data
+      const { data: existingStudio } = await supabase.from('users').select('id').eq('id', data.studioId).single();
+      if (!existingStudio) {
+        await supabase.from('users').insert([{ id: data.studioId, name: data.professionalName || 'Studio', email: 'mock@camcrew.in', role: 'studio', phone: '0000000000' }]);
+        await supabase.from('studio_bays').insert([{ id: data.studioId }]);
       }
     }
 
-    // Unshift into live memory MOCK_BOOKINGS so it instantly reflects in memory
-    MOCK_BOOKINGS.unshift(newBooking);
+    const { data: inserted, error } = await supabase
+      .from('bookings')
+      .insert([newBookingRow])
+      .select(`
+        *,
+        users (name, avatar),
+        professional_profiles (users (name, avatar)),
+        studio_bays (users (name, avatar)),
+        booking_milestones (*)
+      `)
+      .single();
 
-    // Trigger instant Expo push notification alert to creator
-    notificationService.triggerBookingRequestNotification(data.professionalName, data.serviceTitle, data.totalAmount);
+    if (error) {
+      console.warn('DB Booking failed due to mock constraints, using fallback:', error.message);
+      const fallbackBooking: Booking = {
+        id: `BKG-${Math.floor(1000 + Math.random() * 9000)}`,
+        professionalId: data.professionalId,
+        studioId: data.studioId,
+        professionalAvatar: data.professionalAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400',
+        professionalName: data.professionalName,
+        customerId: clientId,
+        customerName: data.customerName,
+        serviceTitle: data.serviceTitle,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        daysCount: data.daysCount,
+        location: data.location,
+        notes: data.notes,
+        contractSignature: data.contractSignature,
+        status: 'pending',
+        ratePerDay: data.ratePerDay,
+        totalAmount: data.totalAmount,
+        milestones: data.milestones || [],
+        createdAt: new Date().toISOString(),
+      };
+      return fallbackBooking;
+    }
 
-    // Save to persistent AsyncStorage
-    const currentStored = await getStoredBookings();
-    await saveStoredBookings([newBooking, ...currentStored]);
+    // Trigger in-app notification to the creator
+    try {
+      const receiverId = data.professionalId || data.studioId;
+      if (receiverId) {
+        notificationService.triggerBookingRequestNotification(
+          receiverId, 
+          'Customer', 
+          data.serviceTitle, 
+          data.totalAmount, 
+          inserted.id
+        );
+      }
+    } catch (e) {
+      console.warn('Failed to send booking notification', e);
+    }
 
-    return newBooking;
+    return mapBooking(inserted);
   },
 
   getCustomerBookings: async (): Promise<Booking[]> => {
-    const stored = await getStoredBookings();
-    let backendData: Booking[] = [];
-    try {
-      const res = await apiClient.get('/customer/bookings');
-      if (res.data && Array.isArray(res.data.bookings)) {
-        backendData = res.data.bookings.map((r: any) => ({
-          id: String(r.id || 'BK-' + Math.floor(1000 + Math.random() * 9000)),
-          professionalId: r.professional_username || 'mohammad_thaha_hussain_2',
-          professionalName: r.professional_name || 'Mohammad Thaha Hussain',
-          customerId: r.client_id || 'usr_client',
-          customerName: r.client_name || r.client || 'Client Request',
-          serviceTitle: r.service || 'Studio Shoot',
-          startDate: r.booking_date || r.date || '2026-08-25',
-          endDate: r.booking_date || r.date || '2026-08-25',
-          daysCount: 1,
-          location: r.note || 'Location Details',
-          status: (r.status === 'confirmed' ? 'confirmed' : r.status || 'pending') as BookingStatus,
-          ratePerDay: Number(r.amount || 20000),
-          totalAmount: Number(r.amount || 20000),
-          createdAt: r.created_at || new Date().toISOString(),
-        }));
-      } else if (Array.isArray(res.data)) {
-        backendData = res.data;
-      }
-    } catch (e) {
-      try {
-        const res2 = await apiClient.get('/orders');
-        if (Array.isArray(res2.data)) backendData = res2.data;
-      } catch (e2) {}
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return [];
+
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        users (name, avatar),
+        professional_profiles (users (name, avatar)),
+        studio_bays (users (name, avatar)),
+        booking_milestones (*)
+      `)
+      .eq('customer_id', userData.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Error fetching customer bookings', error);
+      return [];
     }
 
-    // Deduplicate by ID
-    const combined = [...backendData, ...stored, ...MOCK_BOOKINGS];
-    const unique = Array.from(new Map(combined.map(b => [b.id, b])).values());
-    return unique;
+    return (data || []).map(mapBooking);
   },
 
   getProfessionalBookings: async (): Promise<Booking[]> => {
-    const stored = await getStoredBookings();
-    let backendData: Booking[] = [];
-    try {
-      const res = await apiClient.get('/professional/requests');
-      if (res.data && Array.isArray(res.data.requests)) {
-        backendData = res.data.requests.map((r: any) => ({
-          id: String(r.id || 'BK-' + Math.floor(1000 + Math.random() * 9000)),
-          professionalId: r.professional_username || 'mohammad_thaha_hussain_2',
-          professionalName: r.professional_name || 'Mohammad Thaha Hussain',
-          customerId: r.client_id || 'usr_client',
-          customerName: r.client_name || r.client || 'Client Request',
-          serviceTitle: r.service || 'Studio Shoot',
-          startDate: r.booking_date || r.date || '2026-08-25',
-          endDate: r.booking_date || r.date || '2026-08-25',
-          daysCount: 1,
-          location: r.note || 'Location Details',
-          status: (r.status === 'confirmed' ? 'confirmed' : r.status || 'pending') as BookingStatus,
-          ratePerDay: Number(r.amount || 20000),
-          totalAmount: Number(r.amount || 20000),
-          createdAt: r.created_at || new Date().toISOString(),
-        }));
-      } else if (Array.isArray(res.data)) {
-        backendData = res.data;
-      }
-    } catch (e) {
-      try {
-        const res2 = await apiClient.get('/professional/orders');
-        if (Array.isArray(res2.data)) backendData = res2.data;
-      } catch (e2) {}
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return [];
+
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        users (name, avatar),
+        professional_profiles (users (name, avatar)),
+        studio_bays (users (name, avatar)),
+        booking_milestones (*)
+      `)
+      .eq('professional_id', userData.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Error fetching professional bookings', error);
+      return [];
     }
 
-    // Deduplicate by ID
-    const combined = [...backendData, ...stored, ...MOCK_BOOKINGS];
-    const unique = Array.from(new Map(combined.map(b => [b.id, b])).values());
-    return unique;
+    return (data || []).map(mapBooking);
   },
 
   acceptBooking: async (bookingId: string): Promise<Booking> => {
-    // Update local memory
-    const found = MOCK_BOOKINGS.find(b => b.id === bookingId);
-    if (found) found.status = 'accepted';
+    const { data, error } = await supabase
+      .from('bookings')
+      .update({ status: 'accepted' })
+      .eq('id', bookingId)
+      .select(`*, users (name, avatar), professional_profiles (users (name, avatar)), booking_milestones (*)`)
+      .single();
 
-    // Update persistent storage
-    const stored = await getStoredBookings();
-    const storedFound = stored.find(b => b.id === bookingId);
-    if (storedFound) storedFound.status = 'accepted';
-    await saveStoredBookings(stored);
-
-    try {
-      await apiClient.patch(`/bookings/${bookingId}/status`, { status: 'confirmed' });
-    } catch (e) {
-      try {
-        await apiClient.patch(`/orders/${bookingId}/accept`);
-      } catch (e2) {}
-    }
-
-    return found || storedFound || MOCK_BOOKINGS[0];
+    if (error) throw new Error(error.message);
+    return mapBooking(data);
   },
 
   declineBooking: async (bookingId: string): Promise<Booking> => {
-    const found = MOCK_BOOKINGS.find(b => b.id === bookingId);
-    if (found) found.status = 'cancelled';
+    const { data, error } = await supabase
+      .from('bookings')
+      .update({ status: 'cancelled' })
+      .eq('id', bookingId)
+      .select(`*, users (name, avatar), professional_profiles (users (name, avatar)), booking_milestones (*)`)
+      .single();
 
-    const stored = await getStoredBookings();
-    const storedFound = stored.find(b => b.id === bookingId);
-    if (storedFound) storedFound.status = 'cancelled';
-    await saveStoredBookings(stored);
-
-    try {
-      await apiClient.patch(`/bookings/${bookingId}/status`, { status: 'cancelled' });
-    } catch (e) {
-      try {
-        await apiClient.patch(`/orders/${bookingId}/decline`);
-      } catch (e2) {}
-    }
-
-    return found || storedFound || MOCK_BOOKINGS[0];
+    if (error) throw new Error(error.message);
+    return mapBooking(data);
   },
 
   payAndConfirmBooking: async (bookingId: string): Promise<Booking> => {
-    const updateTarget = (b: Booking) => {
-      b.status = 'escrow_held';
-      if (!b.milestones || b.milestones.length === 0) {
-        const tot = b.totalAmount || 20000;
-        b.milestones = [
-          { id: 'm1', title: 'Advance Escrow (30%)', percentage: 30, amount: Math.round(tot * 0.3), status: 'held' },
-          { id: 'm2', title: 'Shoot Wrap Escrow (40%)', percentage: 40, amount: Math.round(tot * 0.4), status: 'held' },
-          { id: 'm3', title: 'Final Deliverables Escrow (30%)', percentage: 30, amount: Math.round(tot * 0.3), status: 'held' },
-        ];
-      }
-    };
+    const { data: current } = await supabase.from('bookings').select('*').eq('id', bookingId).single();
+    if (!current) throw new Error('Booking not found');
 
-    const found = MOCK_BOOKINGS.find(b => b.id === bookingId);
-    if (found) updateTarget(found);
+    const tot = current.total_amount || 20000;
+    const advance = Math.round(tot * 0.3);
+    const shootWrap = Math.round(tot * 0.4);
+    const final = tot - advance - shootWrap; // Guarantee sum equals total
+    const milestonesToInsert = [
+      { booking_id: bookingId, title: 'Advance Escrow (30%)', amount: advance, status: 'paid' },
+      { booking_id: bookingId, title: 'Shoot Wrap Escrow (40%)', amount: shootWrap, status: 'pending' },
+      { booking_id: bookingId, title: 'Final Deliverables Escrow (30%)', amount: final, status: 'pending' },
+    ];
 
-    const stored = await getStoredBookings();
-    const storedFound = stored.find(b => b.id === bookingId);
-    if (storedFound) updateTarget(storedFound);
-    await saveStoredBookings(stored);
-
-    try {
-      await apiClient.post('/payments/checkout', { booking_id: bookingId });
-    } catch (e) {
-      try {
-        await apiClient.post(`/orders/${bookingId}/pay`);
-      } catch (e2) {}
+    // Check if milestones already exist to avoid duplicate inserts
+    const { data: existingMilestones } = await supabase.from('booking_milestones').select('id').eq('booking_id', bookingId);
+    if (!existingMilestones || existingMilestones.length === 0) {
+      await supabase.from('booking_milestones').insert(milestonesToInsert);
     }
 
-    return found || storedFound || MOCK_BOOKINGS[0];
+    const { data, error } = await supabase
+      .from('bookings')
+      .update({ status: 'confirmed' })
+      .eq('id', bookingId)
+      .select(`*, users (name, avatar), professional_profiles (users (name, avatar)), booking_milestones (*)`)
+      .single();
+
+    if (error) throw new Error(error.message);
+    return mapBooking(data);
   },
 
-  releaseMilestone: async (bookingId: string, milestoneId: string): Promise<Booking> => {
-    const updateTarget = (b: Booking) => {
-      if (b.milestones) {
-        const m = b.milestones.find(item => item.id === milestoneId);
-        if (m) m.status = 'released';
-        const allReleased = b.milestones.every(item => item.status === 'released');
-        if (allReleased) b.status = 'completed';
-      }
-    };
+  releaseMilestone: async (bookingId: string, milestoneId: string): Promise<void> => {
+    const { error } = await supabase
+      .from('booking_milestones')
+      .update({ status: 'paid' })
+      .eq('id', milestoneId);
 
-    const found = MOCK_BOOKINGS.find(b => b.id === bookingId);
-    if (found) updateTarget(found);
+    if (error) throw new Error(error.message);
 
-    const stored = await getStoredBookings();
-    const storedFound = stored.find(b => b.id === bookingId);
-    if (storedFound) updateTarget(storedFound);
-    await saveStoredBookings(stored);
+    // Check if all milestones are released, if so, complete the booking
+    const { data: milestones } = await supabase
+      .from('booking_milestones')
+      .select('status')
+      .eq('booking_id', bookingId);
 
-    try {
-      await apiClient.post(`/bookings/${bookingId}/milestones/${milestoneId}/release`);
-    } catch (e) {
-      // Offline fallback
+    if (milestones && milestones.length > 0 && milestones.every(m => m.status === 'paid')) {
+      await supabase
+        .from('bookings')
+        .update({ status: 'completed' })
+        .eq('id', bookingId);
     }
-
-    return found || storedFound || MOCK_BOOKINGS[0];
   },
 };

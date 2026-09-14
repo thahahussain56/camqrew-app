@@ -1,44 +1,138 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Modal, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Modal, Dimensions, ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuthStore } from '../../store/authStore';
 import { professionalApi } from '../../api/professionalApi';
-import { ProfessionalProfile } from '../../types/professional';
+import { studioApi } from '../../api/studioApi';
+import { productApi } from '../../api/productApi';
+import { ProfessionalProfile, ReviewItem } from '../../types/professional';
+import { Product } from '../../types/product';
 import { Avatar } from '../../components/ui/Avatar';
-import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { RatingStars } from '../../components/forms/RatingStars';
-import { Star, MapPin, Briefcase, Award, Calendar as CalendarIcon, X, ArrowLeft, ShieldCheck, Zap, Edit3, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { Button } from '../../components/ui/Button';
+import { ProductCard } from '../../components/cards/ProductCard';
+import { useCartStore } from '../../store/cartStore';
+import { Star, MapPin, X, ArrowLeft, ShieldCheck, Zap, ChevronLeft, ChevronRight, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
   const { colors } = useTheme();
+  
   const proId = route?.params?.id;
+  const bookingType = route?.params?.type || 'professionals';
+  const isStudio = bookingType === 'studios' || bookingType === 'studio';
 
   const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedImgIndex, setSelectedImgIndex] = useState<number | null>(null);
+  const { addItem } = useCartStore();
+  const { user, isAuthenticated } = useAuthStore();
+
+  // Reviews & Rating State
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedRating, setSelectedRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
-    if (proId) {
-      professionalApi.getProfileById(proId).then(setProfile);
-    } else {
+    if (!proId) {
       professionalApi.getProfessionals().then(list => {
         if (list && list.length > 0) setProfile(list[0]);
+        setLoading(false);
       });
+      return;
     }
-  }, [proId]);
 
-  if (!profile) return null;
+    setLoading(true);
+    const fetcher = isStudio ? studioApi.getStudioById(proId) : professionalApi.getProfileById(proId);
+    
+    fetcher.then(p => {
+      setProfile(p);
+      setReviews(p.reviews || []);
+      return productApi.getProductsByOwner(p.id);
+    }).then(prods => {
+      setProducts(prods || []);
+      setLoading(false);
+    }).catch(e => {
+      console.warn(e);
+      setLoading(false);
+    });
+  }, [proId, isStudio]);
+
+  const handleOpenReview = () => {
+    if (!isAuthenticated || !user) {
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to write a review and rate this creator.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign In', onPress: () => navigation.navigate('SignIn') }
+        ]
+      );
+      return;
+    }
+    setSelectedRating(5);
+    setReviewComment('');
+    setShowReviewModal(true);
+  };
+
+  const handleSubmitReview = async () => {
+    if (!profile) return;
+    if (!reviewComment.trim()) {
+      Alert.alert('Missing Review', 'Please write a brief comment describing your experience.');
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      const newRev = await professionalApi.addReview(profile.id, selectedRating, reviewComment);
+      setReviews(prev => [newRev, ...prev]);
+      
+      // Update profile review stats locally
+      const updatedCount = (profile.reviewCount || 0) + 1;
+      const currentRating = profile.rating || 5.0;
+      const updatedRating = Number(((currentRating * (profile.reviewCount || 0) + selectedRating) / updatedCount).toFixed(1));
+      
+      setProfile(prev => prev ? {
+        ...prev,
+        rating: updatedRating,
+        reviewCount: updatedCount,
+        reviews: [newRev, ...(prev.reviews || [])]
+      } : null);
+
+      setShowReviewModal(false);
+      setReviewComment('');
+      Alert.alert('Review Submitted! ⭐', 'Thank you! Your verified rating and review have been published.');
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to submit review.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  if (loading || !profile) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.accent} />
+      </View>
+    );
+  }
 
   const safeServices = profile.services && profile.services.length > 0 ? profile.services : [
     {
       id: 'srv_default',
-      title: 'Full Day Shoot Package',
-      category: profile.categories[0] || 'Photography',
+      title: isStudio ? 'Full Day Studio Access' : 'Full Day Shoot Package',
+      category: profile.categories[0] || 'Creative Service',
       rate: profile.ratePerDay || 15000,
       unit: 'per day',
-      description: 'Includes full day studio photography/videography coverage with high resolution deliverables.',
+      description: isStudio 
+        ? 'Includes full access to the studio bay, basic grip equipment, and green room.'
+        : 'Includes full day coverage with high resolution deliverables.',
     }
   ];
 
@@ -46,12 +140,14 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
     'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=800',
     'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=800',
     'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=800',
+    'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=800',
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Banner & Avatar */}
+        
+        {/* ── Cinematic Hero Banner ── */}
         <View style={styles.headerBanner}>
           <Image source={{ uri: profile.bannerImage }} style={styles.banner} />
           <View style={styles.bannerOverlay} />
@@ -61,114 +157,224 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
             <TouchableOpacity style={styles.roundBackBtn} onPress={() => navigation.goBack()}>
               <ArrowLeft size={20} color="#ffffff" />
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.editProfileTopBtn}
-              onPress={() => navigation.navigate('ProfessionalEdit')}
-              activeOpacity={0.85}
-            >
-              <Edit3 size={15} color="#ffffff" style={{ marginRight: 5 }} />
-              <Text style={styles.editTopBtnText}>Edit Profile</Text>
-            </TouchableOpacity>
           </View>
 
           <View style={styles.avatarWrapper}>
-            <Avatar source={profile.avatar} size={88} verified={profile.verified} />
+            <Avatar source={profile.avatar} size={100} verified={profile.verified} />
           </View>
         </View>
 
-        {/* Main Info */}
+        {/* ── Profile Overview Card ── */}
         <View style={styles.profileMeta}>
-          <View style={styles.verifiedTagRow}>
-            <ShieldCheck size={14} color="#fc8019" />
-            <Text style={styles.verifiedTagText}>VERIFIED CREATIVE STUDIO</Text>
+          <View style={styles.titleRow}>
+            <Text style={[styles.name, { color: colors.textPrimary }]}>{profile.name}</Text>
+            {profile.verified && (
+              <View style={styles.verifiedTagRow}>
+                <ShieldCheck size={16} color={colors.accent} />
+              </View>
+            )}
           </View>
-
-          <Text style={[styles.name, { color: colors.textPrimary }]}>{profile.name}</Text>
-          <Text style={[styles.title, { color: colors.textSecondary }]}>{profile.title}</Text>
+          <Text style={[styles.title, { color: colors.accent }]}>{isStudio ? 'Creative Studio Bay' : profile.title}</Text>
 
           <View style={styles.locationRow}>
-            <MapPin size={14} color="#fc8019" style={{ marginRight: 4 }} />
-            <Text style={[styles.locationText, { color: colors.textFaint }]}>
-              {profile.city}, {profile.state} • {profile.experienceYears} Years Exp
+            <MapPin size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
+            <Text style={[styles.locationText, { color: colors.textSecondary }]}>
+              {profile.city}, {profile.state}
+            </Text>
+            <View style={[styles.dotSeparator, { backgroundColor: colors.borderLight }]} />
+            <Briefcase size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
+            <Text style={[styles.locationText, { color: colors.textSecondary }]}>
+              {profile.experienceYears || 2}+ Years Exp
             </Text>
           </View>
 
           <View style={styles.ratingRow}>
-            <View style={styles.ratingPill}>
-              <Star size={12} color="#ffffff" fill="#ffffff" style={{ marginRight: 3 }} />
-              <Text style={styles.ratingVal}>{(profile.rating ?? 4.9).toFixed(1)}</Text>
-              <Text style={styles.reviewCount}>({profile.reviewCount ?? 18})</Text>
+            <View style={[styles.ratingPill, { backgroundColor: colors.surfaceCard }]}>
+              <Star size={14} color={colors.warning} fill={colors.warning} style={{ marginRight: 4 }} />
+              <Text style={[styles.ratingVal, { color: colors.textPrimary }]}>{(profile.rating ?? 4.9).toFixed(1)}</Text>
+              <Text style={[styles.reviewCount, { color: colors.textSecondary }]}>({profile.reviewCount ?? 18} reviews)</Text>
             </View>
-            <Text style={[styles.categoriesText, { color: colors.textSecondary }]}>
-              {(profile.categories || []).join(' • ')}
-            </Text>
-          </View>
-
-          {/* CTA Bar */}
-          <View style={styles.ctaRow}>
-            <Button
-              title="Message 💬"
-              variant="secondary"
-              size="lg"
-              onPress={() => navigation.navigate('Chat', { creatorId: profile.id, creatorName: profile.name, isPaidUnlocked: false })}
-              style={{ flex: 1, marginRight: 8 }}
-            />
-
-            <Button
-              title={`Book Now • ₹${(profile.ratePerDay || 15000).toLocaleString('en-IN')}`}
-              variant="primary"
-              size="lg"
-              icon={<Zap size={16} color="#ffffff" style={{ marginRight: 4 }} />}
-              onPress={() => navigation.navigate('Booking', { proId: profile.id })}
-              style={{ flex: 1.6, backgroundColor: '#fc8019' }}
-            />
           </View>
         </View>
 
-        {/* About / Bio */}
-        <Card style={styles.sectionCard}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>About the Creator</Text>
+        {/* ── Floating Action Bar ── */}
+        <View style={[styles.actionCard, { backgroundColor: colors.surfaceCard }]}>
+          <TouchableOpacity 
+            style={[styles.messageBtn, { backgroundColor: colors.surfaceElevated }]}
+            onPress={() => navigation.navigate('Chat', { otherUserId: profile.id, otherUserName: profile.name, otherUserAvatar: profile.avatar })}
+            activeOpacity={0.8}
+          >
+            <MessageSquare size={18} color={colors.textPrimary} style={{ marginRight: 8 }} />
+            <Text style={[styles.messageBtnText, { color: colors.textPrimary }]}>Message</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.bookBtn, { backgroundColor: colors.accent }]}
+            onPress={() => navigation.navigate('Booking', { proId: profile.id, type: bookingType })}
+            activeOpacity={0.8}
+          >
+            <Zap size={18} color="#ffffff" style={{ marginRight: 8 }} />
+            <Text style={styles.bookBtnText}>Book Now • ₹{(profile.ratePerDay || 15000).toLocaleString('en-IN')}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── About Section ── */}
+        <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>About {isStudio ? 'the Studio' : 'the Creator'}</Text>
           <Text style={[styles.bioText, { color: colors.textSecondary }]}>{profile.bio}</Text>
         </Card>
 
-        {/* Services Offered */}
-        <Card style={styles.sectionCard}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Services & Packages</Text>
+        {/* ── Services & Packages ── */}
+        <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Packages & Rates</Text>
           {safeServices.map(srv => (
             <View key={srv.id} style={[styles.serviceBox, { backgroundColor: colors.surfaceElevated }]}>
               <View style={styles.serviceHeader}>
                 <Text style={[styles.serviceTitle, { color: colors.textPrimary }]}>{srv.title}</Text>
-                <Text style={[styles.serviceRate, { color: '#fc8019' }]}>
-                  ₹{(srv.rate || 15000).toLocaleString('en-IN')} <Text style={{ fontSize: 11, color: colors.textFaint }}>/{srv.unit}</Text>
+                <Text style={[styles.serviceRate, { color: colors.accent }]}>
+                  ₹{(srv.rate || 15000).toLocaleString('en-IN')} <Text style={[styles.serviceUnit, { color: colors.textFaint }]}>/{srv.unit}</Text>
                 </Text>
               </View>
               {srv.description ? (
                 <Text style={[styles.serviceDesc, { color: colors.textSecondary }]}>{srv.description}</Text>
               ) : null}
+              {srv.deliverables ? (
+                <View style={[styles.deliverablesBox, { backgroundColor: colors.background }]}>
+                  <Text style={[styles.deliverablesLabel, { color: colors.textPrimary }]}>Deliverables:</Text>
+                  <Text style={[styles.deliverablesText, { color: colors.textSecondary }]}>{srv.deliverables}</Text>
+                </View>
+              ) : null}
             </View>
           ))}
         </Card>
 
-        {/* Portfolio Media Gallery */}
-        <Card style={styles.sectionCard}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Portfolio Gallery</Text>
-          <View style={styles.portfolioGrid}>
+        {/* ── Cinematic Portfolio Gallery ── */}
+        <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Portfolio Highlights</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18 }}>
+            <View style={{ width: 18 }} />
             {safePortfolio.map((img, idx) => (
-              <TouchableOpacity key={idx} activeOpacity={0.88} onPress={() => setSelectedImgIndex(idx)} style={styles.portfolioItem}>
+              <TouchableOpacity 
+                key={idx} 
+                activeOpacity={0.88} 
+                onPress={() => setSelectedImgIndex(idx)} 
+                style={styles.portfolioItemCinematic}
+              >
                 <Image source={{ uri: img }} style={styles.portfolioImage} />
               </TouchableOpacity>
             ))}
-          </View>
+            <View style={{ width: 18 }} />
+          </ScrollView>
         </Card>
 
-        {/* Equipment Roster */}
+        {/* ── Equipment / Amenities ── */}
         {profile.equipment && profile.equipment.length > 0 && (
-          <Card style={styles.sectionCard}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Equipment Roster</Text>
+          <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{isStudio ? 'Studio Amenities' : 'Equipment Roster'}</Text>
             <View style={styles.chipsWrap}>
               {profile.equipment.map((eq, i) => (
                 <Badge key={i} label={eq} variant="info" />
+              ))}
+            </View>
+          </Card>
+        )}
+
+        {/* ── Client Reviews & Star Ratings Section ── */}
+        <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+          <View style={styles.reviewsHeaderRow}>
+            <View>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 2 }]}>Client Reviews & Ratings</Text>
+              <View style={styles.reviewsSubRatingRow}>
+                <Star size={16} color={colors.warning} fill={colors.warning} style={{ marginRight: 4 }} />
+                <Text style={[styles.reviewsScoreText, { color: colors.textPrimary }]}>
+                  {(profile.rating ?? 5.0).toFixed(1)}
+                </Text>
+                <Text style={[styles.reviewsTotalCount, { color: colors.textSecondary }]}>
+                  • {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.writeReviewBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
+              onPress={handleOpenReview}
+              activeOpacity={0.8}
+            >
+              <Star size={14} color={colors.accent} fill={colors.accent} style={{ marginRight: 6 }} />
+              <Text style={[styles.writeReviewBtnText, { color: colors.textPrimary }]}>Write a Review</Text>
+            </TouchableOpacity>
+          </View>
+
+          {reviews.length === 0 ? (
+            <View style={[styles.emptyReviewsBox, { backgroundColor: colors.background }]}>
+              <MessageCircle size={32} color={colors.textFaint} style={{ marginBottom: 8 }} />
+              <Text style={[styles.emptyReviewsTitle, { color: colors.textPrimary }]}>No reviews yet</Text>
+              <Text style={[styles.emptyReviewsDesc, { color: colors.textSecondary }]}>
+                Be the first to share your experience working with {profile.name}!
+              </Text>
+              <TouchableOpacity
+                style={[styles.beFirstBtn, { backgroundColor: colors.accent }]}
+                onPress={handleOpenReview}
+              >
+                <Text style={styles.beFirstBtnText}>Rate & Review Now</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.reviewsListContainer}>
+              {reviews.map((rev, i) => (
+                <View key={rev.id || i} style={[styles.reviewItemCard, { borderBottomColor: colors.border }]}>
+                  <View style={styles.reviewAuthorRow}>
+                    <View style={styles.reviewerMeta}>
+                      {rev.clientAvatar ? (
+                        <Image source={{ uri: rev.clientAvatar }} style={styles.reviewerAvatar} />
+                      ) : (
+                        <View style={[styles.reviewerInitials, { backgroundColor: colors.accent }]}>
+                          <Text style={styles.reviewerInitialText}>
+                            {rev.clientName ? rev.clientName[0].toUpperCase() : 'C'}
+                          </Text>
+                        </View>
+                      )}
+                      <View>
+                        <Text style={[styles.reviewerName, { color: colors.textPrimary }]}>{rev.clientName}</Text>
+                        <Text style={[styles.reviewDate, { color: colors.textFaint }]}>{rev.date}</Text>
+                      </View>
+                    </View>
+
+                    {/* Star Rating Badge */}
+                    <View style={[styles.reviewStarsPill, { backgroundColor: colors.surfaceElevated }]}>
+                      {[1, 2, 3, 4, 5].map((starVal) => (
+                        <Star
+                          key={starVal}
+                          size={13}
+                          color={starVal <= rev.rating ? '#F5A623' : colors.textFaint}
+                          fill={starVal <= rev.rating ? '#F5A623' : 'transparent'}
+                          style={{ marginHorizontal: 1 }}
+                        />
+                      ))}
+                    </View>
+                  </View>
+
+                  <Text style={[styles.reviewCommentText, { color: colors.textSecondary }]}>
+                    {rev.comment}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </Card>
+
+        {/* ── Gear for Sale & Rent ── */}
+        {products && products.length > 0 && (
+          <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 16 }]}>Gear for Sale & Rent</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              {products.map(prod => (
+                <ProductCard
+                  key={prod.id}
+                  product={prod}
+                  onPress={() => navigation.navigate('ProductDetail', { product: prod })}
+                  onAddToCart={() => addItem(prod)}
+                />
               ))}
             </View>
           </Card>
@@ -179,17 +385,16 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
       <Modal visible={selectedImgIndex !== null} transparent animationType="fade" onRequestClose={() => setSelectedImgIndex(null)}>
         <View style={styles.modalBg}>
           <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedImgIndex(null)}>
-            <X size={24} color="#ffffff" />
+            <X size={28} color="#ffffff" />
           </TouchableOpacity>
           {selectedImgIndex !== null && (
             <View style={styles.lightboxContainer}>
               <Text style={styles.lightboxCounter}>
-                {selectedImgIndex + 1} of {safePortfolio.length}
+                {selectedImgIndex + 1} / {safePortfolio.length}
               </Text>
               
               <Image source={{ uri: safePortfolio[selectedImgIndex] }} style={styles.fullImage} resizeMode="contain" />
 
-              {/* Navigation Chevrons */}
               <View style={styles.slideshowControls}>
                 <TouchableOpacity
                   activeOpacity={0.7}
@@ -207,8 +412,6 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                   <ChevronRight size={36} color="#ffffff" />
                 </TouchableOpacity>
               </View>
-
-              <Text style={styles.lightboxTitle}>{profile.name} — Portfolio Work</Text>
             </View>
           )}
         </View>
@@ -218,244 +421,346 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
 };
 
 const styles = StyleSheet.create({
+  container: { flex: 1 },
   content: {
     paddingBottom: 50,
   },
+  
+  // Cinematic Banner
   headerBanner: {
-    height: 200,
+    height: 280,
     position: 'relative',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#000000',
   },
-  banner: {
-    width: '100%',
-    height: '100%',
-  },
+  banner: { width: '100%', height: '100%' },
   bannerOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   topControlRow: {
     position: 'absolute',
-    top: 50,
-    left: 16,
-    right: 16,
+    top: 60,
+    left: 20,
+    right: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     zIndex: 10,
   },
   roundBackBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  editProfileTopBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: 44, height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  editTopBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800',
+    alignItems: 'center', justifyContent: 'center',
   },
   avatarWrapper: {
     position: 'absolute',
-    bottom: -36,
-    left: 20,
+    bottom: -50,
+    left: '50%',
+    marginLeft: -50,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10,
   },
+
+  // Overview Meta
   profileMeta: {
     padding: 20,
-    paddingTop: 46,
-  },
-  verifiedTagRow: {
-    flexDirection: 'row',
+    paddingTop: 64,
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
   },
-  verifiedTagText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#fc8019',
-    letterSpacing: 0.8,
-  },
-  name: {
-    fontSize: 24,
-    fontWeight: '900',
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  locationText: {
-    fontSize: 13,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-    gap: 10,
-  },
+  titleRow: { flexDirection: 'row', alignItems: 'center' },
+  name: { fontSize: 28, fontWeight: '900' },
+  verifiedTagRow: { marginLeft: 6 },
+  title: { fontSize: 16, fontWeight: '700', marginTop: 4 },
+  
+  locationRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
+  locationText: { fontSize: 14, fontWeight: '600' },
+  dotSeparator: { width: 4, height: 4, borderRadius: 2, marginHorizontal: 10 },
+  
+  ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 16 },
   ratingPill: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 12,
+  },
+  ratingVal: { fontSize: 14, fontWeight: '900' },
+  reviewCount: { fontSize: 12, marginLeft: 6, fontWeight: '600' },
+
+  // Floating Action Card
+  actionCard: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#16a34a',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    marginHorizontal: 16,
+    marginBottom: 24,
+    padding: 8,
+    borderRadius: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 4,
   },
-  ratingVal: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  reviewCount: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 10,
-    marginLeft: 3,
-  },
-  categoriesText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  ctaRow: {
-    marginTop: 18,
+  messageBtn: {
+    flex: 1,
     flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'center',
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginRight: 8,
   },
+  messageBtnText: { fontSize: 15, fontWeight: '800' },
+  bookBtn: {
+    flex: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'center',
+    borderRadius: 12,
+    paddingVertical: 14,
+  },
+  bookBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '900' },
+
+  // Section Cards
   sectionCard: {
     marginHorizontal: 16,
     marginBottom: 16,
     borderWidth: 0,
-    borderRadius: 20,
-    padding: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 2,
   },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '900',
+  sectionTitle: { fontSize: 20, fontWeight: '900', marginBottom: 16 },
+  bioText: { fontSize: 15, lineHeight: 24, fontWeight: '500' },
+  
+  // Services
+  serviceBox: {
+    padding: 18,
+    borderRadius: 16,
     marginBottom: 12,
   },
-  bioText: {
-    fontSize: 14,
-    lineHeight: 22,
-  },
-  serviceBox: {
-    padding: 14,
-    borderRadius: 14,
-    marginBottom: 10,
-  },
-  serviceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  serviceTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  serviceRate: {
-    fontSize: 15,
-    fontWeight: '900',
-  },
-  serviceDesc: {
-    fontSize: 12,
-    marginTop: 6,
-    lineHeight: 18,
-  },
-  portfolioGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  portfolioItem: {
-    width: (width - 72) / 2,
-    height: 130,
-    borderRadius: 14,
+  serviceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  serviceTitle: { fontSize: 16, fontWeight: '800', flex: 1 },
+  serviceRate: { fontSize: 18, fontWeight: '900' },
+  serviceUnit: { fontSize: 13 },
+  serviceDesc: { fontSize: 14, lineHeight: 20, marginTop: 12 },
+  deliverablesBox: { marginTop: 12, padding: 10, borderRadius: 8 },
+  deliverablesLabel: { fontSize: 12, fontWeight: '700', marginBottom: 4 },
+  deliverablesText: { fontSize: 13, lineHeight: 18 },
+
+  // Portfolio
+  portfolioItemCinematic: {
+    width: 260,
+    height: 180,
+    borderRadius: 16,
     overflow: 'hidden',
+    marginRight: 12,
   },
-  portfolioImage: {
-    width: '100%',
-    height: '100%',
-  },
-  chipsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  modalBg: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeBtn: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    zIndex: 20,
-    padding: 8,
-  },
-  lightboxContainer: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  lightboxCounter: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 14,
-    fontWeight: '800',
-    position: 'absolute',
-    top: 58,
-    alignSelf: 'center',
-  },
-  fullImage: {
-    width: '90%',
-    height: '65%',
-  },
-  slideshowControls: {
-    position: 'absolute',
+  portfolioImage: { width: '100%', height: '100%' },
+
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+
+  // Lightbox
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.98)', justifyContent: 'center', alignItems: 'center' },
+  closeBtn: { position: 'absolute', top: 50, right: 20, zIndex: 20, padding: 8 },
+  lightboxContainer: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', position: 'relative' },
+  lightboxCounter: { color: '#ffffff', fontSize: 16, fontWeight: '800', position: 'absolute', top: 60, alignSelf: 'center' },
+  fullImage: { width: '100%', height: '70%' },
+  slideshowControls: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingHorizontal: 16, zIndex: 15 },
+  navArrow: { backgroundColor: 'rgba(0, 0, 0, 0.5)', width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+
+  reviewsHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '100%',
-    paddingHorizontal: 12,
-    zIndex: 15,
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  navArrow: {
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  reviewsSubRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  reviewsScoreText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  reviewsTotalCount: {
+    fontSize: 13,
+    marginLeft: 4,
+  },
+  writeReviewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  writeReviewBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  emptyReviewsBox: {
+    padding: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    marginTop: 8,
   },
-  lightboxTitle: {
+  emptyReviewsTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  emptyReviewsDesc: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 16,
+    maxWidth: 260,
+  },
+  beFirstBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  beFirstBtnText: {
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '700',
-    position: 'absolute',
-    bottom: 40,
+  },
+  reviewsListContainer: {
+    marginTop: 4,
+  },
+  reviewItemCard: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  reviewAuthorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  reviewerMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  reviewerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  reviewerInitials: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewerInitialText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  reviewerName: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  reviewDate: {
+    fontSize: 11,
+    marginTop: 1,
+  },
+  reviewStarsPill: {
+    flexDirection: 'row',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  reviewCommentText: {
+    fontSize: 13,
+    lineHeight: 19,
+    paddingLeft: 46,
+  },
+  reviewModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  reviewModalCard: {
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  reviewModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  reviewModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  reviewModalSub: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  reviewCloseBtn: {
+    padding: 4,
+  },
+  starPickerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginVertical: 12,
+  },
+  starTouchItem: {
+    padding: 6,
+  },
+  starRatingLabel: {
     textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  commentInputLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  commentTextInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    minHeight: 100,
+    marginBottom: 20,
+  },
+  reviewModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  reviewCancelBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewCancelBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  reviewSubmitBtn: {
+    flex: 1.6,
+    borderRadius: 12,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewSubmitBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

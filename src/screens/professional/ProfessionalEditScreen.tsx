@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuthStore } from '../../store/authStore';
 import { professionalApi } from '../../api/professionalApi';
 import { ProfessionalProfile, ServiceItem } from '../../types/professional';
 import { Input } from '../../components/ui/Input';
@@ -16,6 +17,7 @@ import { ChevronDown, ChevronUp, Plus, Trash2, Save, Camera, Image as ImageIcon 
 
 export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors } = useTheme();
+  const { user } = useAuthStore();
 
   const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,7 +27,6 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
   const [openSections, setOpenSections] = useState<{ [key: string]: boolean }>({
     media: true,
     basic: true,
-    services: true,
     locations: true,
   });
 
@@ -46,7 +47,6 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
   const [ratePerDay, setRatePerDay] = useState('15000');
   const [equipment, setEquipment] = useState<string[]>([]);
   const [certifications, setCertifications] = useState<string[]>([]);
-  const [services, setServices] = useState<ServiceItem[]>([]);
   const [iCalUrl, setICalUrl] = useState('');
   const [internationalTravel, setInternationalTravel] = useState(true);
   const [instagram, setInstagram] = useState('');
@@ -58,37 +58,34 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
   const [avatar, setAvatar] = useState('');
   const [bannerImage, setBannerImage] = useState('');
   const [portfolio, setPortfolio] = useState<string[]>([]);
-
-  // New Service Input Form State
-  const [newSrvTitle, setNewSrvTitle] = useState('');
-  const [newSrvRate, setNewSrvRate] = useState('');
-  const [newSrvUnit, setNewSrvUnit] = useState('per day');
-  const [newSrvDesc, setNewSrvDesc] = useState('');
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [newService, setNewService] = useState<{title: string, rate: string, unit: string, category: string, deliverables: string, type: 'standard' | 'package'}>({ title: '', rate: '', unit: 'Day', category: 'Photography', deliverables: '', type: 'standard' });
 
   useEffect(() => {
-    professionalApi.getProfessionals({ category: 'Photographers' }).then(list => {
-      const p = list.length > 0 ? list[0] : null;
-      if (p) {
-        setProfile(p);
-        setName(p.name);
-        setTitle(p.title);
-        setBio(p.bio);
-        setExperienceYears(p.experienceYears ? p.experienceYears.toString() : '5');
-        setCategories(p.categories || ['Photographers']);
-        setState(p.state || 'Maharashtra');
-        setDistrict(p.district || 'Mumbai');
-        setCity(p.city || 'Mumbai');
-        setRatePerDay(p.ratePerDay ? p.ratePerDay.toString() : '15000');
-        setEquipment(p.equipment || []);
-        setCertifications(p.certifications || []);
-        setServices(p.services || []);
-        setICalUrl(p.iCalUrl || '');
-        setAvatar(p.avatar || '');
-        setBannerImage(p.bannerImage || '');
-        setPortfolio(p.portfolio || []);
-      }
-    });
-  }, []);
+    if (user?.id) {
+      professionalApi.getProfileById(user.id).then(p => {
+        if (p) {
+          setProfile(p);
+          setName(p.name);
+          setTitle(p.title);
+          setBio(p.bio);
+          setExperienceYears(p.experienceYears ? p.experienceYears.toString() : '5');
+          setCategories(p.categories || ['Photographers']);
+          setState(p.state || 'Maharashtra');
+          setDistrict(p.district || 'Mumbai');
+          setCity(p.city || 'Mumbai');
+          setRatePerDay(p.ratePerDay ? p.ratePerDay.toString() : '15000');
+          setEquipment(p.equipment || []);
+          setCertifications(p.certifications || []);
+          setICalUrl(p.iCalUrl || '');
+          setAvatar(p.avatar || '');
+          setBannerImage(p.bannerImage || '');
+          setPortfolio(p.portfolio || []);
+          setServices(p.services || []);
+        }
+      }).catch(console.warn);
+    }
+  }, [user?.id]);
 
   const pickImage = async (target: 'avatar' | 'banner' | 'portfolio') => {
     try {
@@ -120,26 +117,6 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
     setPortfolio(portfolio.filter((_, i) => i !== index));
   };
 
-  const handleAddService = () => {
-    if (!newSrvTitle || !newSrvRate) return;
-    const item: ServiceItem = {
-      id: 'srv_' + Date.now(),
-      title: newSrvTitle,
-      category: categories[0] || 'Photographers',
-      rate: Number(newSrvRate),
-      unit: newSrvUnit,
-      description: newSrvDesc,
-    };
-    setServices([...services, item]);
-    setNewSrvTitle('');
-    setNewSrvRate('');
-    setNewSrvDesc('');
-  };
-
-  const handleRemoveService = (id: string) => {
-    setServices(services.filter(s => s.id !== id));
-  };
-
   const handleSave = async () => {
     setLoading(true);
     try {
@@ -159,10 +136,10 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
         ratePerDay: Number(ratePerDay),
         equipment,
         certifications,
-        services,
         iCalUrl,
         internationalTravel,
         socials: { instagram, website, youtube, facebook },
+        services,
       });
       setToastMessage('Profile updated successfully!');
       setTimeout(() => {
@@ -176,7 +153,11 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView 
+      style={{ flex: 1, backgroundColor: colors.background }} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Toast visible={!!toastMessage} message={toastMessage} type="success" onDismiss={() => setToastMessage('')} />
 
       <View style={styles.header}>
@@ -187,7 +168,7 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
       <Card style={styles.accordionCard}>
         <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('media')}>
           <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>1. Profile & Portfolio Media</Text>
-          {openSections.media ? <ChevronUp size={20} color="#fc8019" /> : <ChevronDown size={20} color={colors.textSecondary} />}
+          {openSections.media ? <ChevronUp size={20} color="#3fb668" /> : <ChevronDown size={20} color={colors.textSecondary} />}
         </TouchableOpacity>
 
         {openSections.media && (
@@ -203,7 +184,7 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                 </View>
               )}
               <TouchableOpacity
-                style={[styles.uploadBtn, { backgroundColor: '#fc8019' }]}
+                style={[styles.uploadBtn, { backgroundColor: '#3fb668' }]}
                 onPress={() => pickImage('avatar')}
               >
                 <Camera size={16} color="#ffffff" style={{ marginRight: 6 }} />
@@ -246,7 +227,7 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                 style={[styles.addPortfolioBtn, { backgroundColor: colors.chipBg, borderColor: colors.border }]}
                 onPress={() => pickImage('portfolio')}
               >
-                <Plus size={20} color="#fc8019" />
+                <Plus size={20} color="#3fb668" />
                 <Text style={[styles.addPortText, { color: colors.textSecondary }]}>Add Photo</Text>
               </TouchableOpacity>
             </View>
@@ -258,7 +239,7 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
       <Card style={styles.accordionCard}>
         <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('basic')}>
           <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>2. Basic Information</Text>
-          {openSections.basic ? <ChevronUp size={20} color="#fc8019" /> : <ChevronDown size={20} color={colors.textSecondary} />}
+          {openSections.basic ? <ChevronUp size={20} color="#3fb668" /> : <ChevronDown size={20} color={colors.textSecondary} />}
         </TouchableOpacity>
 
         {openSections.basic && (
@@ -278,15 +259,16 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
         )}
       </Card>
 
-      {/* 3. Service Categories Accordion */}
+      {/* 3. Profile Categories & Services Accordion */}
       <Card style={styles.accordionCard}>
         <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('categories')}>
-          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>3. Service Categories</Text>
-          {openSections.categories ? <ChevronUp size={20} color="#fc8019" /> : <ChevronDown size={20} color={colors.textSecondary} />}
+          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>3. Profile Categories & Services</Text>
+          {openSections.categories ? <ChevronUp size={20} color="#3fb668" /> : <ChevronDown size={20} color={colors.textSecondary} />}
         </TouchableOpacity>
 
         {openSections.categories && (
           <View style={styles.accordionBody}>
+            <Text style={[styles.subHeading, { color: colors.textPrimary }]}>Profile Categories (Select Multiple)</Text>
             <View style={styles.chipsWrap}>
               {PROFESSIONAL_CATEGORIES.map(cat => {
                 const isSelected = categories.includes(cat.name);
@@ -303,47 +285,107 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                 );
               })}
             </View>
-          </View>
-        )}
-      </Card>
 
-      {/* 4. Services Offered CRUD Accordion */}
-      <Card style={styles.accordionCard}>
-        <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('services')}>
-          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>4. Services & Pricing Packages</Text>
-          {openSections.services ? <ChevronUp size={20} color="#fc8019" /> : <ChevronDown size={20} color={colors.textSecondary} />}
-        </TouchableOpacity>
-
-        {openSections.services && (
-          <View style={styles.accordionBody}>
-            {services.map(srv => (
-              <View key={srv.id} style={[styles.srvBox, { backgroundColor: colors.chipBg, borderColor: colors.border }]}>
+            <Text style={[styles.subHeading, { color: colors.textPrimary, marginTop: 24 }]}>Your Services</Text>
+            {services.map((srv, idx) => (
+              <View key={idx} style={[styles.srvBox, { borderColor: colors.borderLight }]}>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.srvTitle, { color: colors.textPrimary }]}>{srv.title}</Text>
-                  <Text style={[styles.srvRate, { color: '#fc8019' }]}>₹{srv.rate.toLocaleString('en-IN')} /{srv.unit}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={[styles.srvTitle, { color: colors.textPrimary }]}>{srv.title}</Text>
+                    {srv.type === 'package' && (
+                      <View style={{ backgroundColor: colors.accentGlow, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                        <Text style={{ color: colors.accent, fontSize: 10, fontWeight: '900' }}>PACKAGE</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.srvRate, { color: colors.accent }]}>₹{srv.rate} {srv.type !== 'package' ? `/ ${srv.unit}` : '(Fixed)'} • {srv.category}</Text>
+                  {srv.deliverables ? (
+                    <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 4 }}>Deliverables: {srv.deliverables}</Text>
+                  ) : null}
                 </View>
-                <TouchableOpacity onPress={() => handleRemoveService(srv.id)}>
-                  <Trash2 size={18} color={colors.danger} />
+                <TouchableOpacity onPress={() => setServices(services.filter((_, i) => i !== idx))} style={{ padding: 8 }}>
+                  <Trash2 size={16} color="#e11d48" />
                 </TouchableOpacity>
               </View>
             ))}
 
-            <View style={[styles.addBox, { borderColor: colors.border }]}>
-              <Text style={[styles.addTitle, { color: '#fc8019' }]}>+ Add New Package</Text>
-              <Input label="Service Title" placeholder="e.g. Full Day Shoot" value={newSrvTitle} onChangeText={setNewSrvTitle} />
-              <Input label="Rate (₹)" placeholder="15000" value={newSrvRate} onChangeText={setNewSrvRate} keyboardType="numeric" />
-              <Input label="Short Description" placeholder="Package inclusions..." value={newSrvDesc} onChangeText={setNewSrvDesc} />
-              <Button title="Add Package" variant="outline" size="sm" onPress={handleAddService} />
+            <View style={[styles.addBox, { borderColor: colors.borderLight }]}>
+              <Text style={[styles.addTitle, { color: colors.textPrimary }]}>Add New Service</Text>
+              
+              <View style={{ flexDirection: 'row', marginBottom: 12, backgroundColor: colors.surfaceCard, borderRadius: 8, padding: 4 }}>
+                <TouchableOpacity 
+                  style={{ flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 6, backgroundColor: newService.type === 'standard' ? colors.surfaceElevated : 'transparent' }}
+                  onPress={() => setNewService({...newService, type: 'standard', unit: 'Day'})}
+                >
+                  <Text style={{ fontWeight: newService.type === 'standard' ? '800' : '500', color: newService.type === 'standard' ? colors.textPrimary : colors.textSecondary }}>Standard Rate</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={{ flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 6, backgroundColor: newService.type === 'package' ? colors.surfaceElevated : 'transparent' }}
+                  onPress={() => setNewService({...newService, type: 'package', unit: 'Flat Rate'})}
+                >
+                  <Text style={{ fontWeight: newService.type === 'package' ? '800' : '500', color: newService.type === 'package' ? colors.accent : colors.textSecondary }}>Fixed Package</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 6 }}>Service Category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                {PROFESSIONAL_CATEGORIES.map(cat => (
+                  <Chip
+                    key={cat.id}
+                    label={cat.name}
+                    active={newService.category === cat.name}
+                    onPress={() => setNewService({...newService, category: cat.name})}
+                  />
+                ))}
+              </ScrollView>
+
+              <Input label="Service Title (e.g. Wedding Shoot)" value={newService.title} onChangeText={t => setNewService({...newService, title: t})} />
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Input label={newService.type === 'package' ? "Package Price (₹)" : "Rate (₹)"} value={newService.rate} onChangeText={t => setNewService({...newService, rate: t})} keyboardType="numeric" />
+                </View>
+                {newService.type === 'standard' && (
+                  <View style={{ flex: 1 }}>
+                    <Input label="Unit (e.g. Day)" value={newService.unit} onChangeText={t => setNewService({...newService, unit: t})} />
+                  </View>
+                )}
+              </View>
+              <Input 
+                label="Deliverables (e.g. 50 Edited Photos, 1 Highlight Reel)" 
+                value={newService.deliverables} 
+                onChangeText={t => setNewService({...newService, deliverables: t})} 
+              />
+              <Button
+                title={newService.type === 'package' ? "Add Package" : "Add Service"}
+                variant="secondary"
+                size="md"
+                onPress={() => {
+                  if (newService.title && newService.rate) {
+                    setServices([...services, { 
+                      id: Date.now().toString(), 
+                      type: newService.type,
+                      title: newService.title, 
+                      rate: Number(newService.rate), 
+                      unit: newService.type === 'package' ? 'Flat Rate' : newService.unit, 
+                      category: newService.category, 
+                      description: '',
+                      deliverables: newService.deliverables
+                    }]);
+                    setNewService({ title: '', rate: '', unit: 'Day', category: newService.category, deliverables: '', type: 'standard' });
+                  }
+                }}
+                style={{ marginTop: 8 }}
+              />
             </View>
           </View>
         )}
       </Card>
 
-      {/* 5. Indian Location System Accordion */}
+      {/* 4. Indian Location System Accordion */}
       <Card style={styles.accordionCard}>
         <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('locations')}>
-          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>5. Primary Location & Rate</Text>
-          {openSections.locations ? <ChevronUp size={20} color="#fc8019" /> : <ChevronDown size={20} color={colors.textSecondary} />}
+          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>4. Primary Location & Rate</Text>
+          {openSections.locations ? <ChevronUp size={20} color="#3fb668" /> : <ChevronDown size={20} color={colors.textSecondary} />}
         </TouchableOpacity>
 
         {openSections.locations && (
@@ -363,11 +405,11 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
         )}
       </Card>
 
-      {/* 6. Equipment Roster Accordion */}
+      {/* 5. Equipment Roster Accordion */}
       <Card style={styles.accordionCard}>
         <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('equipment')}>
-          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>6. Equipment Roster</Text>
-          {openSections.equipment ? <ChevronUp size={20} color="#fc8019" /> : <ChevronDown size={20} color={colors.textSecondary} />}
+          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>5. Equipment Roster</Text>
+          {openSections.equipment ? <ChevronUp size={20} color="#3fb668" /> : <ChevronDown size={20} color={colors.textSecondary} />}
         </TouchableOpacity>
 
         {openSections.equipment && (
@@ -382,11 +424,11 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
         )}
       </Card>
 
-      {/* 7. Skills & Certifications Accordion */}
+      {/* 6. Skills & Certifications Accordion */}
       <Card style={styles.accordionCard}>
         <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('skills')}>
-          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>7. Skills & Industry Badges</Text>
-          {openSections.skills ? <ChevronUp size={20} color="#fc8019" /> : <ChevronDown size={20} color={colors.textSecondary} />}
+          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>6. Skills & Industry Badges</Text>
+          {openSections.skills ? <ChevronUp size={20} color="#3fb668" /> : <ChevronDown size={20} color={colors.textSecondary} />}
         </TouchableOpacity>
 
         {openSections.skills && (
@@ -409,8 +451,8 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                   height: 20,
                   borderRadius: 6,
                   borderWidth: 2,
-                  borderColor: internationalTravel ? '#fc8019' : colors.textFaint,
-                  backgroundColor: internationalTravel ? '#fc8019' : 'transparent',
+                  borderColor: internationalTravel ? '#3fb668' : colors.textFaint,
+                  backgroundColor: internationalTravel ? '#3fb668' : 'transparent',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginRight: 10,
@@ -419,7 +461,7 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                 {internationalTravel && <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 12 }}>✓</Text>}
               </View>
               <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '700' }}>
-                Willing to travel internationally for shoots ✈️
+                Willing to travel internationally for shoots
               </Text>
             </TouchableOpacity>
           </View>
@@ -433,9 +475,10 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
         loading={loading}
         icon={<Save size={18} color="#ffffff" />}
         onPress={handleSave}
-        style={{ marginVertical: 30, backgroundColor: '#fc8019' }}
+        style={{ marginVertical: 30, backgroundColor: '#3fb668' }}
       />
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 

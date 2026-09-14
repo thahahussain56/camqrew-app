@@ -14,7 +14,7 @@ export interface ShippingAddress {
   addressLine1: string;
   addressLine2?: string;
   state: string;
-  district: string;
+  district?: string;
   city: string;
   pincode: string;
   aadharNumber?: string;
@@ -24,6 +24,7 @@ export interface ShippingAddress {
 
 export interface Order {
   id: string;
+  orderType: 'sale' | 'rental';
   items: CartItem[];
   shippingAddress: ShippingAddress;
   subtotal: number;
@@ -34,4 +35,7 @@ export interface Order {
   status: 'placed' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
   createdAt: string;
   estimatedDelivery: string;
+  awb_code?: string;
+  courier_name?: string;
+  shiprocket_order_id?: string;
 }

@@ -1,0 +1,44 @@
+appId: host.exp.exponent
+---
+# Open the Expo dev server deep link
+- openLink: exp://127.0.0.1:8081
+
+# Wait for the app bundle to load
+- extendedWaitUntil:
+    visible: "Welcome.*|Skip|CURRENT LOCATION"
+    timeout: 20000
+
+# If we are on Onboarding, tap Skip
+- runFlow:
+    when:
+      visible: "Skip"
+    commands:
+      - tapOn: "Skip"
+
+# Verify we are on Sign In screen
+- assertVisible: "Welcome.*"
+
+# Tap the Email input field
+- tapOn:
+    id: "input-email"
+- inputText: "thahazakir@gmail.com"
+
+# Tap the Password input field
+- tapOn:
+    id: "input-password"
+- inputText: "Qwerty"
+
+# Tap the title to dismiss the keyboard SAFELY
+- tapOn: "Welcome Back"
+
+# Wait a second for the keyboard animation to slide down
+- scroll
+
+# Tap the Login button
+- tapOn:
+    id: "btn-login"
+
+# Verify Home Screen
+- extendedWaitUntil:
+    visible: "CURRENT LOCATION"
+    timeout: 10000

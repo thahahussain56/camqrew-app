@@ -76,7 +76,7 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.titleRow}>
-              <Calendar size={18} color="#fc8019" style={{ marginRight: 8 }} />
+              <Calendar size={18} color="#3fb668" style={{ marginRight: 8 }} />
               <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -121,7 +121,7 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
                   key={`day-${dayNum}`}
                   style={[
                     styles.dayCell,
-                    isSelected && { backgroundColor: '#fc8019' },
+                    isSelected && { backgroundColor: '#3fb668' },
                     isBlocked && { backgroundColor: 'rgba(239,68,68,0.18)', borderColor: '#ef4444', borderWidth: 1 },
                   ]}
                   onPress={() => handleSelectDay(dayNum)}
