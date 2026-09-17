@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { notificationApi, DBNotification } from '../api/notificationApi';
+import { supabase } from '../api/supabaseClient';
 import * as Notifications from 'expo-notifications';
 
 export interface AppNotification {
@@ -22,6 +23,7 @@ interface NotificationStoreState {
   markAllAsRead: (userId: string) => Promise<void>;
   dismissNotification: (id: string) => Promise<void>;
   addLocalNotification: (notif: DBNotification) => void;
+  subscribeToRealtimeNotifications: (userId: string) => () => void;
 }
 
 const mapDBToAppNotification = (dbn: DBNotification): AppNotification => {
@@ -29,12 +31,24 @@ const mapDBToAppNotification = (dbn: DBNotification): AppNotification => {
   let targetParams = undefined;
 
   if (dbn.target_url) {
-    if (dbn.target_url.startsWith('camcrew://chat/')) {
+    const url = dbn.target_url;
+    if (url.includes('chat')) {
+      const match = url.match(/(?:chat\/|userId=)([^&?]+)/);
+      const otherUserId = match ? match[1] : url.replace('camcrew://chat/', '');
       targetScreen = 'Chat';
-      targetParams = { otherUserId: dbn.target_url.replace('camcrew://chat/', '') };
-    } else if (dbn.target_url.startsWith('camcrew://booking/')) {
+      targetParams = { otherUserId };
+    } else if (url.includes('booking')) {
+      const match = url.match(/(?:booking\/|bookingId=)([^&?]+)/);
+      const bookingId = match ? match[1] : url.replace('camcrew://booking/', '');
       targetScreen = 'Booking';
-      targetParams = { bookingId: dbn.target_url.replace('camcrew://booking/', '') };
+      targetParams = { bookingId };
+    } else if (url.includes('job_board') || url.includes('jobboard')) {
+      targetScreen = 'JobBoardScreen';
+    } else if (url.includes('job_review') || url.includes('jobreview')) {
+      const match = url.match(/jobId=([^&?]+)/);
+      const jobId = match ? match[1] : undefined;
+      targetScreen = 'JobReview';
+      targetParams = { jobId };
     }
   }
 
@@ -102,5 +116,28 @@ export const useNotificationStore = create<NotificationStoreState>((set, get) =>
     const unreadCount = list.filter(n => !n.read).length;
     Notifications.setBadgeCountAsync(unreadCount).catch(() => {});
     set({ notifications: list, unreadCount });
+  },
+
+  subscribeToRealtimeNotifications: (userId: string) => {
+    const channel = supabase
+      .channel(`user_notifications_${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          const newRow = payload.new as DBNotification;
+          get().addLocalNotification(newRow);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }
 }));

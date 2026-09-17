@@ -240,6 +240,21 @@ export const bookingApi = {
       .single();
 
     if (error) throw new Error(error.message);
+
+    // Notify client that pro accepted the booking
+    try {
+      if (data?.customer_id) {
+        notificationService.sendPushNotification(data.customer_id, {
+          type: 'booking',
+          title: '🎉 Booking Accepted!',
+          body: 'Your booking request was accepted! Pay the advance escrow to secure your dates.',
+          targetUrl: `camcrew://booking/${bookingId}`,
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('Could not dispatch booking accepted notification:', e);
+    }
+
     return mapBooking(data);
   },
 
@@ -252,6 +267,21 @@ export const bookingApi = {
       .single();
 
     if (error) throw new Error(error.message);
+
+    // Notify client that booking was declined
+    try {
+      if (data?.customer_id) {
+        notificationService.sendPushNotification(data.customer_id, {
+          type: 'booking',
+          title: 'Booking Declined',
+          body: 'The professional is unable to take this booking. Check explore for other available creators.',
+          targetUrl: `camcrew://booking/${bookingId}`,
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('Could not dispatch booking declined notification:', e);
+    }
+
     return mapBooking(data);
   },
 
@@ -283,6 +313,22 @@ export const bookingApi = {
       .single();
 
     if (error) throw new Error(error.message);
+
+    // Notify professional/studio that advance escrow is paid and dates confirmed
+    try {
+      const recipientId = data?.professional_id || data?.studio_id;
+      if (recipientId) {
+        notificationService.sendPushNotification(recipientId, {
+          type: 'booking',
+          title: '✅ Advance Escrow Paid & Dates Locked!',
+          body: `Advance escrow of ₹${advance.toLocaleString('en-IN')} has been funded. Dates are locked!`,
+          targetUrl: `camcrew://booking/${bookingId}`,
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('Could not dispatch advance escrow notification:', e);
+    }
+
     return mapBooking(data);
   },
 

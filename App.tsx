@@ -9,8 +9,10 @@ import { StripeProvider } from '@stripe/stripe-react-native';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { useThemeStore } from './src/store/themeStore';
 import { useAuthStore } from './src/store/authStore';
+import { useNotificationStore } from './src/store/notificationStore';
 import * as Notifications from 'expo-notifications';
 import { registerForPushNotificationsAsync } from './src/services/pushRegistrationService';
+import { navigationRef, navigate } from './src/navigation/navigationRef';
 import * as Linking from 'expo-linking';
 
 Notifications.setNotificationHandler({
@@ -35,11 +37,66 @@ export default function App() {
     loadAuth();
   }, []);
 
+  // Handle push notification registration & realtime notifications stream
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       registerForPushNotificationsAsync();
+      const unsubRealtime = useNotificationStore.getState().subscribeToRealtimeNotifications(user.id);
+      useNotificationStore.getState().fetchNotifications(user.id);
+      return () => {
+        unsubRealtime();
+      };
     }
-  }, [user]);
+  }, [user?.id]);
+
+  // Handle push notification interactions (tap to open screen) & foreground alerts
+  useEffect(() => {
+    const handleUrlNavigation = (url?: string) => {
+      if (!url) return;
+      if (url.includes('chat/')) {
+        const parts = url.split('chat/');
+        const otherUserId = parts[1]?.split('?')[0];
+        if (otherUserId) navigate('Chat', { otherUserId });
+      } else if (url.includes('chat?') || url.includes('/chat')) {
+        const match = url.match(/userId=([^&?]+)/);
+        if (match) {
+          navigate('Chat', { otherUserId: match[1] });
+        } else {
+          navigate('ChatList');
+        }
+      } else if (url.includes('job_board') || url.includes('jobboard')) {
+        navigate('JobBoardScreen');
+      } else if (url.includes('booking')) {
+        const match = url.match(/(?:booking\/|bookingId=)([^&?]+)/);
+        if (match) {
+          navigate('Booking', { bookingId: match[1] });
+        }
+      } else if (url.includes('job_review') || url.includes('jobreview')) {
+        const match = url.match(/jobId=([^&?]+)/);
+        if (match) {
+          navigate('JobReview', { jobId: match[1] });
+        }
+      }
+    };
+
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const url = response?.notification?.request?.content?.data?.url;
+      if (typeof url === 'string') {
+        handleUrlNavigation(url);
+      }
+    });
+
+    const receivedSubscription = Notifications.addNotificationReceivedListener(() => {
+      if (user?.id) {
+        useNotificationStore.getState().fetchNotifications(user.id);
+      }
+    });
+
+    return () => {
+      responseSubscription.remove();
+      receivedSubscription.remove();
+    };
+  }, [user?.id]);
 
   const linking = {
     prefixes: [Linking.createURL('/'), 'camcrew://'],
@@ -47,12 +104,22 @@ export default function App() {
       screens: {
         MainApp: {
           screens: {
-            Chat: 'chat/:otherUserId',
-            Booking: 'booking/:bookingId',
-          }
-        }
-      }
-    }
+            HomeTab: {
+              screens: {
+                Chat: 'chat/:otherUserId',
+                Booking: 'booking/:bookingId',
+                JobReview: 'job_review',
+              },
+            },
+            JobTab: {
+              screens: {
+                JobBoardScreen: 'job_board',
+              },
+            },
+          },
+        },
+      },
+    },
   };
 
   return (
@@ -62,7 +129,7 @@ export default function App() {
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
-          <NavigationContainer linking={linking as any}>
+          <NavigationContainer ref={navigationRef} linking={linking as any}>
             <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
             <RootNavigator />
           </NavigationContainer>

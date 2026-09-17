@@ -149,6 +149,14 @@ export const chatApi = {
     if (error || !data) {
       throw new Error(error?.message || 'Failed to send message');
     }
+
+    // Trigger push notification to receiver
+    try {
+      const senderDisplayName = data.sender?.name || 'Someone';
+      notificationService.triggerChatNotification(myId, receiverId, senderDisplayName, text).catch(() => {});
+    } catch (notifErr) {
+      console.warn('Could not dispatch chat push notification:', notifErr);
+    }
     
     return {
       id: String(data.id),

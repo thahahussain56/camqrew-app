@@ -76,7 +76,7 @@ export const NotchBlurGradient: React.FC<NotchBlurGradientProps> = ({
 
       {/* 2. Soft Gradient Tint Layer (iPhone Instagram Aesthetic) */}
       <LinearGradient
-        colors={gradientColors}
+        colors={gradientColors as [string, string, ...string[]]}
         locations={[0, 0.55, 0.82, 1.0]}
         style={StyleSheet.absoluteFill}
       />
