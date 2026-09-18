@@ -17,7 +17,7 @@ import { EarningsChart } from '../../components/charts/EarningsChart';
 import { BookingsDonut } from '../../components/charts/BookingsDonut';
 import { Toast } from '../../components/ui/Toast';
 import { ListProductModal } from '../../components/forms/ListProductModal';
-import { DollarSign, Calendar, Eye, Star, Edit3, Bell, PlusCircle, LayoutDashboard, ShoppingBag, FolderGit2 } from 'lucide-react-native';
+import { DollarSign, Calendar, Eye, Star, Edit3, Bell, PlusCircle, LayoutDashboard, ShoppingBag, FolderGit2, Film } from 'lucide-react-native';
 
 type DashTab = 'overview' | 'bookings' | 'sales_rentals' | 'listings';
 
@@ -306,6 +306,15 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 15 }}>Update Portfolio</Text>
                 <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>Add new photos/videos to your public profile</Text>
+              </View>
+              <Edit3 size={16} color={colors.textFaint} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.manageRow} onPress={() => navigation.navigate('ProfessionalEdit')}>
+              <View style={styles.manageIcon}><Film size={20} color={colors.accent} /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 15 }}>Video Reels & Showreels</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>Add YouTube, Shorts & Vimeo showreels</Text>
               </View>
               <Edit3 size={16} color={colors.textFaint} />
             </TouchableOpacity>

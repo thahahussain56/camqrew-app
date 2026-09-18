@@ -62,6 +62,7 @@ function HomeStack() {
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="JobReview" component={JobReviewScreen} />
       <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
+      <Stack.Screen name="ProfessionalEdit" component={ProfessionalEditScreen} />
     </Stack.Navigator>
   );
 }
@@ -76,6 +77,7 @@ function ExploreStack() {
       <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
       <Stack.Screen name="ChatList" component={ChatListScreen} />
       <Stack.Screen name="ChatInfo" component={ChatInfoScreen} />
+      <Stack.Screen name="ProfessionalEdit" component={ProfessionalEditScreen} />
     </Stack.Navigator>
   );
 }

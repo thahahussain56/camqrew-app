@@ -14,7 +14,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { ProductCard } from '../../components/cards/ProductCard';
 import { useCartStore } from '../../store/cartStore';
-import { Star, MapPin, X, ArrowLeft, ShieldCheck, Zap, ChevronLeft, ChevronRight, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink } from 'lucide-react-native';
+import { Star, MapPin, X, ArrowLeft, ShieldCheck, Zap, ChevronLeft, ChevronRight, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, Plus } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -159,6 +159,8 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
     'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=800',
   ];
 
+  const isOwnProfile = Boolean(user?.id && (user.id === profile.id || user.id === profile.userId));
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -218,23 +220,47 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
 
         {/* ── Floating Action Bar ── */}
         <View style={[styles.actionCard, { backgroundColor: colors.surfaceCard }]}>
-          <TouchableOpacity 
-            style={[styles.messageBtn, { backgroundColor: colors.surfaceElevated }]}
-            onPress={() => navigation.navigate('Chat', { otherUserId: profile.id, otherUserName: profile.name, otherUserAvatar: profile.avatar })}
-            activeOpacity={0.8}
-          >
-            <MessageSquare size={18} color={colors.textPrimary} style={{ marginRight: 8 }} />
-            <Text style={[styles.messageBtnText, { color: colors.textPrimary }]}>Message</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.bookBtn, { backgroundColor: colors.accent }]}
-            onPress={() => navigation.navigate('Booking', { proId: profile.id, type: bookingType })}
-            activeOpacity={0.8}
-          >
-            <Zap size={18} color="#ffffff" style={{ marginRight: 8 }} />
-            <Text style={styles.bookBtnText}>Book Now • ₹{(profile.ratePerDay || 15000).toLocaleString('en-IN')}</Text>
-          </TouchableOpacity>
+          {isOwnProfile ? (
+            <>
+              <TouchableOpacity 
+                style={[styles.messageBtn, { backgroundColor: colors.surfaceElevated }]}
+                onPress={handleShareProfile}
+                activeOpacity={0.8}
+              >
+                <Share2 size={18} color={colors.textPrimary} style={{ marginRight: 8 }} />
+                <Text style={[styles.messageBtnText, { color: colors.textPrimary }]}>Share Profile</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.bookBtn, { backgroundColor: colors.accent }]}
+                onPress={() => navigation.navigate('ProfessionalEdit')}
+                activeOpacity={0.8}
+              >
+                <Film size={18} color="#ffffff" style={{ marginRight: 8 }} />
+                <Text style={styles.bookBtnText}>Edit Profile & Reels</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity 
+                style={[styles.messageBtn, { backgroundColor: colors.surfaceElevated }]}
+                onPress={() => navigation.navigate('Chat', { otherUserId: profile.id, otherUserName: profile.name, otherUserAvatar: profile.avatar })}
+                activeOpacity={0.8}
+              >
+                <MessageSquare size={18} color={colors.textPrimary} style={{ marginRight: 8 }} />
+                <Text style={[styles.messageBtnText, { color: colors.textPrimary }]}>Message</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.bookBtn, { backgroundColor: colors.accent }]}
+                onPress={() => navigation.navigate('Booking', { proId: profile.id, type: bookingType })}
+                activeOpacity={0.8}
+              >
+                <Zap size={18} color="#ffffff" style={{ marginRight: 8 }} />
+                <Text style={styles.bookBtnText}>Book Now • ₹{(profile.ratePerDay || 15000).toLocaleString('en-IN')}</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* ── About Section ── */}
@@ -268,14 +294,26 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
         </Card>
 
         {/* ── Showreels & Video Reels ── */}
-        {profile.videoReels && profile.videoReels.length > 0 && (
+        {profile.videoReels && profile.videoReels.length > 0 ? (
           <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
             <View style={styles.reelsHeaderRow}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Film size={18} color={colors.accent} style={{ marginRight: 8 }} />
                 <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>Showreels & Video Reels</Text>
               </View>
-              <Badge label={`${profile.videoReels.length} ${profile.videoReels.length === 1 ? 'Reel' : 'Reels'}`} variant="info" />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Badge label={`${profile.videoReels.length} ${profile.videoReels.length === 1 ? 'Reel' : 'Reels'}`} variant="info" />
+                {isOwnProfile && (
+                  <TouchableOpacity
+                    style={{ backgroundColor: 'rgba(63,182,104,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, flexDirection: 'row', alignItems: 'center' }}
+                    onPress={() => navigation.navigate('ProfessionalEdit')}
+                    activeOpacity={0.8}
+                  >
+                    <Plus size={12} color="#3fb668" style={{ marginRight: 4 }} />
+                    <Text style={{ color: '#3fb668', fontSize: 11, fontWeight: '800' }}>Add Reel</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18, marginTop: 12 }}>
@@ -339,7 +377,31 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
               <View style={{ width: 18 }} />
             </ScrollView>
           </Card>
-        )}
+        ) : isOwnProfile ? (
+          <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+            <View style={styles.reelsHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Film size={18} color={colors.accent} style={{ marginRight: 8 }} />
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>Showreels & Video Reels</Text>
+              </View>
+            </View>
+            <View style={{ alignItems: 'center', paddingVertical: 18, paddingHorizontal: 12 }}>
+              <Film size={34} color={colors.accent} style={{ marginBottom: 8 }} />
+              <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 15 }}>No Video Reels Added Yet</Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 12, textAlign: 'center', marginTop: 4, marginBottom: 14 }}>
+                Showcase your cinematic work! Embed YouTube videos, 9:16 Shorts, and Vimeo reels directly on your profile.
+              </Text>
+              <TouchableOpacity
+                style={{ backgroundColor: colors.accent, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, flexDirection: 'row', alignItems: 'center' }}
+                onPress={() => navigation.navigate('ProfessionalEdit')}
+                activeOpacity={0.8}
+              >
+                <Plus size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 13 }}>Add Your First Video Reel</Text>
+              </TouchableOpacity>
+            </View>
+          </Card>
+        ) : null}
 
         {/* ── Cinematic Portfolio Gallery ── */}
         <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
