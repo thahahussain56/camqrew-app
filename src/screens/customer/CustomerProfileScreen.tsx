@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, Alert, ActivityIndicator,
+  Image, Alert, ActivityIndicator, Dimensions, Modal, KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -12,13 +12,24 @@ import { useAuthStore } from '../../store/authStore';
 import { bookingApi } from '../../api/bookingApi';
 import { orderApi } from '../../api/orderApi';
 import { jobApi } from '../../api/jobApi';
+import { professionalApi, parseVideoUrl } from '../../api/professionalApi';
 import { Booking } from '../../types/booking';
 import { Order } from '../../types/order';
 import { JobRequest } from '../../types/job';
+import { ProfessionalProfile, VideoReelItem } from '../../types/professional';
 import { BookingCard } from '../../components/cards/BookingCard';
 import { OrderCard } from '../../components/cards/OrderCard';
 import { Toast } from '../../components/ui/Toast';
-import { Calendar, ShoppingBag, CreditCard, Gift, LogOut, ChevronRight, Camera, Pencil, Star, Briefcase, Eye } from 'lucide-react-native';
+import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Chip } from '../../components/ui/Chip';
+import {
+  Calendar, ShoppingBag, CreditCard, Gift, LogOut, ChevronRight,
+  Camera, Pencil, Star, Briefcase, Eye, Plus, PlusCircle, Film,
+  Play, Trash2, X, ChevronLeft, ChevronRight as ChevronRightIcon,
+  Image as ImageIcon, CheckCircle,
+} from 'lucide-react-native';
 import { supabase } from '../../api/supabaseClient';
 import { cloudStorageApi } from '../../api/cloudStorageApi';
 
@@ -49,8 +60,21 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [jobs, setJobs] = useState<JobRequest[]>([]);
+  const [proProfile, setProProfile] = useState<ProfessionalProfile | null>(null);
+
+  // In-Profile Instagram-Style Creator Posting State
+  const [showCreateSheet, setShowCreateSheet] = useState(false);
+  const [showReelModal, setShowReelModal] = useState(false);
+  const [newReelUrl, setNewReelUrl] = useState('');
+  const [newReelTitle, setNewReelTitle] = useState('');
+  const [newReelCategory, setNewReelCategory] = useState('Showreel');
+  const [newReelIsShort, setNewReelIsShort] = useState(false);
+  const [submittingReel, setSubmittingReel] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [selectedImgIndex, setSelectedImgIndex] = useState<number | null>(null);
+
   const [toast, setToast] = useState('');
-  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info' | 'warning'>('success');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   // Local URI shown immediately after picking — before upload finishes
   const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
@@ -61,8 +85,13 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
       orderApi.getOrders().then(r => setOrders(Array.isArray(r) ? r : []));
       if (user?.id) {
         jobApi.getClientJobs(user.id).then(r => setJobs(Array.isArray(r) ? r : []));
+        if (user.role === 'professional') {
+          professionalApi.getProfileById(user.id).then(p => {
+            if (p) setProProfile(p);
+          }).catch(console.warn);
+        }
       }
-    }, [user?.id])
+    }, [user?.id, user?.role])
   );
 
   const safeBookings = Array.isArray(bookings) ? bookings : [];
@@ -115,6 +144,149 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
     logout();
   };
 
+  // ── Instagram-Style Creator Posting Handlers ──
+  const handlePostPhoto = async () => {
+    setShowCreateSheet(false);
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (perm.status !== 'granted') {
+        Alert.alert('Permission Required', 'Permission to access photo gallery is required to add photos to your portfolio!');
+        return;
+      }
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images' as const],
+        allowsEditing: true,
+        quality: 0.85,
+      });
+
+      if (res.canceled || !res.assets?.[0]) return;
+
+      const uri = res.assets[0].uri;
+      setUploadingPhoto(true);
+      setToastType('info');
+      setToast('Uploading photo to your portfolio...');
+
+      let finalUrl = uri;
+      try {
+        const uploaded = await cloudStorageApi.uploadImage(uri, 'portfolio');
+        if (uploaded?.url) {
+          finalUrl = uploaded.url;
+        }
+      } catch (uploadErr) {
+        console.warn('Cloud storage upload warning:', uploadErr);
+      }
+
+      const currentPortfolio = proProfile?.portfolio || [];
+      const updatedPortfolio = [finalUrl, ...currentPortfolio];
+
+      setProProfile(prev => prev ? { ...prev, portfolio: updatedPortfolio } : ({ portfolio: updatedPortfolio } as any));
+
+      await professionalApi.updateProfile({ portfolio: updatedPortfolio });
+
+      setToastType('success');
+      setToast('📸 Photo added to your portfolio!');
+    } catch (err: any) {
+      console.error('Failed to add photo:', err);
+      setToastType('error');
+      setToast(err.message || 'Failed to add photo.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handlePostReel = async () => {
+    if (!newReelUrl.trim()) {
+      Alert.alert('Missing URL', 'Please enter a valid YouTube or Vimeo URL.');
+      return;
+    }
+    setSubmittingReel(true);
+    try {
+      const parsed = parseVideoUrl(newReelUrl.trim());
+      const newReel: VideoReelItem = {
+        id: 'reel_' + Date.now(),
+        title: newReelTitle.trim() || (parsed.isShort ? 'Video Reel' : 'Featured Showreel'),
+        url: newReelUrl.trim(),
+        type: parsed.type,
+        embedUrl: parsed.embedUrl,
+        thumbnailUrl: parsed.thumbnailUrl,
+        category: newReelCategory,
+        isShort: newReelIsShort || parsed.isShort,
+      };
+
+      const currentReels = proProfile?.videoReels || [];
+      const updatedReels = [newReel, ...currentReels];
+
+      setProProfile(prev => prev ? { ...prev, videoReels: updatedReels } : ({ videoReels: updatedReels } as any));
+
+      await professionalApi.updateProfile({ videoReels: updatedReels });
+
+      setShowReelModal(false);
+      setNewReelUrl('');
+      setNewReelTitle('');
+      setNewReelIsShort(false);
+      setToastType('success');
+      setToast('🎬 Video reel posted to your profile!');
+    } catch (err: any) {
+      console.error('Failed to post reel:', err);
+      Alert.alert('Error', err.message || 'Failed to post reel.');
+    } finally {
+      setSubmittingReel(false);
+    }
+  };
+
+  const handleDeletePhoto = (photoUrl: string, index: number) => {
+    Alert.alert(
+      'Delete Photo',
+      'Are you sure you want to remove this photo from your portfolio?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const currentPortfolio = proProfile?.portfolio || [];
+              const updatedPortfolio = currentPortfolio.filter((_, i) => i !== index);
+              setProProfile(prev => prev ? { ...prev, portfolio: updatedPortfolio } : null);
+              setSelectedImgIndex(null);
+              await professionalApi.updateProfile({ portfolio: updatedPortfolio });
+              setToastType('info');
+              setToast('Photo removed from portfolio.');
+            } catch (err: any) {
+              Alert.alert('Error', 'Failed to remove photo.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleDeleteReel = (reelId: string, reelTitle: string) => {
+    Alert.alert(
+      'Delete Reel',
+      `Are you sure you want to remove "${reelTitle}" from your profile?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const currentReels = proProfile?.videoReels || [];
+              const updatedReels = currentReels.filter(r => r.id !== reelId);
+              setProProfile(prev => prev ? { ...prev, videoReels: updatedReels } : null);
+              await professionalApi.updateProfile({ videoReels: updatedReels });
+              setToastType('info');
+              setToast('Video reel removed.');
+            } catch (err: any) {
+              Alert.alert('Error', 'Failed to delete reel.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const EmptyState: React.FC<{
     emoji: string; title: string; hint: string; cta: string; onCta: () => void;
   }> = ({ emoji, title, hint, cta, onCta }) => (
@@ -144,14 +316,37 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
             style={{ width: 140, height: 32 }}
             resizeMode="contain"
           />
-          <TouchableOpacity 
-            onPress={() => navigation.navigate('Settings')}
-            style={{ width: 24, height: 20, justifyContent: 'space-between', alignItems: 'flex-end' }}
-          >
-            <View style={{ height: 2.5, width: '100%', backgroundColor: colors.textPrimary, borderRadius: 2 }} />
-            <View style={{ height: 2.5, width: '60%', backgroundColor: colors.textPrimary, borderRadius: 2 }} />
-            <View style={{ height: 2.5, width: '30%', backgroundColor: colors.textPrimary, borderRadius: 2 }} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            {user?.role === 'professional' && (
+              <TouchableOpacity
+                onPress={() => setShowCreateSheet(true)}
+                activeOpacity={0.8}
+                style={{
+                  backgroundColor: '#3fb668',
+                  width: 34,
+                  height: 34,
+                  borderRadius: 17,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 4,
+                  elevation: 4,
+                }}
+              >
+                <Plus size={20} color="#ffffff" />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('Settings')}
+              style={{ width: 24, height: 20, justifyContent: 'space-between', alignItems: 'flex-end' }}
+            >
+              <View style={{ height: 2.5, width: '100%', backgroundColor: colors.textPrimary, borderRadius: 2 }} />
+              <View style={{ height: 2.5, width: '60%', backgroundColor: colors.textPrimary, borderRadius: 2 }} />
+              <View style={{ height: 2.5, width: '30%', backgroundColor: colors.textPrimary, borderRadius: 2 }} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ── Prime Upgrade Banner ──────────────────────────────── */}
@@ -215,16 +410,16 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
                     backgroundColor: colors.accent,
                     borderRadius: 12,
                     paddingVertical: 11,
-                    paddingHorizontal: 10,
+                    paddingHorizontal: 12,
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    flex: 1,
+                    flex: 1.2,
                   }}
-                  onPress={() => navigation.navigate('PublicProfile', { id: user?.id, professionalId: user?.id })}
+                  onPress={() => setShowCreateSheet(true)}
                 >
-                  <Eye size={15} color="#fff" />
-                  <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800', marginLeft: 5 }}>My Profile</Text>
+                  <PlusCircle size={16} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800', marginLeft: 6 }}>+ Post Content</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -264,7 +459,7 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
               onPress={() => navigation.navigate('EditProfile')}
             >
               <Pencil size={15} color={colors.accent} />
-              <Text style={{ color: colors.accent, fontSize: 11, fontWeight: '800', marginLeft: 5 }}>Edit</Text>
+              <Text style={{ color: colors.accent, fontSize: 11, fontWeight: '800', marginLeft: 5 }}>Edit Profile</Text>
             </TouchableOpacity>
           </View>
 
@@ -280,6 +475,158 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
             <Stat n={completedCount} label="Completed" color={colors.success} labelColor={colors.textSecondary} />
           </View>
         </View>
+
+        {/* ── Creator Showcase: Video Reels & Showreels ── */}
+        {user?.role === 'professional' && (
+          <>
+            <View style={[styles.showcaseSectionCard, { backgroundColor: colors.surfaceCard }]}>
+              <View style={styles.showcaseHeaderRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Film size={18} color={colors.accent} style={{ marginRight: 8 }} />
+                  <Text style={[styles.showcaseTitle, { color: colors.textPrimary }]}>Showreels & Video Reels</Text>
+                </View>
+                <TouchableOpacity
+                  style={{ backgroundColor: 'rgba(63,182,104,0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, flexDirection: 'row', alignItems: 'center' }}
+                  onPress={() => setShowReelModal(true)}
+                  activeOpacity={0.8}
+                >
+                  <Plus size={13} color="#3fb668" style={{ marginRight: 4 }} />
+                  <Text style={{ color: '#3fb668', fontSize: 11, fontWeight: '800' }}>Add Reel</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18, marginTop: 12 }}>
+                <View style={{ width: 18 }} />
+                <TouchableOpacity 
+                  activeOpacity={0.85} 
+                  onPress={() => setShowReelModal(true)} 
+                  style={[styles.addReelCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.accent }]}
+                >
+                  <View style={[styles.addPhotoIconCircle, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
+                    <Film size={22} color={colors.accent} />
+                  </View>
+                  <Text style={[styles.addPhotoCardText, { color: colors.textPrimary }]}>+ Post Reel</Text>
+                  <Text style={[styles.addPhotoCardSub, { color: colors.textSecondary }]}>YouTube / Shorts</Text>
+                </TouchableOpacity>
+
+                {(proProfile?.videoReels || []).map((reel) => {
+                  const isShort = reel.isShort;
+                  return (
+                    <View key={reel.id} style={{ position: 'relative' }}>
+                      <TouchableOpacity
+                        activeOpacity={0.88}
+                        onPress={() => {
+                          if (reel.url) {
+                            Linking.openURL(reel.url).catch(() => {
+                              Alert.alert('Unable to open video', 'Please verify your internet connection or URL.');
+                            });
+                          }
+                        }}
+                        style={[
+                          styles.reelCard,
+                          isShort ? styles.reelCardVertical : styles.reelCardCinema,
+                          { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }
+                        ]}
+                      >
+                        {reel.thumbnailUrl ? (
+                          <Image source={{ uri: reel.thumbnailUrl }} style={styles.reelThumbnail} resizeMode="cover" />
+                        ) : (
+                          <View style={[styles.reelPlaceholder, { backgroundColor: '#111827' }]}>
+                            <Film size={32} color={colors.accent} />
+                          </View>
+                        )}
+                        <View style={styles.reelVignette} />
+
+                        <View style={styles.reelPlayBtn}>
+                          <Play size={16} color="#ffffff" fill="#ffffff" style={{ marginLeft: 2 }} />
+                        </View>
+
+                        <View style={styles.reelTopBadges}>
+                          <View style={[styles.reelBadgePill, { backgroundColor: 'rgba(0,0,0,0.65)' }]}>
+                            <Text style={styles.reelBadgeText}>
+                              {reel.type === 'youtube' ? (isShort ? '⚡ Short' : 'YouTube') : reel.type === 'vimeo' ? 'Vimeo' : 'Video'}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.reelInfo}>
+                          {reel.category ? (
+                            <Text style={[styles.reelCategory, { color: colors.accent }]} numberOfLines={1}>
+                              {reel.category.toUpperCase()}
+                            </Text>
+                          ) : null}
+                          <Text style={styles.reelTitle} numberOfLines={2}>
+                            {reel.title}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.reelDeleteBtn}
+                        onPress={() => handleDeleteReel(reel.id, reel.title)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Trash2 size={13} color="#ffffff" />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+                <View style={{ width: 18 }} />
+              </ScrollView>
+            </View>
+
+            {/* ── Creator Showcase: Portfolio Highlights ── */}
+            <View style={[styles.showcaseSectionCard, { backgroundColor: colors.surfaceCard }]}>
+              <View style={styles.showcaseHeaderRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <ImageIcon size={18} color={colors.accent} style={{ marginRight: 8 }} />
+                  <Text style={[styles.showcaseTitle, { color: colors.textPrimary }]}>Portfolio Highlights</Text>
+                </View>
+                <TouchableOpacity
+                  style={{ backgroundColor: 'rgba(63,182,104,0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, flexDirection: 'row', alignItems: 'center' }}
+                  onPress={handlePostPhoto}
+                  activeOpacity={0.8}
+                >
+                  <Plus size={13} color="#3fb668" style={{ marginRight: 4 }} />
+                  <Text style={{ color: '#3fb668', fontSize: 11, fontWeight: '800' }}>Add Photo</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18, marginTop: 12 }}>
+                <View style={{ width: 18 }} />
+                <TouchableOpacity 
+                  activeOpacity={0.85} 
+                  onPress={handlePostPhoto} 
+                  style={[styles.addPhotoCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.accent }]}
+                >
+                  {uploadingPhoto ? (
+                    <ActivityIndicator size="small" color={colors.accent} />
+                  ) : (
+                    <>
+                      <View style={[styles.addPhotoIconCircle, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
+                        <Camera size={22} color={colors.accent} />
+                      </View>
+                      <Text style={[styles.addPhotoCardText, { color: colors.textPrimary }]}>+ Post Photo</Text>
+                      <Text style={[styles.addPhotoCardSub, { color: colors.textSecondary }]}>Add to Gallery</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                {(proProfile?.portfolio || []).map((img, idx) => (
+                  <TouchableOpacity 
+                    key={idx} 
+                    activeOpacity={0.88} 
+                    onPress={() => setSelectedImgIndex(idx)} 
+                    style={styles.portfolioItem}
+                  >
+                    <Image source={{ uri: img }} style={styles.portfolioImage} />
+                  </TouchableOpacity>
+                ))}
+                <View style={{ width: 18 }} />
+              </ScrollView>
+            </View>
+          </>
+        )}
 
         {/* ── Tab Bar ──────────────────────────────────────────── */}
         <View style={[styles.tabBar, { backgroundColor: colors.surfaceCard }]}>
@@ -517,6 +864,223 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
         </TouchableOpacity>
 
       </ScrollView>
+
+      {/* Lightbox Modal */}
+      <Modal visible={selectedImgIndex !== null} transparent animationType="fade" onRequestClose={() => setSelectedImgIndex(null)}>
+        <View style={styles.modalBg}>
+          <View style={styles.lightboxTopBar}>
+            {selectedImgIndex !== null && proProfile?.portfolio && (
+              <TouchableOpacity 
+                style={styles.deletePhotoBtn} 
+                onPress={() => handleDeletePhoto(proProfile.portfolio![selectedImgIndex], selectedImgIndex)}
+                activeOpacity={0.8}
+              >
+                <Trash2 size={18} color="#ff4d4f" />
+                <Text style={{ color: '#ff4d4f', fontSize: 13, fontWeight: '700', marginLeft: 6 }}>Delete</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedImgIndex(null)}>
+              <X size={28} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
+
+          {selectedImgIndex !== null && proProfile?.portfolio && (
+            <View style={styles.lightboxContainer}>
+              <Text style={styles.lightboxCounter}>
+                {selectedImgIndex + 1} / {proProfile.portfolio.length}
+              </Text>
+              
+              <Image source={{ uri: proProfile.portfolio[selectedImgIndex] }} style={styles.fullImage} resizeMode="contain" />
+
+              <View style={styles.slideshowControls}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={styles.navArrow}
+                  onPress={() => setSelectedImgIndex(prev => (prev !== null ? (prev > 0 ? prev - 1 : proProfile.portfolio!.length - 1) : null))}
+                >
+                  <ChevronLeft size={36} color="#ffffff" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={styles.navArrow}
+                  onPress={() => setSelectedImgIndex(prev => (prev !== null ? (prev < proProfile.portfolio!.length - 1 ? prev + 1 : 0) : null))}
+                >
+                  <ChevronRightIcon size={36} color="#ffffff" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+      </Modal>
+
+      {/* ── Instagram-Style In-Profile Create Post Action Sheet ── */}
+      <Modal visible={showCreateSheet} transparent animationType="slide" onRequestClose={() => setShowCreateSheet(false)}>
+        <TouchableOpacity 
+          style={styles.sheetOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowCreateSheet(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={[styles.createSheetCard, { backgroundColor: colors.surfaceCard }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+
+            <Text style={[styles.createSheetTitle, { color: colors.textPrimary }]}>Create New Post</Text>
+            <Text style={[styles.createSheetSubtitle, { color: colors.textSecondary }]}>
+              Post photography and video reels directly to your Camqrew profile
+            </Text>
+
+            {/* Post Photo Option */}
+            <TouchableOpacity 
+              style={[styles.createOptionRow, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}
+              onPress={handlePostPhoto}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.createOptionIconWrap, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
+                <Camera size={24} color={colors.accent} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={[styles.createOptionTitle, { color: colors.textPrimary }]}>Post Photo to Portfolio</Text>
+                <Text style={[styles.createOptionDesc, { color: colors.textSecondary }]}>
+                  Upload high-res stills or project photos from your camera roll
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Post Video Reel Option */}
+            <TouchableOpacity 
+              style={[styles.createOptionRow, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}
+              onPress={() => {
+                setShowCreateSheet(false);
+                setTimeout(() => setShowReelModal(true), 250);
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.createOptionIconWrap, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
+                <Film size={24} color={colors.accent} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={[styles.createOptionTitle, { color: colors.textPrimary }]}>Post Video Reel / Showreel</Text>
+                <Text style={[styles.createOptionDesc, { color: colors.textSecondary }]}>
+                  Embed YouTube, 9:16 Shorts, or Vimeo reels directly to your profile
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <Button
+              title="Cancel"
+              variant="outline"
+              size="md"
+              onPress={() => setShowCreateSheet(false)}
+              style={{ marginTop: 8 }}
+            />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── In-Profile Video Reel Composer Modal ── */}
+      <Modal visible={showReelModal} transparent animationType="slide" onRequestClose={() => !submittingReel && setShowReelModal(false)}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          style={styles.sheetOverlay}
+        >
+          <View style={[styles.reelModalCard, { backgroundColor: colors.surfaceCard }]}>
+            {/* Modal Header */}
+            <View style={styles.reelModalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Film size={20} color={colors.accent} style={{ marginRight: 8 }} />
+                <Text style={[styles.reelModalTitle, { color: colors.textPrimary }]}>Post Video Reel</Text>
+              </View>
+              <TouchableOpacity onPress={() => !submittingReel && setShowReelModal(false)} style={{ padding: 4 }}>
+                <X size={22} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: Dimensions.get('window').height * 0.7 }}>
+              <Text style={[styles.reelModalSub, { color: colors.textSecondary }]}>
+                Embed YouTube videos, 9:16 vertical Shorts, or Vimeo showreels directly to your profile.
+              </Text>
+
+              <Input
+                label="Video URL (YouTube, Shorts, or Vimeo)"
+                placeholder="https://youtube.com/shorts/... or https://vimeo.com/..."
+                value={newReelUrl}
+                onChangeText={setNewReelUrl}
+              />
+
+              {/* Detected format feedback */}
+              {newReelUrl.trim().length > 0 && (() => {
+                const p = parseVideoUrl(newReelUrl.trim());
+                return (
+                  <View style={[styles.detectedFormatBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <CheckCircle size={14} color="#3fb668" />
+                      <Text style={{ color: '#3fb668', fontSize: 12, fontWeight: '800' }}>
+                        Detected: {p.type === 'youtube' ? (p.isShort ? '9:16 YouTube Short' : 'YouTube Video') : p.type === 'vimeo' ? 'Vimeo Video' : 'Direct Video'}
+                      </Text>
+                    </View>
+                    {p.thumbnailUrl && (
+                      <Image source={{ uri: p.thumbnailUrl }} style={styles.previewThumb} />
+                    )}
+                  </View>
+                );
+              })()}
+
+              <Input
+                label="Reel Title (Optional)"
+                placeholder="e.g. 2026 Commercial Highlights"
+                value={newReelTitle}
+                onChangeText={setNewReelTitle}
+              />
+
+              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 6 }}>Category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+                {['Showreel', 'Wedding', 'Commercial', 'Fashion', 'Music Video', 'Short Film', 'Drone Reel'].map(cat => (
+                  <Chip
+                    key={cat}
+                    label={cat}
+                    active={newReelCategory === cat}
+                    onPress={() => setNewReelCategory(cat)}
+                  />
+                ))}
+              </ScrollView>
+
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 18 }}
+                onPress={() => setNewReelIsShort(!newReelIsShort)}
+                activeOpacity={0.8}
+              >
+                <View
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 6,
+                    borderWidth: 2,
+                    borderColor: newReelIsShort ? '#3fb668' : colors.textFaint,
+                    backgroundColor: newReelIsShort ? '#3fb668' : 'transparent',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 10,
+                  }}
+                >
+                  {newReelIsShort && <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 12 }}>✓</Text>}
+                </View>
+                <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '700' }}>
+                  Vertical 9:16 format (Shorts / Reels)
+                </Text>
+              </TouchableOpacity>
+
+              <Button
+                title={submittingReel ? 'Posting Reel...' : 'Post Reel to Profile'}
+                variant="primary"
+                size="md"
+                disabled={submittingReel || !newReelUrl.trim()}
+                icon={submittingReel ? <ActivityIndicator size="small" color="#ffffff" /> : <Film size={16} color="#ffffff" />}
+                onPress={handlePostReel}
+              />
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -662,5 +1226,272 @@ const styles = StyleSheet.create({
     marginHorizontal: 16, marginTop: 24,
     borderRadius: 16, padding: 16,
     borderWidth: 1,
+  },
+
+  // ── Creator Showcase & In-Profile Posting Styles ──
+  showcaseSectionCard: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 24,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  showcaseHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  showcaseTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  addPhotoCard: {
+    width: 130,
+    height: 180,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    padding: 12,
+  },
+  addReelCard: {
+    width: 130,
+    height: 180,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    padding: 12,
+  },
+  addPhotoIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  addPhotoCardText: {
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  addPhotoCardSub: {
+    fontSize: 10,
+    textAlign: 'center',
+    marginTop: 3,
+  },
+  portfolioItem: {
+    width: 240,
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginRight: 12,
+  },
+  portfolioImage: {
+    width: '100%',
+    height: '100%',
+  },
+  reelCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginRight: 14,
+    position: 'relative',
+    borderWidth: 1,
+  },
+  reelCardVertical: {
+    width: 150,
+    height: 240,
+  },
+  reelCardCinema: {
+    width: 240,
+    height: 160,
+  },
+  reelThumbnail: {
+    width: '100%',
+    height: '100%',
+  },
+  reelPlaceholder: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reelVignette: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  reelPlayBtn: {
+    position: 'absolute',
+    top: '40%',
+    left: '50%',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    marginLeft: -19,
+    marginTop: -19,
+    backgroundColor: '#3fb668',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  reelTopBadges: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    flexDirection: 'row',
+  },
+  reelBadgePill: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  reelBadgeText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  reelInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 8,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+  },
+  reelCategory: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  reelTitle: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 15,
+  },
+  reelDeleteBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+
+  // Lightbox
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.98)', justifyContent: 'center', alignItems: 'center' },
+  lightboxTopBar: { position: 'absolute', top: 50, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 25 },
+  deletePhotoBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255, 77, 79, 0.18)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#ff4d4f' },
+  closeBtn: { padding: 8 },
+  lightboxContainer: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', position: 'relative' },
+  lightboxCounter: { color: '#ffffff', fontSize: 16, fontWeight: '800', position: 'absolute', top: 60, alignSelf: 'center' },
+  fullImage: { width: '100%', height: '70%' },
+  slideshowControls: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingHorizontal: 16, zIndex: 15 },
+  navArrow: { backgroundColor: 'rgba(0, 0, 0, 0.5)', width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+
+  // Create Sheet & Reel Modal
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'flex-end',
+  },
+  createSheetCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 22,
+    paddingBottom: 36,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  createSheetTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  createSheetSubtitle: {
+    fontSize: 13,
+    marginBottom: 18,
+  },
+  createOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  createOptionIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  createOptionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  createOptionDesc: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  reelModalCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 22,
+    paddingBottom: 36,
+  },
+  reelModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  reelModalTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  reelModalSub: {
+    fontSize: 13,
+    marginBottom: 16,
+  },
+  detectedFormatBox: {
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  previewThumb: {
+    width: 52,
+    height: 38,
+    borderRadius: 6,
   },
 });
