@@ -61,6 +61,24 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
 
   useEffect(() => {
     if (!proId) {
+      if (user?.id && user?.role === 'professional') {
+        setLoading(true);
+        professionalApi.getProfileById(user.id).then(p => {
+          setProfile(p);
+          setReviews(p.reviews || []);
+          return productApi.getProductsByOwner(p.id);
+        }).then(prods => {
+          setProducts(prods || []);
+          setLoading(false);
+        }).catch(() => {
+          professionalApi.getProfessionals().then(list => {
+            if (list && list.length > 0) setProfile(list[0]);
+            setLoading(false);
+          });
+        });
+        return;
+      }
+
       professionalApi.getProfessionals().then(list => {
         if (list && list.length > 0) setProfile(list[0]);
         setLoading(false);
@@ -82,7 +100,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
       console.warn(e);
       setLoading(false);
     });
-  }, [proId, isStudio]);
+  }, [proId, isStudio, user?.id, user?.role]);
 
   const handleOpenReview = () => {
     if (!isAuthenticated || !user) {

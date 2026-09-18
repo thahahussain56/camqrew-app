@@ -18,7 +18,7 @@ import { JobRequest } from '../../types/job';
 import { BookingCard } from '../../components/cards/BookingCard';
 import { OrderCard } from '../../components/cards/OrderCard';
 import { Toast } from '../../components/ui/Toast';
-import { Calendar, ShoppingBag, CreditCard, Gift, LogOut, ChevronRight, Camera, Pencil, Star, Briefcase } from 'lucide-react-native';
+import { Calendar, ShoppingBag, CreditCard, Gift, LogOut, ChevronRight, Camera, Pencil, Star, Briefcase, Eye } from 'lucide-react-native';
 import { supabase } from '../../api/supabaseClient';
 import { cloudStorageApi } from '../../api/cloudStorageApi';
 
@@ -207,24 +207,45 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
             </Text>
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', paddingHorizontal: 16, marginBottom: 20 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', paddingHorizontal: 12, marginBottom: 20 }}>
             {user?.role === 'professional' && (
-              <TouchableOpacity
-                style={{
-                  backgroundColor: colors.accent,
-                  borderRadius: 12,
-                  paddingVertical: 12,
-                  paddingHorizontal: 12,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flex: 1,
-                }}
-                onPress={() => navigation.navigate('ProDashboard')}
-              >
-                <Camera size={16} color="#fff" />
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800', marginLeft: 6 }}>Pro Dashboard</Text>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: colors.accent,
+                    borderRadius: 12,
+                    paddingVertical: 11,
+                    paddingHorizontal: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flex: 1,
+                  }}
+                  onPress={() => navigation.navigate('PublicProfile', { id: user?.id, professionalId: user?.id })}
+                >
+                  <Eye size={15} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800', marginLeft: 5 }}>My Profile</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: colors.surfaceElevated,
+                    borderColor: colors.borderLight,
+                    borderWidth: 1,
+                    borderRadius: 12,
+                    paddingVertical: 11,
+                    paddingHorizontal: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flex: 1,
+                  }}
+                  onPress={() => navigation.navigate('ProDashboard')}
+                >
+                  <Camera size={15} color={colors.accent} />
+                  <Text style={{ color: colors.textPrimary, fontSize: 11, fontWeight: '800', marginLeft: 5 }}>Dashboard</Text>
+                </TouchableOpacity>
+              </>
             )}
 
             <TouchableOpacity
@@ -233,17 +254,17 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
                 borderColor: 'rgba(63, 182, 104, 0.2)',
                 borderWidth: 1,
                 borderRadius: 12,
-                paddingVertical: 12,
-                paddingHorizontal: 12,
+                paddingVertical: 11,
+                paddingHorizontal: 10,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
-                flex: user?.role === 'professional' ? 0 : 1,
+                flex: user?.role === 'professional' ? 0.9 : 1,
               }}
               onPress={() => navigation.navigate('EditProfile')}
             >
-              <Pencil size={16} color={colors.accent} />
-              <Text style={{ color: colors.accent, fontSize: 12, fontWeight: '800', marginLeft: 6 }}>Edit Profile</Text>
+              <Pencil size={15} color={colors.accent} />
+              <Text style={{ color: colors.accent, fontSize: 11, fontWeight: '800', marginLeft: 5 }}>Edit</Text>
             </TouchableOpacity>
           </View>
 
