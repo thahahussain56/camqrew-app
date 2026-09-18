@@ -106,12 +106,11 @@ const TabItem: React.FC<TabItemProps> = ({
     navigation.emit({ type: "tabLongPress", target: route.key });
   };
 
-  const animatedIconScale = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const animatedIconY = useAnimatedStyle(() => ({
-    transform: [{ translateY: iconY.value }],
+  const animatedIcon = useAnimatedStyle(() => ({
+    transform: [
+      { scale: scale.value },
+      { translateY: iconY.value },
+    ] as any,
   }));
 
   const animatedLabel = useAnimatedStyle(() => ({
@@ -130,11 +129,8 @@ const TabItem: React.FC<TabItemProps> = ({
       activeOpacity={1}
       style={styles.tabItem}
     >
-      {/* Two nested Animated.View wrappers — one for Y offset, one for scale bounce */}
-      <Animated.View style={animatedIconY}>
-        <Animated.View style={[styles.iconWrap, animatedIconScale]}>
-          {icon}
-        </Animated.View>
+      <Animated.View style={[styles.iconWrap, animatedIcon]}>
+        {icon}
       </Animated.View>
       <Animated.Text
         style={[

@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { Button } from '../../components/ui/Button';
-import { IOSNavBar } from '../../components/navigation/IOSNavBar';
-import { useNavBarHeight } from '../../hooks/useNavBarHeight';
 import { supabase } from '../../api/supabaseClient';
-import { User, Phone, Mail } from 'lucide-react-native';
+import { ChevronLeft, User, Phone, Mail } from 'lucide-react-native';
 
 export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors } = useTheme();
-  const navBarHeight = useNavBarHeight();
   const { user, updateUser } = useAuthStore();
 
   const [name, setName] = useState(user?.name || '');
@@ -42,27 +40,16 @@ export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation })
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {/* iOS Navigation Bar */}
-      <IOSNavBar
-        title="Edit Profile"
-        showBack
-        onPressBack={() => navigation.goBack()}
-        rightAction={
-          <Button
-            variant="ghost"
-            size="sm"
-            title="Save"
-            loading={loading}
-            onPress={handleSave}
-            style={{ paddingHorizontal: 4 }}
-            textStyle={{ color: '#007AFF', fontSize: 17, fontWeight: '400' }}
-          />
-        }
-      />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Button variant="ghost" size="sm" title="" icon={<ChevronLeft size={24} color={colors.textPrimary} />} onPress={() => navigation.goBack()} />
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Edit Profile</Text>
+        <View style={{ width: 44 }} />
+      </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={[styles.content, { paddingTop: navBarHeight }]} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           
           <View style={[styles.inputContainer, { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }]}>
             <View style={styles.inputHeader}>
@@ -114,7 +101,7 @@ export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation })
 
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 };
 

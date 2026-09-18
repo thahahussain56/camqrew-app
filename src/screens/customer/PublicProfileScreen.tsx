@@ -1,27 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Modal, Dimensions, ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform, Share, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
-import { professionalApi } from '../../api/professionalApi';
+import { professionalApi, parseVideoUrl } from '../../api/professionalApi';
 import { studioApi } from '../../api/studioApi';
 import { productApi } from '../../api/productApi';
-import { ProfessionalProfile, ReviewItem } from '../../types/professional';
+import { cloudStorageApi } from '../../api/cloudStorageApi';
+import { ProfessionalProfile, ReviewItem, VideoReelItem } from '../../types/professional';
 import { Product } from '../../types/product';
 import { Avatar } from '../../components/ui/Avatar';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Chip } from '../../components/ui/Chip';
+import { Toast } from '../../components/ui/Toast';
 import { ProductCard } from '../../components/cards/ProductCard';
 import { useCartStore } from '../../store/cartStore';
-import { Star, MapPin, X, ArrowLeft, ShieldCheck, Zap, ChevronLeft, ChevronRight, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, Plus } from 'lucide-react-native';
+import { Star, MapPin, X, ArrowLeft, ShieldCheck, Zap, ChevronLeft, ChevronRight, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, Plus, Camera, Trash2, PlusCircle, Image as ImageIcon } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
   const { colors } = useTheme();
   
-  const proId = route?.params?.id;
+  const proId = route?.params?.id || route?.params?.professionalId;
   const bookingType = route?.params?.type || 'professionals';
   const isStudio = bookingType === 'studios' || bookingType === 'studio';
 
@@ -31,6 +36,21 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
   const [selectedImgIndex, setSelectedImgIndex] = useState<number | null>(null);
   const { addItem } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
+
+  // In-Profile Instagram-Style Posting State
+  const [showCreateSheet, setShowCreateSheet] = useState(false);
+  const [showReelModal, setShowReelModal] = useState(false);
+  const [newReelUrl, setNewReelUrl] = useState('');
+  const [newReelTitle, setNewReelTitle] = useState('');
+  const [newReelCategory, setNewReelCategory] = useState('Showreel');
+  const [newReelIsShort, setNewReelIsShort] = useState(false);
+  const [submittingReel, setSubmittingReel] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Toast Feedback State
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info' | 'warning'>('info');
 
   // Reviews & Rating State
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
@@ -131,6 +151,160 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
     }
   };
 
+  // ── Instagram-Style In-Profile Posting Handlers ──
+  const handlePostPhoto = async () => {
+    setShowCreateSheet(false);
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (perm.status !== 'granted') {
+        Alert.alert('Permission Required', 'Permission to access photo gallery is required to add photos to your portfolio!');
+        return;
+      }
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images' as const],
+        allowsEditing: true,
+        quality: 0.85,
+      });
+
+      if (res.canceled || !res.assets?.[0]) return;
+
+      const uri = res.assets[0].uri;
+      setUploadingPhoto(true);
+      setToastType('info');
+      setToastMessage('Uploading photo to your portfolio...');
+      setToastVisible(true);
+
+      // Upload to Supabase Storage
+      let finalUrl = uri;
+      try {
+        const uploaded = await cloudStorageApi.uploadImage(uri, 'portfolio');
+        if (uploaded?.url) {
+          finalUrl = uploaded.url;
+        }
+      } catch (uploadErr) {
+        console.warn('Cloud storage upload warning:', uploadErr);
+      }
+
+      const currentPortfolio = profile?.portfolio || [];
+      const updatedPortfolio = [finalUrl, ...currentPortfolio];
+
+      // Optimistically update profile state
+      setProfile(prev => prev ? { ...prev, portfolio: updatedPortfolio } : null);
+
+      // Persist to database
+      await professionalApi.updateProfile({ portfolio: updatedPortfolio });
+
+      setToastType('success');
+      setToastMessage('📸 Photo added to your portfolio!');
+      setToastVisible(true);
+    } catch (err: any) {
+      console.error('Failed to add photo:', err);
+      setToastType('error');
+      setToastMessage(err.message || 'Failed to add photo.');
+      setToastVisible(true);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handlePostReel = async () => {
+    if (!newReelUrl.trim()) {
+      Alert.alert('Missing URL', 'Please enter a valid YouTube or Vimeo URL.');
+      return;
+    }
+    setSubmittingReel(true);
+    try {
+      const parsed = parseVideoUrl(newReelUrl.trim());
+      const newReel: VideoReelItem = {
+        id: 'reel_' + Date.now(),
+        title: newReelTitle.trim() || (parsed.isShort ? 'Video Reel' : 'Featured Showreel'),
+        url: newReelUrl.trim(),
+        type: parsed.type,
+        embedUrl: parsed.embedUrl,
+        thumbnailUrl: parsed.thumbnailUrl,
+        category: newReelCategory,
+        isShort: newReelIsShort || parsed.isShort,
+      };
+
+      const currentReels = profile?.videoReels || [];
+      const updatedReels = [newReel, ...currentReels];
+
+      // Optimistically update profile state
+      setProfile(prev => prev ? { ...prev, videoReels: updatedReels } : null);
+
+      // Persist to database
+      await professionalApi.updateProfile({ videoReels: updatedReels });
+
+      setShowReelModal(false);
+      setNewReelUrl('');
+      setNewReelTitle('');
+      setNewReelIsShort(false);
+      setToastType('success');
+      setToastMessage('🎬 Video reel posted to your profile!');
+      setToastVisible(true);
+    } catch (err: any) {
+      console.error('Failed to post reel:', err);
+      Alert.alert('Error', err.message || 'Failed to post reel.');
+    } finally {
+      setSubmittingReel(false);
+    }
+  };
+
+  const handleDeletePhoto = (photoUrl: string, index: number) => {
+    Alert.alert(
+      'Delete Photo',
+      'Are you sure you want to remove this photo from your portfolio?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const currentPortfolio = profile?.portfolio || [];
+              const updatedPortfolio = currentPortfolio.filter((_, i) => i !== index);
+              setProfile(prev => prev ? { ...prev, portfolio: updatedPortfolio } : null);
+              setSelectedImgIndex(null);
+              await professionalApi.updateProfile({ portfolio: updatedPortfolio });
+              setToastType('info');
+              setToastMessage('Photo removed from portfolio.');
+              setToastVisible(true);
+            } catch (err: any) {
+              Alert.alert('Error', 'Failed to remove photo.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleDeleteReel = (reelId: string, reelTitle: string) => {
+    Alert.alert(
+      'Delete Reel',
+      `Are you sure you want to remove "${reelTitle}" from your profile?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const currentReels = profile?.videoReels || [];
+              const updatedReels = currentReels.filter(r => r.id !== reelId);
+              setProfile(prev => prev ? { ...prev, videoReels: updatedReels } : null);
+              await professionalApi.updateProfile({ videoReels: updatedReels });
+              setToastType('info');
+              setToastMessage('Video reel removed.');
+              setToastVisible(true);
+            } catch (err: any) {
+              Alert.alert('Error', 'Failed to delete reel.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   if (loading || !profile) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
@@ -175,9 +349,20 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
             <TouchableOpacity style={styles.roundBackBtn} onPress={() => navigation.goBack()}>
               <ArrowLeft size={20} color="#ffffff" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.roundBackBtn} onPress={handleShareProfile} activeOpacity={0.8}>
-              <Share2 size={18} color="#ffffff" />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              {isOwnProfile && (
+                <TouchableOpacity
+                  style={[styles.roundBackBtn, { backgroundColor: '#3fb668' }]}
+                  onPress={() => setShowCreateSheet(true)}
+                  activeOpacity={0.8}
+                >
+                  <Plus size={22} color="#ffffff" />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.roundBackBtn} onPress={handleShareProfile} activeOpacity={0.8}>
+                <Share2 size={18} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.avatarWrapper}>
@@ -224,20 +409,20 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
             <>
               <TouchableOpacity 
                 style={[styles.messageBtn, { backgroundColor: colors.surfaceElevated }]}
-                onPress={handleShareProfile}
+                onPress={() => setShowCreateSheet(true)}
                 activeOpacity={0.8}
               >
-                <Share2 size={18} color={colors.textPrimary} style={{ marginRight: 8 }} />
-                <Text style={[styles.messageBtnText, { color: colors.textPrimary }]}>Share Profile</Text>
+                <PlusCircle size={18} color={colors.accent} style={{ marginRight: 8 }} />
+                <Text style={[styles.messageBtnText, { color: colors.accent }]}>+ Post Content</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
                 style={[styles.bookBtn, { backgroundColor: colors.accent }]}
-                onPress={() => navigation.navigate('ProfessionalEdit')}
+                onPress={handleShareProfile}
                 activeOpacity={0.8}
               >
-                <Film size={18} color="#ffffff" style={{ marginRight: 8 }} />
-                <Text style={styles.bookBtnText}>Edit Profile & Reels</Text>
+                <Share2 size={18} color="#ffffff" style={{ marginRight: 8 }} />
+                <Text style={styles.bookBtnText}>Share Profile</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -306,7 +491,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                 {isOwnProfile && (
                   <TouchableOpacity
                     style={{ backgroundColor: 'rgba(63,182,104,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, flexDirection: 'row', alignItems: 'center' }}
-                    onPress={() => navigation.navigate('ProfessionalEdit')}
+                    onPress={() => setShowReelModal(true)}
                     activeOpacity={0.8}
                   >
                     <Plus size={12} color="#3fb668" style={{ marginRight: 4 }} />
@@ -318,60 +503,85 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18, marginTop: 12 }}>
               <View style={{ width: 18 }} />
+              {isOwnProfile && (
+                <TouchableOpacity 
+                  activeOpacity={0.85} 
+                  onPress={() => setShowReelModal(true)} 
+                  style={[styles.addReelCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.accent }]}
+                >
+                  <View style={[styles.addPhotoIconCircle, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
+                    <Film size={22} color={colors.accent} />
+                  </View>
+                  <Text style={[styles.addPhotoCardText, { color: colors.textPrimary }]}>+ Post Reel</Text>
+                  <Text style={[styles.addPhotoCardSub, { color: colors.textSecondary }]}>YouTube / Shorts</Text>
+                </TouchableOpacity>
+              )}
               {profile.videoReels.map((reel) => {
                 const isShort = reel.isShort;
                 return (
-                  <TouchableOpacity
-                    key={reel.id}
-                    activeOpacity={0.88}
-                    onPress={() => {
-                      if (reel.url) {
-                        Linking.openURL(reel.url).catch(() => {
-                          Alert.alert('Unable to open video', 'Please verify your internet connection or URL.');
-                        });
-                      }
-                    }}
-                    style={[
-                      styles.reelCard,
-                      isShort ? styles.reelCardVertical : styles.reelCardCinema,
-                      { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }
-                    ]}
-                  >
-                    {reel.thumbnailUrl ? (
-                      <Image source={{ uri: reel.thumbnailUrl }} style={styles.reelThumbnail} resizeMode="cover" />
-                    ) : (
-                      <View style={[styles.reelPlaceholder, { backgroundColor: '#111827' }]}>
-                        <Film size={32} color={colors.accent} />
+                  <View key={reel.id} style={{ position: 'relative' }}>
+                    <TouchableOpacity
+                      activeOpacity={0.88}
+                      onPress={() => {
+                        if (reel.url) {
+                          Linking.openURL(reel.url).catch(() => {
+                            Alert.alert('Unable to open video', 'Please verify your internet connection or URL.');
+                          });
+                        }
+                      }}
+                      style={[
+                        styles.reelCard,
+                        isShort ? styles.reelCardVertical : styles.reelCardCinema,
+                        { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }
+                      ]}
+                    >
+                      {reel.thumbnailUrl ? (
+                        <Image source={{ uri: reel.thumbnailUrl }} style={styles.reelThumbnail} resizeMode="cover" />
+                      ) : (
+                        <View style={[styles.reelPlaceholder, { backgroundColor: '#111827' }]}>
+                          <Film size={32} color={colors.accent} />
+                        </View>
+                      )}
+                      <View style={styles.reelVignette} />
+
+                      {/* Play Button Badge */}
+                      <View style={styles.reelPlayBtn}>
+                        <Play size={16} color="#ffffff" fill="#ffffff" style={{ marginLeft: 2 }} />
                       </View>
+
+                      {/* Top Badges */}
+                      <View style={styles.reelTopBadges}>
+                        <View style={[styles.reelBadgePill, { backgroundColor: 'rgba(0,0,0,0.65)' }]}>
+                          <Text style={styles.reelBadgeText}>
+                            {reel.type === 'youtube' ? (isShort ? '⚡ Short' : 'YouTube') : reel.type === 'vimeo' ? 'Vimeo' : 'Video'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Bottom Info */}
+                      <View style={styles.reelInfo}>
+                        {reel.category ? (
+                          <Text style={[styles.reelCategory, { color: colors.accent }]} numberOfLines={1}>
+                            {reel.category.toUpperCase()}
+                          </Text>
+                        ) : null}
+                        <Text style={styles.reelTitle} numberOfLines={2}>
+                          {reel.title}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* Owner In-Profile Delete Button */}
+                    {isOwnProfile && (
+                      <TouchableOpacity
+                        style={styles.reelDeleteBtn}
+                        onPress={() => handleDeleteReel(reel.id, reel.title)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Trash2 size={13} color="#ffffff" />
+                      </TouchableOpacity>
                     )}
-                    <View style={styles.reelVignette} />
-
-                    {/* Play Button Badge */}
-                    <View style={styles.reelPlayBtn}>
-                      <Play size={16} color="#ffffff" fill="#ffffff" style={{ marginLeft: 2 }} />
-                    </View>
-
-                    {/* Top Badges */}
-                    <View style={styles.reelTopBadges}>
-                      <View style={[styles.reelBadgePill, { backgroundColor: 'rgba(0,0,0,0.65)' }]}>
-                        <Text style={styles.reelBadgeText}>
-                          {reel.type === 'youtube' ? (isShort ? '⚡ Short' : 'YouTube') : reel.type === 'vimeo' ? 'Vimeo' : 'Video'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Bottom Info */}
-                    <View style={styles.reelInfo}>
-                      {reel.category ? (
-                        <Text style={[styles.reelCategory, { color: colors.accent }]} numberOfLines={1}>
-                          {reel.category.toUpperCase()}
-                        </Text>
-                      ) : null}
-                      <Text style={styles.reelTitle} numberOfLines={2}>
-                        {reel.title}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
+                  </View>
                 );
               })}
               <View style={{ width: 18 }} />
@@ -393,11 +603,11 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
               </Text>
               <TouchableOpacity
                 style={{ backgroundColor: colors.accent, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, flexDirection: 'row', alignItems: 'center' }}
-                onPress={() => navigation.navigate('ProfessionalEdit')}
+                onPress={() => setShowReelModal(true)}
                 activeOpacity={0.8}
               >
                 <Plus size={16} color="#ffffff" style={{ marginRight: 6 }} />
-                <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 13 }}>Add Your First Video Reel</Text>
+                <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 13 }}>Post Your First Video Reel</Text>
               </TouchableOpacity>
             </View>
           </Card>
@@ -405,9 +615,47 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
 
         {/* ── Cinematic Portfolio Gallery ── */}
         <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Portfolio Highlights</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18 }}>
+          <View style={styles.reelsHeaderRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <ImageIcon size={18} color={colors.accent} style={{ marginRight: 8 }} />
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>Portfolio Highlights</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Badge label={`${profile.portfolio?.length || safePortfolio.length} Photos`} variant="info" />
+              {isOwnProfile && (
+                <TouchableOpacity
+                  style={{ backgroundColor: 'rgba(63,182,104,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, flexDirection: 'row', alignItems: 'center' }}
+                  onPress={handlePostPhoto}
+                  activeOpacity={0.8}
+                >
+                  <Plus size={12} color="#3fb668" style={{ marginRight: 4 }} />
+                  <Text style={{ color: '#3fb668', fontSize: 11, fontWeight: '800' }}>Add Photo</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18, marginTop: 12 }}>
             <View style={{ width: 18 }} />
+            {isOwnProfile && (
+              <TouchableOpacity 
+                activeOpacity={0.85} 
+                onPress={handlePostPhoto} 
+                style={[styles.addPhotoCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.accent }]}
+              >
+                {uploadingPhoto ? (
+                  <ActivityIndicator size="small" color={colors.accent} />
+                ) : (
+                  <>
+                    <View style={[styles.addPhotoIconCircle, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
+                      <Camera size={22} color={colors.accent} />
+                    </View>
+                    <Text style={[styles.addPhotoCardText, { color: colors.textPrimary }]}>+ Post Photo</Text>
+                    <Text style={[styles.addPhotoCardSub, { color: colors.textSecondary }]}>Add to Gallery</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
             {safePortfolio.map((img, idx) => (
               <TouchableOpacity 
                 key={idx} 
@@ -539,9 +787,22 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
       {/* Lightbox Modal */}
       <Modal visible={selectedImgIndex !== null} transparent animationType="fade" onRequestClose={() => setSelectedImgIndex(null)}>
         <View style={styles.modalBg}>
-          <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedImgIndex(null)}>
-            <X size={28} color="#ffffff" />
-          </TouchableOpacity>
+          <View style={styles.lightboxTopBar}>
+            {isOwnProfile && selectedImgIndex !== null && (
+              <TouchableOpacity 
+                style={styles.deletePhotoBtn} 
+                onPress={() => handleDeletePhoto(safePortfolio[selectedImgIndex], selectedImgIndex)}
+                activeOpacity={0.8}
+              >
+                <Trash2 size={18} color="#ff4d4f" />
+                <Text style={{ color: '#ff4d4f', fontSize: 13, fontWeight: '700', marginLeft: 6 }}>Delete</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedImgIndex(null)}>
+              <X size={28} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
+
           {selectedImgIndex !== null && (
             <View style={styles.lightboxContainer}>
               <Text style={styles.lightboxCounter}>
@@ -571,6 +832,253 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
           )}
         </View>
       </Modal>
+
+      {/* ── Instagram-Style In-Profile Create Post Action Sheet ── */}
+      <Modal visible={showCreateSheet} transparent animationType="slide" onRequestClose={() => setShowCreateSheet(false)}>
+        <TouchableOpacity 
+          style={styles.sheetOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowCreateSheet(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={[styles.createSheetCard, { backgroundColor: colors.surfaceCard }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+
+            <Text style={[styles.createSheetTitle, { color: colors.textPrimary }]}>Create New Post</Text>
+            <Text style={[styles.createSheetSubtitle, { color: colors.textSecondary }]}>
+              Post photography and video reels directly to your Camqrew profile
+            </Text>
+
+            {/* Post Photo Option */}
+            <TouchableOpacity 
+              style={[styles.createOptionRow, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}
+              onPress={handlePostPhoto}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.createOptionIconWrap, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
+                <Camera size={24} color={colors.accent} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={[styles.createOptionTitle, { color: colors.textPrimary }]}>Post Photo to Portfolio</Text>
+                <Text style={[styles.createOptionDesc, { color: colors.textSecondary }]}>
+                  Upload high-res stills or project photos from your camera roll
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Post Video Reel Option */}
+            <TouchableOpacity 
+              style={[styles.createOptionRow, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}
+              onPress={() => {
+                setShowCreateSheet(false);
+                setTimeout(() => setShowReelModal(true), 250);
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.createOptionIconWrap, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
+                <Film size={24} color={colors.accent} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={[styles.createOptionTitle, { color: colors.textPrimary }]}>Post Video Reel / Showreel</Text>
+                <Text style={[styles.createOptionDesc, { color: colors.textSecondary }]}>
+                  Embed YouTube, 9:16 Shorts, or Vimeo reels directly to your profile
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <Button
+              title="Cancel"
+              variant="outline"
+              size="md"
+              onPress={() => setShowCreateSheet(false)}
+              style={{ marginTop: 8 }}
+            />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── In-Profile Video Reel Composer Modal ── */}
+      <Modal visible={showReelModal} transparent animationType="slide" onRequestClose={() => !submittingReel && setShowReelModal(false)}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          style={styles.sheetOverlay}
+        >
+          <View style={[styles.reelModalCard, { backgroundColor: colors.surfaceCard }]}>
+            {/* Modal Header */}
+            <View style={styles.reelModalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Film size={20} color={colors.accent} style={{ marginRight: 8 }} />
+                <Text style={[styles.reelModalTitle, { color: colors.textPrimary }]}>Post Video Reel</Text>
+              </View>
+              <TouchableOpacity onPress={() => !submittingReel && setShowReelModal(false)} style={{ padding: 4 }}>
+                <X size={22} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: Dimensions.get('window').height * 0.7 }}>
+              <Text style={[styles.reelModalSub, { color: colors.textSecondary }]}>
+                Embed YouTube videos, 9:16 vertical Shorts, or Vimeo showreels directly to your profile.
+              </Text>
+
+              <Input
+                label="Video URL (YouTube, Shorts, or Vimeo)"
+                placeholder="https://youtube.com/shorts/... or https://vimeo.com/..."
+                value={newReelUrl}
+                onChangeText={setNewReelUrl}
+              />
+
+              {/* Detected format feedback */}
+              {newReelUrl.trim().length > 0 && (() => {
+                const p = parseVideoUrl(newReelUrl.trim());
+                return (
+                  <View style={[styles.detectedFormatBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <CheckCircle size={14} color="#3fb668" />
+                      <Text style={{ color: '#3fb668', fontSize: 12, fontWeight: '800' }}>
+                        Detected: {p.type === 'youtube' ? (p.isShort ? '9:16 YouTube Short' : 'YouTube Video') : p.type === 'vimeo' ? 'Vimeo Video' : 'Direct Video'}
+                      </Text>
+                    </View>
+                    {p.thumbnailUrl && (
+                      <Image source={{ uri: p.thumbnailUrl }} style={styles.previewThumb} />
+                    )}
+                  </View>
+                );
+              })()}
+
+              <Input
+                label="Reel Title (Optional)"
+                placeholder="e.g. 2026 Commercial Highlights"
+                value={newReelTitle}
+                onChangeText={setNewReelTitle}
+              />
+
+              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 6 }}>Category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+                {['Showreel', 'Wedding', 'Commercial', 'Fashion', 'Music Video', 'Short Film', 'Drone Reel'].map(cat => (
+                  <Chip
+                    key={cat}
+                    label={cat}
+                    active={newReelCategory === cat}
+                    onPress={() => setNewReelCategory(cat)}
+                  />
+                ))}
+              </ScrollView>
+
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 18 }}
+                onPress={() => setNewReelIsShort(!newReelIsShort)}
+                activeOpacity={0.8}
+              >
+                <View
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 6,
+                    borderWidth: 2,
+                    borderColor: newReelIsShort ? '#3fb668' : colors.textFaint,
+                    backgroundColor: newReelIsShort ? '#3fb668' : 'transparent',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 10,
+                  }}
+                >
+                  {newReelIsShort && <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 12 }}>✓</Text>}
+                </View>
+                <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '700' }}>
+                  Vertical 9:16 format (Shorts / Reels)
+                </Text>
+              </TouchableOpacity>
+
+              <Button
+                title={submittingReel ? 'Posting Reel...' : 'Post Reel to Profile'}
+                variant="primary"
+                size="md"
+                disabled={submittingReel || !newReelUrl.trim()}
+                icon={submittingReel ? <ActivityIndicator size="small" color="#ffffff" /> : <Film size={16} color="#ffffff" />}
+                onPress={handlePostReel}
+              />
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Review Modal */}
+      <Modal visible={showReviewModal} transparent animationType="fade" onRequestClose={() => !submittingReview && setShowReviewModal(false)}>
+        <View style={styles.reviewModalOverlay}>
+          <View style={[styles.reviewModalCard, { backgroundColor: colors.surfaceCard }]}>
+            <View style={styles.reviewModalHeader}>
+              <View>
+                <Text style={[styles.reviewModalTitle, { color: colors.textPrimary }]}>Rate & Review</Text>
+                <Text style={[styles.reviewModalSub, { color: colors.textSecondary }]}>Share your experience working with {profile?.name}</Text>
+              </View>
+              <TouchableOpacity onPress={() => !submittingReview && setShowReviewModal(false)} style={styles.reviewCloseBtn}>
+                <X size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.starPickerRow}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity key={star} onPress={() => setSelectedRating(star)} style={styles.starTouchItem}>
+                  <Star
+                    size={32}
+                    color={star <= selectedRating ? '#F5A623' : colors.border}
+                    fill={star <= selectedRating ? '#F5A623' : 'transparent'}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={[styles.starRatingLabel, { color: colors.accent }]}>
+              {selectedRating === 5 ? '⭐⭐⭐⭐⭐ Outstanding (5.0)' :
+               selectedRating === 4 ? '⭐⭐⭐⭐ Very Good (4.0)' :
+               selectedRating === 3 ? '⭐⭐⭐ Good (3.0)' :
+               selectedRating === 2 ? '⭐⭐ Fair (2.0)' : '⭐ Needs Improvement (1.0)'}
+            </Text>
+
+            <Text style={[styles.commentInputLabel, { color: colors.textSecondary }]}>Your Feedback</Text>
+            <TextInput
+              style={[styles.commentTextInput, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight, color: colors.textPrimary }]}
+              placeholder="Tell other clients about communication, creativity, and delivery quality..."
+              placeholderTextColor={colors.textFaint}
+              multiline
+              numberOfLines={4}
+              value={reviewComment}
+              onChangeText={setReviewComment}
+              textAlignVertical="top"
+            />
+
+            <View style={styles.reviewModalActions}>
+              <TouchableOpacity
+                style={[styles.reviewCancelBtn, { borderColor: colors.borderLight }]}
+                onPress={() => setShowReviewModal(false)}
+                disabled={submittingReview}
+              >
+                <Text style={[styles.reviewCancelBtnText, { color: colors.textSecondary }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.reviewSubmitBtn, { backgroundColor: colors.accent }]}
+                onPress={handleSubmitReview}
+                disabled={submittingReview}
+              >
+                {submittingReview ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <Send size={15} color="#ffffff" style={{ marginRight: 6 }} />
+                    <Text style={styles.reviewSubmitBtnText}>Submit Review</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Toast Feedback */}
+      <Toast
+        visible={toastVisible}
+        message={toastMessage}
+        type={toastType}
+        onDismiss={() => setToastVisible(false)}
+      />
     </View>
   );
 };
@@ -707,7 +1215,9 @@ const styles = StyleSheet.create({
 
   // Lightbox
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.98)', justifyContent: 'center', alignItems: 'center' },
-  closeBtn: { position: 'absolute', top: 50, right: 20, zIndex: 20, padding: 8 },
+  lightboxTopBar: { position: 'absolute', top: 50, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 25 },
+  deletePhotoBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255, 77, 79, 0.18)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#ff4d4f' },
+  closeBtn: { padding: 8 },
   lightboxContainer: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', position: 'relative' },
   lightboxCounter: { color: '#ffffff', fontSize: 16, fontWeight: '800', position: 'absolute', top: 60, alignSelf: 'center' },
   fullImage: { width: '100%', height: '70%' },
@@ -1005,5 +1515,145 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     lineHeight: 16,
+  },
+
+  // In-Profile Creation & Deletion Styles
+  reelDeleteBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  addPhotoCard: {
+    width: 130,
+    height: 180,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    padding: 12,
+  },
+  addReelCard: {
+    width: 130,
+    height: 180,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    padding: 12,
+  },
+  addPhotoIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  addPhotoCardText: {
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  addPhotoCardSub: {
+    fontSize: 10,
+    textAlign: 'center',
+    marginTop: 3,
+  },
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'flex-end',
+  },
+  createSheetCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 22,
+    paddingBottom: 36,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  createSheetTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  createSheetSubtitle: {
+    fontSize: 13,
+    marginBottom: 18,
+  },
+  createOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  createOptionIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  createOptionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  createOptionDesc: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  reelModalCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 22,
+    paddingBottom: 36,
+  },
+  reelModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  reelModalTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  reelModalSub: {
+    fontSize: 13,
+    marginBottom: 16,
+  },
+  detectedFormatBox: {
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  previewThumb: {
+    width: 52,
+    height: 38,
+    borderRadius: 6,
   },
 });

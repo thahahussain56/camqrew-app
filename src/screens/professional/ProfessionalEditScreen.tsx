@@ -12,14 +12,11 @@ import { Chip } from '../../components/ui/Chip';
 import { ChipInput } from '../../components/forms/ChipInput';
 import { LocationCascader } from '../../components/forms/LocationCascader';
 import { Toast } from '../../components/ui/Toast';
-import { IOSNavBar } from '../../components/navigation/IOSNavBar';
-import { useNavBarHeight } from '../../hooks/useNavBarHeight';
 import { PROFESSIONAL_CATEGORIES } from '../../constants/categories';
 import { ChevronDown, ChevronUp, Plus, Trash2, Save, Camera, Image as ImageIcon, Film, Play } from 'lucide-react-native';
 
 export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors } = useTheme();
-  const navBarHeight = useNavBarHeight();
   const { user } = useAuthStore();
 
   const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
@@ -193,18 +190,16 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <IOSNavBar
-        title="Edit Professional Profile"
-        showBack
-        onPressBack={() => navigation.goBack()}
-      />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={[styles.content, { paddingTop: navBarHeight }]} keyboardShouldPersistTaps="handled">
-        <Toast visible={!!toastMessage} message={toastMessage} type="success" onDismiss={() => setToastMessage('')} />
+    <KeyboardAvoidingView 
+      style={{ flex: 1, backgroundColor: colors.background }} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <Toast visible={!!toastMessage} message={toastMessage} type="success" onDismiss={() => setToastMessage('')} />
+
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Edit Professional Profile</Text>
+      </View>
 
       {/* 1. Media & Photos Upload Accordion */}
       <Card style={styles.accordionCard}>
@@ -635,8 +630,7 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
         style={{ marginVertical: 30, backgroundColor: '#3fb668' }}
       />
       </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
