@@ -167,13 +167,60 @@ export const ReelsFeedScreen: React.FC = () => {
     const isLiked = !!likedReels[item.id];
     const likes = likeCounts[item.id] || item.likesCount || 120;
 
-    // Build embed HTML for responsive 9:16 vertical video
-    const embedSrc = item.embedUrl || `https://www.youtube-nocookie.com/embed/${item.url.split('/').pop()}`;
-    const cleanEmbedUrl = embedSrc.includes('?')
-      ? `${embedSrc}&autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playsinline=1&controls=0&modestbranding=1`
-      : `${embedSrc}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playsinline=1&controls=0&modestbranding=1`;
+    // Detect direct video (MP4/WebM) vs iframe embed (YouTube/Vimeo)
+    const isDirectVideo = !!(
+      item.type === 'direct' ||
+      item.url?.includes('.mp4') ||
+      item.embedUrl?.includes('.mp4')
+    );
+    const videoSrc = item.url || item.embedUrl;
 
-    const htmlContent = `
+    let cleanEmbedUrl = '';
+    if (!isDirectVideo) {
+      let src = item.embedUrl || item.url || '';
+      if (src.includes('youtube.com/shorts/')) {
+        const id = src.split('/shorts/')[1]?.split('?')[0];
+        src = `https://www.youtube-nocookie.com/embed/${id}`;
+      } else if (src.includes('youtube.com/watch')) {
+        const match = src.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+        if (match && match[1]) {
+          src = `https://www.youtube-nocookie.com/embed/${match[1]}`;
+        }
+      } else if (src.includes('youtu.be/')) {
+        const id = src.split('youtu.be/')[1]?.split('?')[0];
+        if (id) {
+          src = `https://www.youtube-nocookie.com/embed/${id}`;
+        }
+      }
+      const paramChar = src.includes('?') ? '&' : '?';
+      cleanEmbedUrl = `${src}${paramChar}autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playsinline=1&controls=0&modestbranding=1&rel=0`;
+    }
+
+    const htmlContent = isDirectVideo
+      ? `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; background: #000; }
+            html, body { width: 100%; height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+            video { width: 100%; height: 100%; object-fit: cover; }
+          </style>
+        </head>
+        <body>
+          <video 
+            src="${videoSrc}" 
+            autoplay 
+            loop 
+            ${isMuted ? 'muted' : ''} 
+            playsinline 
+            webkit-playsinline
+          ></video>
+        </body>
+      </html>
+    `
+      : `
       <!DOCTYPE html>
       <html>
         <head>
@@ -204,6 +251,7 @@ export const ReelsFeedScreen: React.FC = () => {
         >
           {isActive ? (
             <WebView
+              key={`${item.id}_${isMuted ? 'm' : 'u'}`}
               originWhitelist={['*']}
               source={{ html: htmlContent }}
               style={styles.videoPlayer}
