@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
+import { IOSNavBar } from '../../components/navigation/IOSNavBar';
+import { useNavBarHeight } from '../../hooks/useNavBarHeight';
 import { 
-  ArrowLeft, 
   ShieldCheck, 
   FileText, 
   Lock, 
@@ -18,8 +19,10 @@ type TabKey = 'terms' | 'escrow' | 'cancellation' | 'copyright' | 'privacy' | 'd
 
 export const TermsOfServiceScreen: React.FC<{ navigation: any; route?: any }> = ({ navigation, route }) => {
   const { colors } = useTheme();
+  const navBarHeight = useNavBarHeight();
   const initialTab = (route?.params?.initialTab || 'terms') as TabKey;
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
+
 
   const tabs: { key: TabKey; label: string; icon: any }[] = [
     { key: 'terms', label: 'Terms of Service', icon: FileText },
@@ -32,19 +35,16 @@ export const TermsOfServiceScreen: React.FC<{ navigation: any; route?: any }> = 
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.borderLight }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ArrowLeft size={20} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Legal & Compliance</Text>
-          <Text style={[styles.headerSub, { color: colors.textFaint }]}>Indian Contract Act & DPDP 2023</Text>
-        </View>
-      </View>
+      {/* iOS Navigation Bar */}
+      <IOSNavBar
+        title="Legal & Compliance"
+        subtitle="Indian Contract Act & DPDP 2023"
+        showBack
+        onPressBack={() => navigation.goBack()}
+      />
 
-      {/* Segment Selector */}
-      <View style={styles.segmentWrapper}>
+      {/* Segment Selector — offset by nav bar height */}
+      <View style={[styles.segmentWrapper, { paddingTop: navBarHeight }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.segmentList}>
           {tabs.map((tab) => {
             const Icon = tab.icon;

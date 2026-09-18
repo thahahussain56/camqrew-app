@@ -7,9 +7,12 @@ import { Button } from '../../components/ui/Button';
 import { escrowService, EscrowDepositRecord } from '../../services/escrowService';
 import { trackingService, LiveDeliveryTracking } from '../../services/trackingService';
 import { Package, Download, ShieldCheck, RefreshCw, CheckCircle2, Clock, Truck, Phone, Navigation, ExternalLink } from 'lucide-react-native';
+import { IOSNavBar } from '../../components/navigation/IOSNavBar';
+import { useNavBarHeight } from '../../hooks/useNavBarHeight';
 
 export const OrderDetailScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
   const { colors } = useTheme();
+  const navBarHeight = useNavBarHeight();
   const orderId = route?.params?.orderId || route?.params?.id || 'ORD-8921';
 
   const [escrow, setEscrow] = useState<EscrowDepositRecord | null>(null);
@@ -70,11 +73,15 @@ export const OrderDetailScreen: React.FC<{ navigation: any; route: any }> = ({ n
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Order & Delivery Tracking</Text>
-        <Text style={[styles.orderId, { color: colors.accent }]}>{orderId}</Text>
-      </View>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <IOSNavBar
+        title="Order & Delivery"
+        showBack
+        onPressBack={() => navigation.goBack()}
+        backLabel="Back"
+        subtitle={orderId}
+      />
+      <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: navBarHeight }]}>
 
       {/* Live Delivery Tracking Timeline (Shiprocket / Dunzo) */}
       {tracking && (
@@ -225,6 +232,7 @@ export const OrderDetailScreen: React.FC<{ navigation: any; route: any }> = ({ n
         style={{ marginVertical: 10 }}
       />
     </ScrollView>
+    </View>
   );
 };
 
@@ -234,20 +242,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-    paddingTop: 68,
     paddingBottom: 110,
-  },
-  header: {
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-  },
-  orderId: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginTop: 2,
   },
   card: {
     marginBottom: 14,

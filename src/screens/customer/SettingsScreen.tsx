@@ -5,12 +5,15 @@ import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { Button } from '../../components/ui/Button';
-import { Bell, Lock, Shield, Info, LogOut, FileText, Trash2, AlertTriangle, X } from 'lucide-react-native';
+import { IOSNavBar } from '../../components/navigation/IOSNavBar';
+import { useNavBarHeight } from '../../hooks/useNavBarHeight';
+import { Shield, Info, LogOut, FileText, Trash2, AlertTriangle, X } from 'lucide-react-native';
 import { supabase } from '../../api/supabaseClient';
 import { authApi } from '../../api/authApi';
 
 export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors, isDark } = useTheme();
+  const navBarHeight = useNavBarHeight();
   const { user, logout } = useAuthStore();
 
   const [prefs, setPrefs] = useState({ booking: true, chat: true, marketing: false });
@@ -62,10 +65,9 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>App Settings</Text>
-      </View>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <IOSNavBar title="App Settings" showBack={false} />
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: navBarHeight }]}>
 
       {/* Theme Settings */}
       <Card style={styles.card}>
@@ -212,7 +214,8 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
           </View>
         </View>
       </Modal>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
