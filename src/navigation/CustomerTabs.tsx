@@ -2,9 +2,10 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../hooks/useTheme';
+import { IOSTabBar } from '../components/navigation/IOSTabBar';
 
 import { HomeScreen } from '../screens/customer/HomeScreen';
 import { ServicesScreen } from '../screens/customer/ServicesScreen';
@@ -133,6 +134,7 @@ export const CustomerTabs: React.FC = () => {
   const { colors, isDark } = useTheme();
   const { activeRole, user } = useAuthStore();
 
+  // Android fallback tab bar style (floating pill, BlurView)
   const defaultTabBarStyle = {
     position: 'absolute' as const,
     bottom: 20,
@@ -151,34 +153,48 @@ export const CustomerTabs: React.FC = () => {
 
   const getDynamicTabStyle = (route: any) => {
     const routeName = getFocusedRouteNameFromRoute(route) ?? '';
-    const hiddenScreens = ['ProductDetail', 'Cart', 'SaleCheckout', 'RentalCheckout', 'Chat', 'ChatInfo', 'Booking', 'OrderDetail', 'PublicProfile', 'EditProfile', 'PrimeSubscription', 'CreateJob'];
+    const hiddenScreens = [
+      'ProductDetail', 'Cart', 'SaleCheckout', 'RentalCheckout',
+      'Chat', 'ChatInfo', 'Booking', 'OrderDetail', 'PublicProfile',
+      'EditProfile', 'PrimeSubscription', 'CreateJob',
+    ];
     if (hiddenScreens.includes(routeName)) {
       return { display: 'none' as const };
     }
     return defaultTabBarStyle;
   };
 
+  // iOS uses our fully animated custom IOSTabBar
+  // Android uses the standard @react-navigation tab bar
+  const iosTabBarProps = Platform.OS === 'ios'
+    ? { tabBar: (props: any) => <IOSTabBar {...props} /> }
+    : {};
+
   return (
     <Tab.Navigator
+      {...iosTabBarProps}
       screenOptions={{
         headerShown: false,
-        tabBarStyle: defaultTabBarStyle,
-        tabBarBackground: () => (
-          <View style={{ flex: 1, borderRadius: 28, overflow: 'hidden' }}>
-            <BlurView
-              tint={isDark ? 'dark' : 'light'}
-              intensity={80}
-              style={StyleSheet.absoluteFill}
-            />
-          </View>
-        ),
-        tabBarActiveTintColor: colors.textPrimary,
-        tabBarInactiveTintColor: colors.textFaint,
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '700',
-          marginTop: 2,
-        },
+        // Android only: apply the styled tab bar (iOS handles its own via tabBar prop)
+        ...(Platform.OS !== 'ios' && {
+          tabBarStyle: defaultTabBarStyle,
+          tabBarBackground: () => (
+            <View style={{ flex: 1, borderRadius: 28, overflow: 'hidden' }}>
+              <BlurView
+                tint={isDark ? 'dark' : 'light'}
+                intensity={80}
+                style={StyleSheet.absoluteFill}
+              />
+            </View>
+          ),
+          tabBarActiveTintColor: colors.accent,
+          tabBarInactiveTintColor: colors.textFaint,
+          tabBarLabelStyle: {
+            fontSize: 10,
+            fontWeight: '700' as const,
+            marginTop: 2,
+          },
+        }),
       }}
     >
       <Tab.Screen
