@@ -53,7 +53,7 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
       await authApi.deleteAccount();
       setShowDeleteModal(false);
       await logout();
-      Alert.alert('Account Deleted', 'Your Camcrew account and personal data have been permanently erased.');
+      Alert.alert('Account Deleted', 'Your Camqrew account and personal data have been permanently erased.');
     } catch (err: any) {
       Alert.alert('Cannot Delete Account', err.message || 'Failed to delete account.');
     } finally {
@@ -104,7 +104,7 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
       <Card style={styles.card}>
         <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('About')}>
           <Info size={18} color={colors.accent} style={{ marginRight: 10 }} />
-          <Text style={[styles.linkText, { color: colors.textPrimary }]}>About Camcrew Studio</Text>
+          <Text style={[styles.linkText, { color: colors.textPrimary }]}>About Camqrew Studio</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={[styles.linkRow, { marginTop: 12 }]} onPress={() => navigation.navigate('Contact')}>

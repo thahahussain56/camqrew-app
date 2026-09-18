@@ -11,12 +11,13 @@ export interface EscrowDepositRecord {
   refundTxId?: string;
 }
 
-const STORE_KEY = '@camcrew_escrow_deposits';
+const STORE_KEY = '@camqrew_escrow_deposits';
+const LEGACY_STORE_KEY = '@camcrew_escrow_deposits';
 
 export const escrowService = {
   getEscrowRecords: async (): Promise<EscrowDepositRecord[]> => {
     try {
-      const data = await AsyncStorage.getItem(STORE_KEY);
+      const data = (await AsyncStorage.getItem(STORE_KEY)) || (await AsyncStorage.getItem(LEGACY_STORE_KEY));
       return data ? JSON.parse(data) : [];
     } catch (e) {
       return [];

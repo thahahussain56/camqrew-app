@@ -186,11 +186,11 @@ export const RentalCheckoutScreen: React.FC<{ navigation: any }> = ({ navigation
     try {
       const paymentResult = await razorpayService.openCheckout({
         amount: total,
-        description: 'Camcrew Equipment Rental Escrow',
+        description: 'Camqrew Equipment Rental Escrow',
         prefill: {
           name: fullName,
           contact: phone,
-          email: 'thaha@camcrew.in',
+          email: 'thaha@camqrew.in',
           method: selectedMethod === 'netbank' ? 'netbanking' : (selectedMethod || 'upi'),
         },
       });
@@ -215,7 +215,7 @@ export const RentalCheckoutScreen: React.FC<{ navigation: any }> = ({ navigation
 
       notificationService.triggerOrderOutForDeliveryNotification(
         lastOrderId,
-        checkoutItems[0]?.product?.name || 'Camcrew Equipment'
+        checkoutItems[0]?.product?.name || 'Camqrew Equipment'
       );
 
       setOrderComplete(true);
@@ -314,7 +314,7 @@ export const RentalCheckoutScreen: React.FC<{ navigation: any }> = ({ navigation
               <View style={[styles.customCheck, termsAccepted && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
                 {termsAccepted && <Check size={14} color={colors.background} />}
               </View>
-              <Text style={[styles.checkText, { color: colors.textSecondary }]}>I accept the Camcrew security deposit, rental terms, and equipment liability policies.</Text>
+              <Text style={[styles.checkText, { color: colors.textSecondary }]}>I accept the Camqrew security deposit, rental terms, and equipment liability policies.</Text>
             </TouchableOpacity>
           </View>
         )}

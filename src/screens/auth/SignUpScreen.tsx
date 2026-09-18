@@ -164,7 +164,7 @@ export const SignInScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         {/* Hero */}
         <LinearGradient colors={['#0F0C29', '#302B63', '#24243E']} style={siStyles.hero}>
           <View style={siStyles.badge}>
-            <Text style={{ color: '#3fb668', fontWeight: '800', fontSize: 12, letterSpacing: 1 }}>CAMCREW STUDIO</Text>
+            <Text style={{ color: '#3fb668', fontWeight: '800', fontSize: 12, letterSpacing: 1 }}>CAMQREW STUDIO</Text>
           </View>
           <Text style={siStyles.heroTitle}>Welcome{'\n'}Back 👋</Text>
           <Text style={siStyles.heroSub}>India's Premier Creative Professional Platform</Text>

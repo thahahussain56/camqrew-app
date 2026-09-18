@@ -230,7 +230,7 @@ export const ChatScreen: React.FC<{ navigation: any; route: any }> = ({ navigati
               <Avatar source={otherUserAvatar} size={90} />
               <Text style={[styles.introName, { color: colors.textPrimary }]}>{otherUserName}</Text>
             </TouchableOpacity>
-            <Text style={[styles.introSub, { color: colors.textSecondary }]}>Camcrew User</Text>
+            <Text style={[styles.introSub, { color: colors.textSecondary }]}>Camqrew User</Text>
             <TouchableOpacity style={[styles.viewProfileBtn, { backgroundColor: colors.surfaceElevated }]} onPress={() => navigation.navigate('PublicProfile', { id: otherUserId })}>
               <Text style={[styles.viewProfileText, { color: colors.textPrimary }]}>View Profile</Text>
             </TouchableOpacity>

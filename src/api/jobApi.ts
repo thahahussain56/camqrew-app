@@ -87,7 +87,7 @@ export const jobApi = {
           user_id: p.id,
           title: `📢 New Job in ${locationDisplay}!`,
           body: `${payload.title} • Budget: ₹${payload.budget.toLocaleString('en-IN')}`,
-          target_url: 'camcrew://job_board',
+          target_url: 'camqrew://job_board',
           is_read: false,
         }));
 
@@ -99,7 +99,7 @@ export const jobApi = {
             type: 'job_broadcast',
             title: `📢 New Job in ${locationDisplay}!`,
             body: `${payload.title} • Budget: ₹${payload.budget.toLocaleString('en-IN')}`,
-            targetUrl: 'camcrew://job_board',
+            targetUrl: 'camqrew://job_board',
           }).catch(() => {});
         });
       }
@@ -208,7 +208,7 @@ export const jobApi = {
         user_id: data.client_id,
         title: notifTitle,
         body: notifBody,
-        target_url: `camcrew://job_review?jobId=${jobId}`,
+        target_url: `camqrew://job_review?jobId=${jobId}`,
         is_read: false,
       }]);
 
@@ -216,7 +216,7 @@ export const jobApi = {
         type: 'job_accepted',
         title: notifTitle,
         body: notifBody,
-        targetUrl: `camcrew://job_review?jobId=${jobId}`,
+        targetUrl: `camqrew://job_review?jobId=${jobId}`,
       }).catch(() => {});
     } catch (notifErr) {
       console.warn('Could not dispatch client notification for accepted job:', notifErr);

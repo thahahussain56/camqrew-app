@@ -21,7 +21,7 @@ export const PrimeSubscriptionScreen: React.FC = () => {
       const res = await subscriptionApi.upgradeSubscription(user.id, 'prime');
       if (res.success && res.user) {
         updateUser(res.user);
-        alert('Welcome to Camcrew Prime!');
+        alert('Welcome to Camqrew Prime!');
         navigation.goBack();
       } else {
         alert('Payment failed');
@@ -36,7 +36,7 @@ export const PrimeSubscriptionScreen: React.FC = () => {
         <View style={[styles.iconContainer, { backgroundColor: '#FFD70020' }]}>
           <Star size={48} color="#FFD700" />
         </View>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Camcrew Prime</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Camqrew Prime</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Elevate your production workflow with zero delivery fees and reduced security deposits.</Text>
       </View>
 

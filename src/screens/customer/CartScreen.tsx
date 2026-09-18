@@ -27,7 +27,7 @@ export const CartScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       setToastMessage('Promo code applied successfully!');
     } else {
       setToastType('error');
-      setToastMessage('Invalid promo code. Try CAMCREW10');
+      setToastMessage('Invalid promo code. Try CAMQREW10');
     }
   };
 
@@ -46,7 +46,7 @@ export const CartScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     return acc + (item.product.price * item.quantity);
   }, 0);
 
-  const discountPercentage = promoCode ? (promoCode === 'CAMCREW10' ? 10 : promoCode === 'PROPROMO20' ? 20 : 0) : 0;
+  const discountPercentage = promoCode ? (promoCode === 'CAMQREW10' || promoCode === 'CAMCREW10' ? 10 : promoCode === 'PROPROMO20' ? 20 : 0) : 0;
   const discount = (subtotal * discountPercentage) / 100;
   const tax = Math.round((subtotal - discount) * 0.18);
   const shippingFee = subtotal > 0 && cartTab === 'sale' ? 150 : 0; // Assuming rentals don't have shipping fee or it's handled via pickup
@@ -174,7 +174,7 @@ export const CartScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 <Tag size={16} color={colors.textSecondary} style={{ marginLeft: 12 }} />
                 <RNTextInput
                   style={[styles.promoInput, { color: colors.textPrimary }]}
-                  placeholder="Enter Promo Code (e.g. CAMCREW10)"
+                  placeholder="Enter Promo Code (e.g. CAMQREW10)"
                   placeholderTextColor={colors.textFaint}
                   value={inputCode}
                   onChangeText={setInputCode}

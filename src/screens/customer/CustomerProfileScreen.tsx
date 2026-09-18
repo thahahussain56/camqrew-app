@@ -163,7 +163,7 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Star size={20} color="#FFD700" style={{ marginRight: 10 }} />
               <View>
-                <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 14 }}>Upgrade to Camcrew Prime</Text>
+                <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 14 }}>Upgrade to Camqrew Prime</Text>
                 <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>Free Delivery & 50% Off Deposits</Text>
               </View>
             </View>

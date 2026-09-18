@@ -31,7 +31,7 @@ export const MOCK_PROFESSIONALS: ProfessionalProfile[] = [
       'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=800',
     ],
     equipment: ['Sony FX3 Cinema Line', 'Sony FE 24-70mm f/2.8 GM II', 'DJI Ronin RS3 Pro Gimbal'],
-    certifications: ['Camcrew Master Creator', 'Sony Alpha Ambassador'],
+    certifications: ['Camqrew Master Creator', 'Sony Alpha Ambassador'],
     reviews: [
       { id: 'rev_t1', clientName: 'Rhea Kapoor', rating: 5, date: 'August 2026', comment: 'Mohammad is a visionary director! The cinematic quality was breathtaking.' },
     ],
@@ -66,7 +66,7 @@ export const MOCK_PROFESSIONALS: ProfessionalProfile[] = [
       'https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=800',
     ],
     equipment: ['Canon EOS R5', '50mm f/1.2 L Lens'],
-    certifications: ['Camcrew Verified Creator'],
+    certifications: ['Camqrew Verified Creator'],
     reviews: [],
     weeklyAvailability: { Mon: true, Tue: true, Wed: true, Thu: true, Fri: true, Sat: true, Sun: false },
     blockedDates: [],

@@ -118,9 +118,9 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
   const handleShareProfile = async () => {
     if (!profile) return;
     try {
-      const shareUrl = `https://camcrew.in/creators/${profile.id}`;
-      const title = `Check out ${profile.name} on Camcrew`;
-      const message = `🎬 Check out ${profile.name} (${profile.title || 'Creator'}) on Camcrew!\n⭐ ${(profile.rating ?? 5.0).toFixed(1)} Rating • ₹${(profile.ratePerDay || 15000).toLocaleString('en-IN')}/day\n📍 ${profile.city}, ${profile.state}\n\nView portfolio, showreels, and book directly:\n${shareUrl}`;
+      const shareUrl = `https://camqrew.in/creators/${profile.id}`;
+      const title = `Check out ${profile.name} on Camqrew`;
+      const message = `🎬 Check out ${profile.name} (${profile.title || 'Creator'}) on Camqrew!\n⭐ ${(profile.rating ?? 5.0).toFixed(1)} Rating • ₹${(profile.ratePerDay || 15000).toLocaleString('en-IN')}/day\n📍 ${profile.city}, ${profile.state}\n\nView portfolio, showreels, and book directly:\n${shareUrl}`;
       await Share.share({
         title,
         message,

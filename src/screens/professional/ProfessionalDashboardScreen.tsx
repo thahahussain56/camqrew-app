@@ -274,7 +274,7 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.listGearTitle}>Sell or Rent Your Gear</Text>
-              <Text style={styles.listGearSub}>Post equipment to the Camcrew Store</Text>
+              <Text style={styles.listGearSub}>Post equipment to the Camqrew Store</Text>
             </View>
             <View style={styles.listGearPill}>
               <Text style={styles.listGearPillText}>List Now +</Text>

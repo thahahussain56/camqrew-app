@@ -37,13 +37,13 @@ export const useCartStore = create<CartStoreState>((set, get) => ({
     }
 
     set({ items });
-    AsyncStorage.setItem('@camcrew_cart', JSON.stringify(items));
+    AsyncStorage.setItem('@camqrew_cart', JSON.stringify(items));
   },
 
   removeItem: (productId) => {
     const items = get().items.filter(i => i.product.id !== productId);
     set({ items });
-    AsyncStorage.setItem('@camcrew_cart', JSON.stringify(items));
+    AsyncStorage.setItem('@camqrew_cart', JSON.stringify(items));
   },
 
   updateQuantity: (productId, quantity) => {
@@ -53,13 +53,13 @@ export const useCartStore = create<CartStoreState>((set, get) => ({
     }
     const items = get().items.map(i => i.product.id === productId ? { ...i, quantity } : i);
     set({ items });
-    AsyncStorage.setItem('@camcrew_cart', JSON.stringify(items));
+    AsyncStorage.setItem('@camqrew_cart', JSON.stringify(items));
   },
 
   applyPromoCode: (code) => {
     const cleanCode = code.trim().toUpperCase();
-    if (cleanCode === 'CAMCREW10') {
-      set({ promoCode: cleanCode, discountPercentage: 10 });
+    if (cleanCode === 'CAMQREW10' || cleanCode === 'CAMCREW10') {
+      set({ promoCode: 'CAMQREW10', discountPercentage: 10 });
       return true;
     } else if (cleanCode === 'PROPROMO20') {
       set({ promoCode: cleanCode, discountPercentage: 20 });
@@ -70,6 +70,7 @@ export const useCartStore = create<CartStoreState>((set, get) => ({
 
   clearCart: () => {
     set({ items: [], promoCode: '', discountPercentage: 0 });
+    AsyncStorage.removeItem('@camqrew_cart');
     AsyncStorage.removeItem('@camcrew_cart');
   },
 

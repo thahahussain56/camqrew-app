@@ -40,7 +40,7 @@ export const razorpayService = {
           amount: Math.round(options.amount * 100), // Convert to paise
           currency: options.currency || 'INR',
           accept_partial: false,
-          description: options.description || 'Camcrew Gear & Services',
+          description: options.description || 'Camqrew Gear & Services',
           customer: {
             name: options.prefill?.name || 'Customer',
             email: options.prefill?.email || 'customer@example.com',

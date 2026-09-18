@@ -46,7 +46,7 @@ export const ContactScreen: React.FC = () => {
   };
 
   const openWhatsApp = () => {
-    Linking.openURL('https://wa.me/919876543210?text=Hello%20Camcrew%20Studio%20Support');
+    Linking.openURL('https://wa.me/919876543210?text=Hello%20Camqrew%20Studio%20Support');
   };
 
   return (
@@ -54,7 +54,7 @@ export const ContactScreen: React.FC = () => {
       <Toast visible={!!toastMessage} message={toastMessage} type="success" onDismiss={() => setToastMessage('')} />
 
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Contact Camcrew Support</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Contact Camqrew Support</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           We are available 24/7 to assist with your bookings, gear orders, and studio inquiries.
         </Text>

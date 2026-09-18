@@ -26,7 +26,7 @@ export const useLocationStore = create<LocationState>((set, get) => ({
 
   loadPersistedLocation: async () => {
     try {
-      const stored = await AsyncStorage.getItem('@camcrew_location');
+      const stored = (await AsyncStorage.getItem('@camqrew_location')) || (await AsyncStorage.getItem('@camcrew_location'));
       if (stored) {
         set({ selectedCity: JSON.parse(stored) });
       } else {
@@ -41,7 +41,7 @@ export const useLocationStore = create<LocationState>((set, get) => ({
 
   setSelectedCity: async (city: CityLocation) => {
     set({ selectedCity: city });
-    await AsyncStorage.setItem('@camcrew_location', JSON.stringify(city));
+    await AsyncStorage.setItem('@camqrew_location', JSON.stringify(city));
   },
 
   detectLocation: async () => {
@@ -64,7 +64,7 @@ export const useLocationStore = create<LocationState>((set, get) => ({
           state: geocode.region || geocode.subregion || 'Unknown',
         };
         set({ selectedCity: newCity });
-        await AsyncStorage.setItem('@camcrew_location', JSON.stringify(newCity));
+        await AsyncStorage.setItem('@camqrew_location', JSON.stringify(newCity));
       }
     } catch (error: any) {
       set({ locationError: error.message });

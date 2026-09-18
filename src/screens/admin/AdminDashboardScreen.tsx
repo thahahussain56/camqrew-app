@@ -36,7 +36,7 @@ export const AdminDashboardScreen: React.FC = () => {
           <ShieldCheck size={20} color={colors.accent} />
           <Badge label="ADMIN CONTROL CENTER" variant="verified" />
         </View>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Camcrew Platform Admin</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Camqrew Platform Admin</Text>
       </View>
 
       {/* Metrics Row */}

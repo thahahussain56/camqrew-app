@@ -111,7 +111,7 @@ export const bookingApi = {
       // Ensure professional exists for mock data
       const { data: existingProf } = await supabase.from('users').select('id').eq('id', data.professionalId).single();
       if (!existingProf) {
-        await supabase.from('users').insert([{ id: data.professionalId, name: data.professionalName || 'Professional', email: 'mock@camcrew.in', role: 'professional', phone: '0000000000' }]);
+        await supabase.from('users').insert([{ id: data.professionalId, name: data.professionalName || 'Professional', email: 'mock@camqrew.in', role: 'professional', phone: '0000000000' }]);
         await supabase.from('professional_profiles').insert([{ id: data.professionalId, title: data.professionalTitle || 'Professional' }]);
       }
     }
@@ -121,7 +121,7 @@ export const bookingApi = {
       // Ensure studio exists for mock data
       const { data: existingStudio } = await supabase.from('users').select('id').eq('id', data.studioId).single();
       if (!existingStudio) {
-        await supabase.from('users').insert([{ id: data.studioId, name: data.professionalName || 'Studio', email: 'mock@camcrew.in', role: 'studio', phone: '0000000000' }]);
+        await supabase.from('users').insert([{ id: data.studioId, name: data.professionalName || 'Studio', email: 'mock@camqrew.in', role: 'studio', phone: '0000000000' }]);
         await supabase.from('studio_bays').insert([{ id: data.studioId }]);
       }
     }
@@ -248,7 +248,7 @@ export const bookingApi = {
           type: 'booking',
           title: '🎉 Booking Accepted!',
           body: 'Your booking request was accepted! Pay the advance escrow to secure your dates.',
-          targetUrl: `camcrew://booking/${bookingId}`,
+          targetUrl: `camqrew://booking/${bookingId}`,
         }).catch(() => {});
       }
     } catch (e) {
@@ -275,7 +275,7 @@ export const bookingApi = {
           type: 'booking',
           title: 'Booking Declined',
           body: 'The professional is unable to take this booking. Check explore for other available creators.',
-          targetUrl: `camcrew://booking/${bookingId}`,
+          targetUrl: `camqrew://booking/${bookingId}`,
         }).catch(() => {});
       }
     } catch (e) {
@@ -322,7 +322,7 @@ export const bookingApi = {
           type: 'booking',
           title: '✅ Advance Escrow Paid & Dates Locked!',
           body: `Advance escrow of ₹${advance.toLocaleString('en-IN')} has been funded. Dates are locked!`,
-          targetUrl: `camcrew://booking/${bookingId}`,
+          targetUrl: `camqrew://booking/${bookingId}`,
         }).catch(() => {});
       }
     } catch (e) {

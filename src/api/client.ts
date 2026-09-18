@@ -13,7 +13,7 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem('@camcrew_token');
+  const token = (await AsyncStorage.getItem('@camqrew_token')) || (await AsyncStorage.getItem('@camcrew_token'));
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
     config.headers.Cookie = `session=${token}; cc_session=${token}`;

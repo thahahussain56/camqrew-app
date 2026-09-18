@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Camcrew Studio",
-    "slug": "camcrew-app",
+    "name": "Camqrew Studio",
+    "slug": "camqrew-app",
     "sdkVersion": "57.0.0",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -29,7 +29,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "scheme": "camcrew",
+    "scheme": "camqrew",
     "plugins": [
       "expo-font",
       "expo-web-browser",

@@ -18,12 +18,13 @@ export interface CreatorPayoutDetails {
   accountHolderName: string;
 }
 
-const ACCOUNT_STORE_KEY = '@camcrew_payout_account';
+const ACCOUNT_STORE_KEY = '@camqrew_payout_account';
+const LEGACY_ACCOUNT_STORE_KEY = '@camcrew_payout_account';
 
 export const payoutApi = {
   getCreatorAccount: async (): Promise<CreatorPayoutDetails> => {
     try {
-      const stored = await AsyncStorage.getItem(ACCOUNT_STORE_KEY);
+      const stored = (await AsyncStorage.getItem(ACCOUNT_STORE_KEY)) || (await AsyncStorage.getItem(LEGACY_ACCOUNT_STORE_KEY));
       return stored
         ? JSON.parse(stored)
         : {

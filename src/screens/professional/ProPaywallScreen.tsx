@@ -32,7 +32,7 @@ export const ProPaywallScreen: React.FC = () => {
         <View style={[styles.iconContainer, { backgroundColor: colors.accent + '20' }]}>
           <Shield size={48} color={colors.accent} />
         </View>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Camcrew Pro Account</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Camqrew Pro Account</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Subscribe to access your creator dashboard, receive booking requests, and get paid instantly.</Text>
       </View>
 

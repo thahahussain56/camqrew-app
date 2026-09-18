@@ -20,11 +20,11 @@ export const usePayment = () => {
       
       /*
       const { error: initError } = await initPaymentSheet({
-        merchantDisplayName: 'Camcrew India',
+        merchantDisplayName: 'Camqrew India',
         paymentIntentClientSecret: clientSecret, // From backend
         allowsDelayedPaymentMethods: true,
         defaultBillingDetails: {
-          name: 'Camcrew User',
+          name: 'Camqrew User',
         }
       });
 

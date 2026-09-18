@@ -10,7 +10,7 @@ export interface DeliveryTrackingStep {
 
 export interface LiveDeliveryTracking {
   orderId: string;
-  courierPartner: 'Dunzo Express' | 'Shiprocket Direct' | 'Camcrew Logistics';
+  courierPartner: 'Dunzo Express' | 'Shiprocket Direct' | 'Camqrew Logistics' | 'Camcrew Logistics';
   awbNumber: string;
   riderName: string;
   riderPhone: string;

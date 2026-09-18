@@ -55,10 +55,10 @@ export const ChatInfoScreen: React.FC<{ navigation: any; route: any }> = ({ navi
   };
 
   const handleReport = () => {
-    Alert.alert('Report User', `Report ${otherUserName} to the Camcrew moderation team for inappropriate behavior?`, [
+    Alert.alert('Report User', `Report ${otherUserName} to the Camqrew moderation team for inappropriate behavior?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Report', style: 'destructive', onPress: () => {
-        Alert.alert('Report Submitted', `Thank you for keeping Camcrew safe. We will review ${otherUserName}'s account.`);
+        Alert.alert('Report Submitted', `Thank you for keeping Camqrew safe. We will review ${otherUserName}'s account.`);
       } }
     ]);
   };

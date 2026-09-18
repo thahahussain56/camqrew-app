@@ -19,7 +19,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress, onAd
     : '50 mm Lens | Charger';
 
   // Determine styling based on DB source
-  const isOfficial = product.brand === 'Camcrew Official';
+  const isOfficial = product.brand === 'Camqrew Official' || product.brand === 'Camcrew Official';
   const isUsed = product.brand === 'Used Gear';
   const isRental = product.type === 'rental';
 
@@ -27,7 +27,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress, onAd
   let badgeColor = '';
   if (isOfficial) {
     badgeText = 'OFFICIAL';
-    badgeColor = '#3fb668'; // Match Camcrew primary
+    badgeColor = '#3fb668'; // Match Camqrew primary
   } else if (isUsed) {
     badgeText = 'PRO USED';
     badgeColor = '#3fb668'; // Match ProCard success green

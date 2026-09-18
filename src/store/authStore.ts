@@ -24,12 +24,14 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
 
   login: async (user: User, token: string) => {
     set({ user, token, isAuthenticated: true, activeRole: user.role });
-    await AsyncStorage.setItem('@camcrew_token', token);
-    await AsyncStorage.setItem('@camcrew_user', JSON.stringify(user));
+    await AsyncStorage.setItem('@camqrew_token', token);
+    await AsyncStorage.setItem('@camqrew_user', JSON.stringify(user));
   },
 
   logout: async () => {
     set({ user: null, token: null, isAuthenticated: false, activeRole: 'customer' });
+    await AsyncStorage.removeItem('@camqrew_token');
+    await AsyncStorage.removeItem('@camqrew_user');
     await AsyncStorage.removeItem('@camcrew_token');
     await AsyncStorage.removeItem('@camcrew_user');
   },
@@ -43,14 +45,14 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     if (current) {
       const updated = { ...current, ...partial };
       set({ user: updated });
-      AsyncStorage.setItem('@camcrew_user', JSON.stringify(updated));
+      AsyncStorage.setItem('@camqrew_user', JSON.stringify(updated));
     }
   },
 
   loadAuth: async () => {
     try {
-      const token = await AsyncStorage.getItem('@camcrew_token');
-      const userStr = await AsyncStorage.getItem('@camcrew_user');
+      const token = (await AsyncStorage.getItem('@camqrew_token')) || (await AsyncStorage.getItem('@camcrew_token'));
+      const userStr = (await AsyncStorage.getItem('@camqrew_user')) || (await AsyncStorage.getItem('@camcrew_user'));
       if (token && userStr) {
         const user = JSON.parse(userStr);
         set({ token, user, isAuthenticated: true, activeRole: user.role });

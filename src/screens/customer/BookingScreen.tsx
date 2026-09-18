@@ -221,7 +221,7 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
           ratePerDay: selectedService?.rate || profile.ratePerDay || 15000,
           totalAmount: totals.total,
           contractSignature,
-          contractTermsText: 'Standard Camcrew Creative Service Agreement',
+          contractTermsText: 'Standard Camqrew Creative Service Agreement',
           contractSignedAt: new Date().toISOString(),
           milestones: [
             { id: 'm1', title: 'Advance Escrow (30%)', percentage: 30, amount: Math.round(totals.total * 0.3), status: 'held' },
@@ -526,7 +526,7 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
                 <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>Service Contract Agreement</Text>
 
                 <View style={[styles.contractBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-                  <Text style={[styles.contractTitle, { color: colors.accent }]}>📜 CAMCREW {isStudio ? 'STUDIO RENTAL' : 'CREATIVE SERVICE'} CONTRACT</Text>
+                  <Text style={[styles.contractTitle, { color: colors.accent }]}>📜 CAMQREW {isStudio ? 'STUDIO RENTAL' : 'CREATIVE SERVICE'} CONTRACT</Text>
                   <Text style={[styles.contractText, { color: colors.textSecondary }]}>
                     This agreement is entered into between {user?.name || 'Client'} ("Client") and {profile.name} ("Host").
                     The Host agrees to provide {selectedService?.title || 'Services'} on {startDate} in {resolvedLocation}.
@@ -543,7 +543,7 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
                     <View style={[styles.checkbox, agreedToTerms && { backgroundColor: colors.textPrimary, borderColor: colors.textPrimary }]}>
                       {agreedToTerms && <Text style={{ color: colors.background, fontWeight: '900', fontSize: 12 }}>✓</Text>}
                     </View>
-                    <Text style={[styles.agreeText, { color: colors.textPrimary }]}>I agree to the legally binding terms of the Camcrew Service Contract.</Text>
+                    <Text style={[styles.agreeText, { color: colors.textPrimary }]}>I agree to the legally binding terms of the Camqrew Service Contract.</Text>
                   </TouchableOpacity>
                 </View>
               </View>

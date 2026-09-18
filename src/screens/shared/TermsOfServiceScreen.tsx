@@ -79,27 +79,27 @@ export const TermsOfServiceScreen: React.FC<{ navigation: any; route?: any }> = 
             <Text style={[styles.docRef, { color: colors.textFaint }]}>REF: CC-LEGAL-TOS-2026</Text>
             <Text style={[styles.docTitle, { color: colors.textPrimary }]}>Terms of Service</Text>
             <Text style={[styles.leadText, { color: colors.textSecondary, borderLeftColor: colors.accent }]}>
-              By accessing or using the Camcrew mobile application, you agree to be bound by these Terms of Service in compliance with the Information Technology Act, 2000.
+              By accessing or using the Camqrew mobile application, you agree to be bound by these Terms of Service in compliance with the Information Technology Act, 2000.
             </Text>
 
             <View style={styles.clause}>
               <Text style={[styles.clauseTitle, { color: colors.textPrimary }]}>1. Platform Intermediary Role</Text>
               <Text style={[styles.clauseText, { color: colors.textSecondary }]}>
-                Camcrew operates as a technology intermediary under Section 79 of the IT Act, 2000. We provide an algorithmic talent discovery engine, verified identity badging, milestone escrow holding, and automated production shoot contract generation.
+                Camqrew operates as a technology intermediary under Section 79 of the IT Act, 2000. We provide an algorithmic talent discovery engine, verified identity badging, milestone escrow holding, and automated production shoot contract generation.
               </Text>
             </View>
 
             <View style={styles.clause}>
               <Text style={[styles.clauseTitle, { color: colors.textPrimary }]}>2. Independent Contractor Relationship</Text>
               <Text style={[styles.clauseText, { color: colors.textSecondary }]}>
-                Creators and Studios listed on Camcrew are independent visual specialists and creative contractors, not employees of Camcrew India Technologies Pvt Ltd. When a booking is confirmed, a direct legal Production Agreement is formed between the Client and Creator.
+                Creators and Studios listed on Camqrew are independent visual specialists and creative contractors, not employees of Camqrew India Technologies Pvt Ltd. When a booking is confirmed, a direct legal Production Agreement is formed between the Client and Creator.
               </Text>
             </View>
 
             <View style={styles.clause}>
               <Text style={[styles.clauseTitle, { color: colors.textPrimary }]}>3. 2.5% Platform Fee</Text>
               <Text style={[styles.clauseText, { color: colors.textSecondary }]}>
-                Camcrew applies a 2.5% platform technology fee on escrow settlements to maintain automated dispute arbitration, instant UPI gateways, and insured cloud file storage.
+                Camqrew applies a 2.5% platform technology fee on escrow settlements to maintain automated dispute arbitration, instant UPI gateways, and insured cloud file storage.
               </Text>
             </View>
           </Card>
@@ -111,7 +111,7 @@ export const TermsOfServiceScreen: React.FC<{ navigation: any; route?: any }> = 
             <Text style={[styles.docRef, { color: colors.textFaint }]}>REF: CC-LEGAL-ESCROW-2026</Text>
             <Text style={[styles.docTitle, { color: colors.textPrimary }]}>3-Stage Milestone Escrow</Text>
             <Text style={[styles.leadText, { color: colors.textSecondary, borderLeftColor: colors.accent }]}>
-              Camcrew eliminates unpaid shoots and abandoned deliverables through our automated 3-stage milestone escrow architecture.
+              Camqrew eliminates unpaid shoots and abandoned deliverables through our automated 3-stage milestone escrow architecture.
             </Text>
 
             <View style={[styles.tierCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
@@ -205,7 +205,7 @@ export const TermsOfServiceScreen: React.FC<{ navigation: any; route?: any }> = 
             <View style={styles.clause}>
               <Text style={[styles.clauseTitle, { color: colors.textPrimary }]}>3. Portfolio Showcase Rights</Text>
               <Text style={[styles.clauseText, { color: colors.textSecondary }]}>
-                Creators retain non-exclusive rights to showcase excerpt clips in their personal showreels and Camcrew profiles unless an explicit NDA was agreed.
+                Creators retain non-exclusive rights to showcase excerpt clips in their personal showreels and Camqrew profiles unless an explicit NDA was agreed.
               </Text>
             </View>
           </Card>
@@ -232,8 +232,8 @@ export const TermsOfServiceScreen: React.FC<{ navigation: any; route?: any }> = 
               <View style={[styles.grievanceCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
                 <Text style={[styles.clauseText, { color: colors.textPrimary, fontWeight: '700' }]}>Grievance Officer (IT Rules & DPDP Act):</Text>
                 <Text style={[styles.clauseText, { color: colors.textSecondary }]}>Name: Thaha Hussain</Text>
-                <Text style={[styles.clauseText, { color: colors.textSecondary }]}>Email: grievance@camcrew.in</Text>
-                <Text style={[styles.clauseText, { color: colors.textSecondary }]}>Address: Camcrew Studios, Bandra West, Mumbai 400050</Text>
+                <Text style={[styles.clauseText, { color: colors.textSecondary }]}>Email: grievance@camqrew.in</Text>
+                <Text style={[styles.clauseText, { color: colors.textSecondary }]}>Address: Camqrew Studios, Bandra West, Mumbai 400050</Text>
               </View>
             </View>
           </Card>
@@ -251,7 +251,7 @@ export const TermsOfServiceScreen: React.FC<{ navigation: any; route?: any }> = 
             <View style={styles.clause}>
               <Text style={[styles.clauseTitle, { color: colors.textPrimary }]}>How to Delete Your Account In-App:</Text>
               <Text style={[styles.clauseText, { color: colors.textSecondary }]}>
-                1. Navigate to Settings inside the Camcrew app.{'\n'}
+                1. Navigate to Settings inside the Camqrew app.{'\n'}
                 2. Scroll down to the Danger Zone.{'\n'}
                 3. Tap &quot;Delete Account&quot; and confirm your request.{'\n'}
                 4. Your profile, portfolio media, and chat sessions are permanently purged immediately.

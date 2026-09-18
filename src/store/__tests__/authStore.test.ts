@@ -1,4 +1,4 @@
-﻿import { renderHook, act } from '@testing-library/react-native';
+import { renderHook, act } from '@testing-library/react-native';
 import { useAuthStore } from '../authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../../types/auth';
@@ -48,8 +48,8 @@ describe('authStore', () => {
     expect(result.current.activeRole).toBe('customer');
 
     // Verify AsyncStorage was called
-    expect(AsyncStorage.setItem).toHaveBeenCalledWith('@camcrew_token', 'test-token');
-    expect(AsyncStorage.setItem).toHaveBeenCalledWith('@camcrew_user', JSON.stringify(mockUser));
+    expect(AsyncStorage.setItem).toHaveBeenCalledWith('@camqrew_token', 'test-token');
+    expect(AsyncStorage.setItem).toHaveBeenCalledWith('@camqrew_user', JSON.stringify(mockUser));
   });
 
   it('should handle logout and clear state & AsyncStorage', async () => {
@@ -66,8 +66,8 @@ describe('authStore', () => {
     expect(result.current.isAuthenticated).toBe(false);
 
     // Verify AsyncStorage was cleared
-    expect(AsyncStorage.removeItem).toHaveBeenCalledWith('@camcrew_token');
-    expect(AsyncStorage.removeItem).toHaveBeenCalledWith('@camcrew_user');
+    expect(AsyncStorage.removeItem).toHaveBeenCalledWith('@camqrew_token');
+    expect(AsyncStorage.removeItem).toHaveBeenCalledWith('@camqrew_user');
   });
 
   it('should handle setActiveRole', () => {
@@ -96,6 +96,6 @@ describe('authStore', () => {
     
     // Verify it saved the updated object to AsyncStorage
     const expectedUser = { ...mockUser, name: 'Updated Name', subscription_tier: 'pro' };
-    expect(AsyncStorage.setItem).toHaveBeenCalledWith('@camcrew_user', JSON.stringify(expectedUser));
+    expect(AsyncStorage.setItem).toHaveBeenCalledWith('@camqrew_user', JSON.stringify(expectedUser));
   });
 });

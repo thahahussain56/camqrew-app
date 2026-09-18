@@ -6,7 +6,7 @@ export interface PushNotificationPayload {
   type: string;
   title: string;
   body: string;
-  targetUrl?: string; // e.g., 'camcrew://chat/123'
+  targetUrl?: string; // e.g., 'camqrew://chat/123'
 }
 
 export const notificationService = {
@@ -74,7 +74,7 @@ export const notificationService = {
       type: 'booking',
       title: '🚨 New Shoot Booking Request!',
       body: `You received a new booking request for "${serviceTitle}" (Total: ₹${amount.toLocaleString()}).`,
-      targetUrl: `camcrew://booking/${bookingId}`
+      targetUrl: `camqrew://booking/${bookingId}`
     });
   },
 
@@ -88,7 +88,7 @@ export const notificationService = {
       type: 'chat',
       title: senderName,
       body: displayBody,
-      targetUrl: `camcrew://chat/${senderId}` // When receiver taps this, they want to chat with the sender
+      targetUrl: `camqrew://chat/${senderId}` // When receiver taps this, they want to chat with the sender
     });
   },
 

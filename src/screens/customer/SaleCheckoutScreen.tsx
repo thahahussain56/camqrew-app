@@ -47,7 +47,7 @@ export const SaleCheckoutScreen: React.FC<{ navigation: any }> = ({ navigation }
   const canCOD = checkoutItems.every(item => item.product.codEnabled);
 
   const subtotal = checkoutItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
-  const discountPercentage = promoCode ? (promoCode === 'CAMCREW10' ? 10 : promoCode === 'PROPROMO20' ? 20 : 0) : 0;
+  const discountPercentage = promoCode ? (promoCode === 'CAMQREW10' || promoCode === 'CAMCREW10' ? 10 : promoCode === 'PROPROMO20' ? 20 : 0) : 0;
   const discount = (subtotal * discountPercentage) / 100;
   const tax = Math.round((subtotal - discount) * 0.18);
   const isPrime = user?.subscription_tier === 'prime';
@@ -83,11 +83,11 @@ export const SaleCheckoutScreen: React.FC<{ navigation: any }> = ({ navigation }
       if (selectedMethod !== 'cod') {
         const paymentResult = await razorpayService.openCheckout({
           amount: total,
-          description: 'Camcrew Gear Purchase',
+          description: 'Camqrew Gear Purchase',
           prefill: {
             name: fullName,
             contact: phone,
-            email: 'thaha@camcrew.in',
+            email: 'thaha@camqrew.in',
             method: selectedMethod === 'netbank' ? 'netbanking' : (selectedMethod || 'upi'),
           },
         });
@@ -105,7 +105,7 @@ export const SaleCheckoutScreen: React.FC<{ navigation: any }> = ({ navigation }
 
       notificationService.triggerOrderOutForDeliveryNotification(
         order.id,
-        checkoutItems[0]?.product?.name || 'Camcrew Equipment'
+        checkoutItems[0]?.product?.name || 'Camqrew Equipment'
       );
 
       checkoutItems.forEach(i => removeItem(i.product.id));

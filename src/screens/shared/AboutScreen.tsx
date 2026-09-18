@@ -15,14 +15,14 @@ export const AboutScreen: React.FC = () => {
           Built for Creators, <Text style={{ color: colors.accent }}>by Creators.</Text>
         </Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Camcrew Studio (camcrew.in) is India's premier creative production marketplace.
+          Camqrew Studio (camqrew.in) is India's premier creative production marketplace.
         </Text>
       </View>
 
       <Card style={styles.card}>
-        <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>The Camcrew Journey</Text>
+        <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>The Camqrew Journey</Text>
         <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
-          Born in the trenches of film sets and photo studios, Camcrew was built to bridge the gap between world-class clients and top-tier creative talent across India. From cinema gear rentals to celebrity photographers, we power India's creative economy.
+          Born in the trenches of film sets and photo studios, Camqrew was built to bridge the gap between world-class clients and top-tier creative talent across India. From cinema gear rentals to celebrity photographers, we power India's creative economy.
         </Text>
       </Card>
 
@@ -33,7 +33,7 @@ export const AboutScreen: React.FC = () => {
           <Avatar source="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400" size={60} />
           <View style={styles.founderMeta}>
             <Text style={[styles.founderName, { color: colors.textPrimary }]}>Mohammad Thaha Hussain</Text>
-            <Text style={[styles.founderTitle, { color: colors.accent }]}>Founder & CEO, Camcrew India</Text>
+            <Text style={[styles.founderTitle, { color: colors.accent }]}>Founder & CEO, Camqrew India</Text>
           </View>
         </View>
       </Card>

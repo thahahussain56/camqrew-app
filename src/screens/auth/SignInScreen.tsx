@@ -163,7 +163,7 @@ export const SignInScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             style={styles.logo}
           />
           <Text style={[styles.heroTitle, { color: colors.textPrimary }]}>Welcome Back</Text>
-          <Text style={[styles.heroSub, { color: colors.textSecondary }]}>Sign in to your Camcrew account</Text>
+          <Text style={[styles.heroSub, { color: colors.textSecondary }]}>Sign in to your Camqrew account</Text>
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.surfaceCard }]}>

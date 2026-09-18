@@ -34,12 +34,12 @@ const mapDBToAppNotification = (dbn: DBNotification): AppNotification => {
     const url = dbn.target_url;
     if (url.includes('chat')) {
       const match = url.match(/(?:chat\/|userId=)([^&?]+)/);
-      const otherUserId = match ? match[1] : url.replace('camcrew://chat/', '');
+      const otherUserId = match ? match[1] : url.replace('camqrew://chat/', '').replace('camcrew://chat/', '');
       targetScreen = 'Chat';
       targetParams = { otherUserId };
     } else if (url.includes('booking')) {
       const match = url.match(/(?:booking\/|bookingId=)([^&?]+)/);
-      const bookingId = match ? match[1] : url.replace('camcrew://booking/', '');
+      const bookingId = match ? match[1] : url.replace('camqrew://booking/', '').replace('camcrew://booking/', '');
       targetScreen = 'Booking';
       targetParams = { bookingId };
     } else if (url.includes('job_board') || url.includes('jobboard')) {
