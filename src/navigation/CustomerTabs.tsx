@@ -37,12 +37,24 @@ import { ProfessionalEditScreen } from '../screens/professional/ProfessionalEdit
 import { AvailabilityScreen } from '../screens/professional/AvailabilityScreen';
 import { EarningsScreen } from '../screens/professional/EarningsScreen';
 import { JobBoardScreen } from '../screens/professional/JobBoardScreen';
+import { ReelsFeedScreen } from '../screens/customer/ReelsFeedScreen';
 import { useAuthStore } from '../store/authStore';
 
-import { Home, LayoutGrid, ShoppingBag, User, MessageSquare, Briefcase } from 'lucide-react-native';
+import { Home, LayoutGrid, ShoppingBag, User, MessageSquare, Briefcase, Film } from 'lucide-react-native';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
+
+function ReelsStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ReelsFeedScreen" component={ReelsFeedScreen} />
+      <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
+      <Stack.Screen name="Booking" component={BookingScreen} />
+      <Stack.Screen name="Chat" component={ChatScreen} />
+    </Stack.Navigator>
+  );
+}
 
 function HomeStack() {
   return (
@@ -63,6 +75,7 @@ function HomeStack() {
       <Stack.Screen name="JobReview" component={JobReviewScreen} />
       <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
       <Stack.Screen name="ProfessionalEdit" component={ProfessionalEditScreen} />
+      <Stack.Screen name="ReelsFeed" component={ReelsFeedScreen} />
     </Stack.Navigator>
   );
 }
@@ -78,6 +91,7 @@ function ExploreStack() {
       <Stack.Screen name="ChatList" component={ChatListScreen} />
       <Stack.Screen name="ChatInfo" component={ChatInfoScreen} />
       <Stack.Screen name="ProfessionalEdit" component={ProfessionalEditScreen} />
+      <Stack.Screen name="ReelsFeed" component={ReelsFeedScreen} />
     </Stack.Navigator>
   );
 }
@@ -196,6 +210,15 @@ export const CustomerTabs: React.FC = () => {
         options={({ route }) => ({
           tabBarLabel: 'Categories',
           tabBarIcon: ({ focused, color }) => <LayoutGrid color={color} size={20} fill={focused ? color : 'transparent'} />,
+          tabBarStyle: getDynamicTabStyle(route),
+        })}
+      />
+      <Tab.Screen
+        name="ReelsTab"
+        component={ReelsStack}
+        options={({ route }) => ({
+          tabBarLabel: 'Reels',
+          tabBarIcon: ({ focused, color }) => <Film color={focused ? '#3fb668' : color} size={20} />,
           tabBarStyle: getDynamicTabStyle(route),
         })}
       />
