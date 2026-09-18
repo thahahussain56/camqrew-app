@@ -25,6 +25,7 @@ import { PrimeSubscriptionScreen } from '../screens/customer/PrimeSubscriptionSc
 import { NotificationsScreen } from '../screens/shared/NotificationsScreen';
 import { AboutScreen } from '../screens/shared/AboutScreen';
 import { ContactScreen } from '../screens/shared/ContactScreen';
+import { TermsOfServiceScreen } from '../screens/shared/TermsOfServiceScreen';
 import { ChatScreen } from '../screens/shared/ChatScreen';
 import { ChatListScreen } from '../screens/shared/ChatListScreen';
 import { ChatInfoScreen } from '../screens/shared/ChatInfoScreen';
@@ -60,6 +61,7 @@ function HomeStack() {
       <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="JobReview" component={JobReviewScreen} />
+      <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
     </Stack.Navigator>
   );
 }
@@ -103,6 +105,7 @@ function ProfileStack() {
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="About" component={AboutScreen} />
       <Stack.Screen name="Contact" component={ContactScreen} />
+      <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
       
       {/* Professional specific screens */}
       <Stack.Screen name="ProDashboard" component={ProfessionalDashboardScreen} />

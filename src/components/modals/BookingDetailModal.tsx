@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, Modal, ScrollView, TouchableOpacity,
   Alert, ActivityIndicator
 } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuthStore } from '../../store/authStore';
 import { Booking } from '../../types/booking';
 import { Avatar } from '../ui/Avatar';
 import { Badge } from '../ui/Badge';
@@ -13,6 +14,7 @@ import {
   MessageSquare, ChevronRight, FileText, Lock
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ShootContractModal } from './ShootContractModal';
 
 interface BookingDetailModalProps {
   visible: boolean;
@@ -34,6 +36,8 @@ export const BookingDetailModal: React.FC<BookingDetailModalProps> = ({
   isProfessionalMode = false,
 }) => {
   const { colors, isDark } = useTheme();
+  const { user } = useAuthStore();
+  const [showContract, setShowContract] = useState(false);
 
   if (!booking) return null;
 
@@ -94,7 +98,8 @@ export const BookingDetailModal: React.FC<BookingDetailModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <>
+      <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={[styles.modalSheet, { backgroundColor: colors.background }]}>
           {/* Top Drag Handle */}
@@ -205,6 +210,19 @@ export const BookingDetailModal: React.FC<BookingDetailModalProps> = ({
                   </Text>
                 </View>
               )}
+
+              {/* Shoot Contract Review / Signed Info */}
+              <TouchableOpacity 
+                style={[styles.viewContractBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}
+                activeOpacity={0.8}
+                onPress={() => setShowContract(true)}
+              >
+                <FileText size={15} color={colors.accent} style={{ marginRight: 6 }} />
+                <Text style={[styles.viewContractBtnText, { color: colors.textPrimary }]}>
+                  {booking.contractSignature ? '📄 View Signed Shoot Contract' : '📄 Review & Sign Shoot Contract'}
+                </Text>
+                <ChevronRight size={16} color={colors.textSecondary} style={{ marginLeft: 'auto' }} />
+              </TouchableOpacity>
 
               {Boolean(booking.contractSignature) && (
                 <View style={[styles.detailRow, { borderTopWidth: 1, borderTopColor: colors.borderLight, paddingTop: 10, marginTop: 6 }]}>
@@ -360,7 +378,16 @@ export const BookingDetailModal: React.FC<BookingDetailModalProps> = ({
 
         </View>
       </View>
-    </Modal>
+      </Modal>
+
+      {/* Shoot Contract Modal */}
+      <ShootContractModal
+        visible={showContract}
+        booking={booking}
+        currentUserId={user?.id}
+        onClose={() => setShowContract(false)}
+      />
+    </>
   );
 };
 
@@ -509,6 +536,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     flex: 1,
+  },
+  viewContractBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  viewContractBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   milestoneItem: {
     flexDirection: 'row',

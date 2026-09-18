@@ -198,4 +198,12 @@ export const authApi = {
     }
     return { success: true, message: 'Password reset link sent to ' + email };
   },
+
+  deleteAccount: async (): Promise<void> => {
+    const { error } = await supabase.rpc('delete_user_account');
+    if (error) {
+      throw new Error(error.message);
+    }
+    await supabase.auth.signOut();
+  },
 };
