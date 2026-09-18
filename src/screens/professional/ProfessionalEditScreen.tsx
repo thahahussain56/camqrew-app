@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Key
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
-import { professionalApi } from '../../api/professionalApi';
-import { ProfessionalProfile, ServiceItem } from '../../types/professional';
+import { professionalApi, parseVideoUrl } from '../../api/professionalApi';
+import { ProfessionalProfile, ServiceItem, VideoReelItem } from '../../types/professional';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -13,7 +13,7 @@ import { ChipInput } from '../../components/forms/ChipInput';
 import { LocationCascader } from '../../components/forms/LocationCascader';
 import { Toast } from '../../components/ui/Toast';
 import { PROFESSIONAL_CATEGORIES } from '../../constants/categories';
-import { ChevronDown, ChevronUp, Plus, Trash2, Save, Camera, Image as ImageIcon } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Plus, Trash2, Save, Camera, Image as ImageIcon, Film, Play } from 'lucide-react-native';
 
 export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors } = useTheme();
@@ -26,6 +26,7 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
   // Accordion Section Toggle State
   const [openSections, setOpenSections] = useState<{ [key: string]: boolean }>({
     media: true,
+    reels: true,
     basic: true,
     locations: true,
   });
@@ -33,6 +34,13 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
   const toggleSection = (sectionKey: string) => {
     setOpenSections(prev => ({ ...prev, [sectionKey]: !prev[sectionKey] }));
   };
+
+  // Video Reels State
+  const [videoReels, setVideoReels] = useState<VideoReelItem[]>([]);
+  const [newReelUrl, setNewReelUrl] = useState('');
+  const [newReelTitle, setNewReelTitle] = useState('');
+  const [newReelCategory, setNewReelCategory] = useState('Showreel');
+  const [newReelIsShort, setNewReelIsShort] = useState(false);
 
   // Form State
   const [name, setName] = useState('');
@@ -82,6 +90,7 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
           setBannerImage(p.bannerImage || '');
           setPortfolio(p.portfolio || []);
           setServices(p.services || []);
+          setVideoReels(p.videoReels || []);
         }
       }).catch(console.warn);
     }
@@ -117,6 +126,33 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
     setPortfolio(portfolio.filter((_, i) => i !== index));
   };
 
+  const handleAddReel = () => {
+    if (!newReelUrl.trim()) {
+      Alert.alert('Missing URL', 'Please enter a valid YouTube or Vimeo URL.');
+      return;
+    }
+    const parsed = parseVideoUrl(newReelUrl.trim());
+    const newReel: VideoReelItem = {
+      id: 'reel_' + Date.now(),
+      title: newReelTitle.trim() || (parsed.isShort ? 'Video Reel' : 'Featured Showreel'),
+      url: newReelUrl.trim(),
+      type: parsed.type,
+      embedUrl: parsed.embedUrl,
+      thumbnailUrl: parsed.thumbnailUrl,
+      category: newReelCategory,
+      isShort: newReelIsShort || parsed.isShort,
+    };
+    setVideoReels(prev => [...prev, newReel]);
+    setNewReelUrl('');
+    setNewReelTitle('');
+    setNewReelIsShort(false);
+    setToastMessage('Video reel added!');
+  };
+
+  const handleRemoveReel = (id: string) => {
+    setVideoReels(prev => prev.filter(r => r.id !== id));
+  };
+
   const handleSave = async () => {
     setLoading(true);
     try {
@@ -140,6 +176,7 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
         internationalTravel,
         socials: { instagram, website, youtube, facebook },
         services,
+        videoReels,
       });
       setToastMessage('Profile updated successfully!');
       setTimeout(() => {
@@ -235,10 +272,125 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
         )}
       </Card>
 
-      {/* 2. Basic Info Accordion */}
+      {/* 2. Showreels & Video Reels (YouTube / Vimeo / Shorts) */}
+      <Card style={styles.accordionCard}>
+        <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('reels')}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>2. Video Reels & Showreels</Text>
+            {videoReels.length > 0 && (
+              <View style={{ marginLeft: 8, backgroundColor: '#3fb668', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{videoReels.length}</Text>
+              </View>
+            )}
+          </View>
+          {openSections.reels ? <ChevronUp size={20} color="#3fb668" /> : <ChevronDown size={20} color={colors.textSecondary} />}
+        </TouchableOpacity>
+
+        {openSections.reels && (
+          <View style={styles.accordionBody}>
+            <Text style={[styles.subHeading, { color: colors.textSecondary, marginBottom: 12 }]}>
+              Embed YouTube videos, vertical YouTube Shorts (9:16), or Vimeo showreels to play directly on your profile.
+            </Text>
+
+            {/* Current Reels List */}
+            {videoReels.map((reel) => (
+              <View key={reel.id} style={[styles.reelEditCard, { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }]}>
+                {reel.thumbnailUrl ? (
+                  <Image source={{ uri: reel.thumbnailUrl }} style={styles.reelEditThumb} />
+                ) : (
+                  <View style={[styles.reelEditThumb, { backgroundColor: '#111827', alignItems: 'center', justifyContent: 'center' }]}>
+                    <Film size={20} color="#3fb668" />
+                  </View>
+                )}
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <View style={{ backgroundColor: 'rgba(63,182,104,0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#3fb668', fontSize: 10, fontWeight: '800' }}>
+                        {reel.type === 'youtube' ? (reel.isShort ? '9:16 SHORT' : 'YOUTUBE') : reel.type.toUpperCase()}
+                      </Text>
+                    </View>
+                    {reel.category ? (
+                      <Text style={{ color: colors.textSecondary, fontSize: 11, fontWeight: '600' }}>• {reel.category}</Text>
+                    ) : null}
+                  </View>
+                  <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '700' }} numberOfLines={1}>{reel.title}</Text>
+                  <Text style={{ color: colors.textFaint, fontSize: 11 }} numberOfLines={1}>{reel.url}</Text>
+                </View>
+                <TouchableOpacity onPress={() => handleRemoveReel(reel.id)} style={{ padding: 8 }}>
+                  <Trash2 size={16} color="#e11d48" />
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            {/* Add Reel Form */}
+            <View style={[styles.addBox, { borderColor: colors.borderLight, marginTop: 10 }]}>
+              <Text style={[styles.addTitle, { color: colors.textPrimary }]}>Add Video Reel</Text>
+              <Input
+                label="Video URL (YouTube, Shorts, or Vimeo)"
+                placeholder="https://youtube.com/shorts/... or https://vimeo.com/..."
+                value={newReelUrl}
+                onChangeText={setNewReelUrl}
+              />
+              <Input
+                label="Title (e.g. 2025 Cinematic Highlights)"
+                placeholder="Give your reel a title"
+                value={newReelTitle}
+                onChangeText={setNewReelTitle}
+              />
+
+              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 6 }}>Category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                {['Showreel', 'Wedding', 'Commercial', 'Fashion', 'Music Video', 'Short Film', 'Drone Reel'].map(cat => (
+                  <Chip
+                    key={cat}
+                    label={cat}
+                    active={newReelCategory === cat}
+                    onPress={() => setNewReelCategory(cat)}
+                  />
+                ))}
+              </ScrollView>
+
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}
+                onPress={() => setNewReelIsShort(!newReelIsShort)}
+                activeOpacity={0.8}
+              >
+                <View
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 6,
+                    borderWidth: 2,
+                    borderColor: newReelIsShort ? '#3fb668' : colors.textFaint,
+                    backgroundColor: newReelIsShort ? '#3fb668' : 'transparent',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 10,
+                  }}
+                >
+                  {newReelIsShort && <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 12 }}>✓</Text>}
+                </View>
+                <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '700' }}>
+                  Vertical Reel format (9:16 Portrait like YouTube Shorts / Reels)
+                </Text>
+              </TouchableOpacity>
+
+              <Button
+                title="Add to My Showreels"
+                variant="secondary"
+                size="md"
+                icon={<Film size={16} color={colors.accent} />}
+                onPress={handleAddReel}
+              />
+            </View>
+          </View>
+        )}
+      </Card>
+
+      {/* 3. Basic Info Accordion */}
       <Card style={styles.accordionCard}>
         <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('basic')}>
-          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>2. Basic Information</Text>
+          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>3. Basic Information</Text>
           {openSections.basic ? <ChevronUp size={20} color="#3fb668" /> : <ChevronDown size={20} color={colors.textSecondary} />}
         </TouchableOpacity>
 
@@ -646,5 +798,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 8,
+  },
+  reelEditCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  reelEditThumb: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
   },
 });

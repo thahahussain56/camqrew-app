@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Modal, Dimensions, ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Modal, Dimensions, ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform, Share, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
@@ -14,7 +14,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { ProductCard } from '../../components/cards/ProductCard';
 import { useCartStore } from '../../store/cartStore';
-import { Star, MapPin, X, ArrowLeft, ShieldCheck, Zap, ChevronLeft, ChevronRight, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle } from 'lucide-react-native';
+import { Star, MapPin, X, ArrowLeft, ShieldCheck, Zap, ChevronLeft, ChevronRight, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -115,6 +115,22 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
     }
   };
 
+  const handleShareProfile = async () => {
+    if (!profile) return;
+    try {
+      const shareUrl = `https://camcrew.in/creators/${profile.id}`;
+      const title = `Check out ${profile.name} on Camcrew`;
+      const message = `🎬 Check out ${profile.name} (${profile.title || 'Creator'}) on Camcrew!\n⭐ ${(profile.rating ?? 5.0).toFixed(1)} Rating • ₹${(profile.ratePerDay || 15000).toLocaleString('en-IN')}/day\n📍 ${profile.city}, ${profile.state}\n\nView portfolio, showreels, and book directly:\n${shareUrl}`;
+      await Share.share({
+        title,
+        message,
+        url: shareUrl,
+      });
+    } catch (error) {
+      console.warn('Share error:', error);
+    }
+  };
+
   if (loading || !profile) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
@@ -156,6 +172,9 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
           <View style={styles.topControlRow}>
             <TouchableOpacity style={styles.roundBackBtn} onPress={() => navigation.goBack()}>
               <ArrowLeft size={20} color="#ffffff" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.roundBackBtn} onPress={handleShareProfile} activeOpacity={0.8}>
+              <Share2 size={18} color="#ffffff" />
             </TouchableOpacity>
           </View>
 
@@ -247,6 +266,80 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
             </View>
           ))}
         </Card>
+
+        {/* ── Showreels & Video Reels ── */}
+        {profile.videoReels && profile.videoReels.length > 0 && (
+          <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+            <View style={styles.reelsHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Film size={18} color={colors.accent} style={{ marginRight: 8 }} />
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>Showreels & Video Reels</Text>
+              </View>
+              <Badge label={`${profile.videoReels.length} ${profile.videoReels.length === 1 ? 'Reel' : 'Reels'}`} variant="info" />
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18, marginTop: 12 }}>
+              <View style={{ width: 18 }} />
+              {profile.videoReels.map((reel) => {
+                const isShort = reel.isShort;
+                return (
+                  <TouchableOpacity
+                    key={reel.id}
+                    activeOpacity={0.88}
+                    onPress={() => {
+                      if (reel.url) {
+                        Linking.openURL(reel.url).catch(() => {
+                          Alert.alert('Unable to open video', 'Please verify your internet connection or URL.');
+                        });
+                      }
+                    }}
+                    style={[
+                      styles.reelCard,
+                      isShort ? styles.reelCardVertical : styles.reelCardCinema,
+                      { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }
+                    ]}
+                  >
+                    {reel.thumbnailUrl ? (
+                      <Image source={{ uri: reel.thumbnailUrl }} style={styles.reelThumbnail} resizeMode="cover" />
+                    ) : (
+                      <View style={[styles.reelPlaceholder, { backgroundColor: '#111827' }]}>
+                        <Film size={32} color={colors.accent} />
+                      </View>
+                    )}
+                    <View style={styles.reelVignette} />
+
+                    {/* Play Button Badge */}
+                    <View style={styles.reelPlayBtn}>
+                      <Play size={16} color="#ffffff" fill="#ffffff" style={{ marginLeft: 2 }} />
+                    </View>
+
+                    {/* Top Badges */}
+                    <View style={styles.reelTopBadges}>
+                      <View style={[styles.reelBadgePill, { backgroundColor: 'rgba(0,0,0,0.65)' }]}>
+                        <Text style={styles.reelBadgeText}>
+                          {reel.type === 'youtube' ? (isShort ? '⚡ Short' : 'YouTube') : reel.type === 'vimeo' ? 'Vimeo' : 'Video'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Bottom Info */}
+                    <View style={styles.reelInfo}>
+                      {reel.category ? (
+                        <Text style={[styles.reelCategory, { color: colors.accent }]} numberOfLines={1}>
+                          {reel.category.toUpperCase()}
+                        </Text>
+                      ) : null}
+                      <Text style={styles.reelTitle} numberOfLines={2}>
+                        {reel.title}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+              <View style={{ width: 18 }} />
+            </ScrollView>
+          </Card>
+        )}
 
         {/* ── Cinematic Portfolio Gallery ── */}
         <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
@@ -762,5 +855,93 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
+  },
+  reelsHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  reelCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginRight: 14,
+    position: 'relative',
+    borderWidth: 1,
+  },
+  reelCardVertical: {
+    width: 170,
+    height: 270,
+  },
+  reelCardCinema: {
+    width: 270,
+    height: 180,
+  },
+  reelThumbnail: {
+    width: '100%',
+    height: '100%',
+  },
+  reelPlaceholder: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reelVignette: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  reelPlayBtn: {
+    position: 'absolute',
+    top: '42%',
+    left: '50%',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    marginLeft: -21,
+    marginTop: -21,
+    backgroundColor: '#3fb668',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  reelTopBadges: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    flexDirection: 'row',
+  },
+  reelBadgePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  reelBadgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  reelInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 10,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+  },
+  reelCategory: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  reelTitle: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
   },
 });
