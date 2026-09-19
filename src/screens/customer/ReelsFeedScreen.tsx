@@ -31,7 +31,6 @@ import {
   Play,
   MapPin,
   Film,
-  Sparkles,
   ArrowRight,
   User,
 } from 'lucide-react-native';
@@ -378,7 +377,6 @@ export const ReelsFeedScreen: React.FC = () => {
             </View>
             {item.isShort && (
               <View style={[styles.categoryPill, styles.shortPill]}>
-                <Sparkles size={10} color="#3fb668" style={{ marginRight: 3 }} />
                 <Text style={styles.shortPillText}>9:16 Short</Text>
               </View>
             )}

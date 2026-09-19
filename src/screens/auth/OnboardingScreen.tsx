@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { Button } from '../../components/ui/Button';
-import { Camera, Film, Sparkles } from 'lucide-react-native';
+import { Camera, Film, Briefcase } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -25,7 +25,7 @@ const SLIDES = [
     id: '3',
     title: 'Join as a Professional. Grow Your Studio.',
     subtitle: 'Showcase your work, set your rates, and get booked nationwide.',
-    icon: Sparkles,
+    icon: Briefcase,
     image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=600',
   },
 ];
