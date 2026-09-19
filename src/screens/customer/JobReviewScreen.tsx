@@ -7,6 +7,7 @@ import { jobApi } from '../../api/jobApi';
 import { JobRequest } from '../../types/job';
 import { ProfessionalProfile } from '../../types/professional';
 import { Button } from '../../components/ui/Button';
+import { Avatar } from '../../components/ui/Avatar';
 import { Star, MapPin, Briefcase, ChevronLeft, CheckCircle } from 'lucide-react-native';
 
 export const JobReviewScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
@@ -147,7 +148,9 @@ export const JobReviewScreen: React.FC<{ navigation: any; route: any }> = ({ nav
 
         {/* Profile card */}
         <View style={[styles.profileCard, { backgroundColor: colors.surfaceCard }]}>
-          <Image source={{ uri: profile.avatar }} style={styles.avatar} />
+          <View style={{ marginBottom: 12 }}>
+            <Avatar source={profile.avatar} size={76} />
+          </View>
           <Text style={[styles.name, { color: colors.textPrimary }]}>{profile.name}</Text>
           <Text style={[styles.title, { color: colors.accent }]}>{profile.title}</Text>
 

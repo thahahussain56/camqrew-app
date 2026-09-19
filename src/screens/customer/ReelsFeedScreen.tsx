@@ -33,7 +33,9 @@ import {
   Film,
   Sparkles,
   ArrowRight,
+  User,
 } from 'lucide-react-native';
+import { isCustomAvatar } from '../../utils/avatarUtils';
 
 const { width: SCREEN_WIDTH, height: WINDOW_HEIGHT } = Dimensions.get('window');
 
@@ -295,10 +297,16 @@ export const ReelsFeedScreen: React.FC = () => {
             onPress={() => handleViewProfile(item)}
             style={styles.creatorAvatarBtn}
           >
-            <Image
-              source={{ uri: item.creatorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400' }}
-              style={styles.creatorAvatarImg}
-            />
+            {isCustomAvatar(item.creatorAvatar) ? (
+              <Image
+                source={{ uri: item.creatorAvatar! }}
+                style={styles.creatorAvatarImg}
+              />
+            ) : (
+              <View style={[styles.creatorAvatarImg, { backgroundColor: '#1a2228', alignItems: 'center', justifyContent: 'center' }]}>
+                <User size={20} color="#9ca3af" />
+              </View>
+            )}
             <View style={styles.avatarVerifiedBadge}>
               <CheckCircle size={12} color="#ffffff" fill="#3fb668" />
             </View>

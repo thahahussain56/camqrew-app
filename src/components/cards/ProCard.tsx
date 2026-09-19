@@ -3,6 +3,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { ProfessionalProfile } from '../../types/professional';
 import { Star, UserCheck } from 'lucide-react-native';
+import { Avatar } from '../ui/Avatar';
 
 interface ProCardProps {
   professional: ProfessionalProfile;
@@ -29,7 +30,9 @@ export const ProCard: React.FC<ProCardProps> = ({ professional, onPressProfile, 
         <View style={[styles.contentBox, { backgroundColor: isDark ? '#151a1e' : colors.surfaceElevated }]}>
           {/* Header Info Row with Profile Picture */}
           <View style={styles.headerInfoRow}>
-            <Image source={{ uri: professional.avatar }} style={[styles.avatarImage, { borderColor: colors.border }]} />
+            <View style={{ marginRight: 12 }}>
+              <Avatar source={professional.avatar} size={48} />
+            </View>
             <View style={styles.nameContainer}>
               {/* Green Star + Rating */}
               <View style={styles.ratingRow}>

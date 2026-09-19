@@ -28,10 +28,11 @@ import {
   Calendar, ShoppingBag, CreditCard, Gift, LogOut, ChevronRight,
   Camera, Pencil, Star, Briefcase, Eye, Plus, PlusCircle, Film,
   Play, Trash2, X, ChevronLeft, ChevronRight as ChevronRightIcon,
-  Image as ImageIcon, CheckCircle,
+  Image as ImageIcon, CheckCircle, User,
 } from 'lucide-react-native';
 import { supabase } from '../../api/supabaseClient';
 import { cloudStorageApi } from '../../api/cloudStorageApi';
+import { isCustomAvatar } from '../../utils/avatarUtils';
 
 // ── Tab config ──────────────────────────────────────────────────
 const TABS = [
@@ -371,8 +372,8 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
 
           {/* Avatar with camera overlay */}
           <TouchableOpacity onPress={handlePickAvatar} style={[styles.avatarWrap, { borderColor: colors.surfaceCard }]} activeOpacity={0.85}>
-            {/* Priority: local pick URI > stored remote URL > initials gradient */}
-            {localAvatarUri || user?.avatar ? (
+            {/* Priority: local pick URI > stored custom remote URL > clean Person icon */}
+            {localAvatarUri || (user?.avatar && isCustomAvatar(user.avatar)) ? (
               <Image
                 source={{ uri: localAvatarUri || user!.avatar! }}
                 style={styles.avatarImg}
@@ -382,9 +383,9 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
                 }}
               />
             ) : (
-              <LinearGradient colors={[colors.accent, colors.accent]} style={styles.avatarImg}>
-                <Text style={{ fontSize: 28, fontWeight: '900', color: '#ffffff' }}>{initials}</Text>
-              </LinearGradient>
+              <View style={[styles.avatarImg, { backgroundColor: isDark ? '#1a2228' : '#e5e7eb', justifyContent: 'center', alignItems: 'center' }]}>
+                <User size={38} color={colors.textSecondary} />
+              </View>
             )}
             {uploadingAvatar && (
               <View style={{ position: 'absolute', width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', borderRadius: 42 }}>

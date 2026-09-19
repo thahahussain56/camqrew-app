@@ -14,7 +14,7 @@ export const ChatInfoScreen: React.FC<{ navigation: any; route: any }> = ({ navi
   
   const otherUserId = route?.params?.otherUserId;
   const otherUserName = route?.params?.otherUserName || 'User';
-  const otherUserAvatar = route?.params?.otherUserAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400';
+  const otherUserAvatar = route?.params?.otherUserAvatar || '';
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sharedImages, setSharedImages] = useState<string[]>([]);
