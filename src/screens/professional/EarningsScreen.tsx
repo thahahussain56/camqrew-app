@@ -14,10 +14,10 @@ export const EarningsScreen: React.FC = () => {
 
   const [payouts, setPayouts] = useState<PayoutRecord[]>([]);
   const [accountDetails, setAccountDetails] = useState<CreatorPayoutDetails>({
-    upiId: 'thaha@okaxis',
-    accountNumber: '987654321098',
-    ifscCode: 'HDFC0001234',
-    accountHolderName: 'Mohammad Thaha Hussain',
+    upiId: '',
+    accountNumber: '',
+    ifscCode: '',
+    accountHolderName: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -86,17 +86,17 @@ export const EarningsScreen: React.FC = () => {
       {/* Hero Earnings Card */}
       <Card style={styles.heroCard}>
         <Text style={[styles.heroLabel, { color: colors.textFaint }]}>Lifetime Net Creator Earnings</Text>
-        <Text style={[styles.heroValue, { color: colors.accent }]}>₹3,80,000</Text>
+        <Text style={[styles.heroValue, { color: colors.accent }]}>₹0</Text>
         
         <View style={styles.payoutDestRow}>
           <CreditCard size={16} color={colors.textSecondary} />
           <Text style={[styles.destText, { color: colors.textSecondary }]}>
-            Payout to: <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{accountDetails.upiId}</Text>
+            Payout to: <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{accountDetails.upiId || 'Not linked'}</Text>
           </Text>
         </View>
 
         <Button
-          title="Request Instant Razorpay Payout (₹25,000)"
+          title="Request Instant Razorpay Payout"
           variant="primary"
           size="md"
           loading={loading}

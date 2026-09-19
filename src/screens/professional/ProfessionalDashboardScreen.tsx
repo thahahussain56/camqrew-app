@@ -51,26 +51,28 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
                 userId: user.id,
                 name: user.name || 'Creative Studio',
                 title: 'Professional Creator',
-                bio: 'Creator profile.',
-                experienceYears: 1,
-                avatar: user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400',
-                bannerImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1200',
-                verified: true,
-                rating: 5.0,
+                bio: '',
+                experienceYears: 0,
+                avatar: user.avatar || '',
+                bannerImage: '',
+                verified: false,
+                rating: 0,
                 reviewCount: 0,
-                city: 'Mumbai',
-                state: 'Maharashtra',
-                district: 'Mumbai',
-                locations: ['Mumbai'],
-                categories: ['Photography'],
-                ratePerDay: 15000,
+                city: '',
+                state: '',
+                district: '',
+                locations: [],
+                categories: [],
+                ratePerDay: 0,
                 equipment: [],
                 certifications: [],
                 portfolio: [],
                 services: [],
                 reviews: [],
                 weeklyAvailability: { mon: true, tue: true, wed: true, thu: true, fri: true, sat: true, sun: false },
-                blockedDates: []
+                blockedDates: [],
+                totalEarnings: 0,
+                views: 0,
               } as ProfessionalProfile);
             }
           })
@@ -174,7 +176,7 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
                 <Text style={[styles.statTitle, { color: colors.textFaint }]}>Total Earnings</Text>
               </View>
               <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-                ₹{(profile.totalEarnings || 380000).toLocaleString('en-IN')}
+                ₹{(profile.totalEarnings || 0).toLocaleString('en-IN')}
               </Text>
             </Card>
 
@@ -183,7 +185,7 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
                 <Calendar size={16} color="#3fb668" />
                 <Text style={[styles.statTitle, { color: colors.textFaint }]}>This Month</Text>
               </View>
-              <Text style={[styles.statValue, { color: colors.textPrimary }]}>8 Bookings</Text>
+              <Text style={[styles.statValue, { color: colors.textPrimary }]}>{safeBookings.length} Bookings</Text>
             </Card>
 
             <Card style={styles.statCard}>
@@ -191,7 +193,7 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
                 <Eye size={16} color="#3fb668" />
                 <Text style={[styles.statTitle, { color: colors.textFaint }]}>Profile Views</Text>
               </View>
-              <Text style={[styles.statValue, { color: colors.textPrimary }]}>{profile.views || 1420}</Text>
+              <Text style={[styles.statValue, { color: colors.textPrimary }]}>{profile.views || 0}</Text>
             </Card>
 
             <Card style={styles.statCard}>
@@ -200,7 +202,7 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
                 <Text style={[styles.statTitle, { color: colors.textFaint }]}>Avg. Rating</Text>
               </View>
               <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-                {(profile.rating ?? 4.9).toFixed(1)} ★
+                {profile.rating ? `${profile.rating.toFixed(1)} ★` : '0.0 ★'}
               </Text>
             </Card>
           </ScrollView>

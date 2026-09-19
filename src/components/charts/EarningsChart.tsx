@@ -8,7 +8,7 @@ interface EarningsChartProps {
 }
 
 export const EarningsChart: React.FC<EarningsChartProps> = ({
-  data = [12000, 25000, 18000, 32000, 45000, 38000, 52000],
+  data = [0, 0, 0, 0, 0, 0, 0],
   labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
 }) => {
   const { colors } = useTheme();

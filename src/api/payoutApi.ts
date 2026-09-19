@@ -28,17 +28,17 @@ export const payoutApi = {
       return stored
         ? JSON.parse(stored)
         : {
-            upiId: 'thaha@okaxis',
-            accountNumber: '987654321098',
-            ifscCode: 'HDFC0001234',
-            accountHolderName: 'Mohammad Thaha Hussain',
+            upiId: '',
+            accountNumber: '',
+            ifscCode: '',
+            accountHolderName: '',
           };
     } catch (e) {
       return {
-        upiId: 'thaha@okaxis',
-        accountNumber: '987654321098',
-        ifscCode: 'HDFC0001234',
-        accountHolderName: 'Mohammad Thaha Hussain',
+        upiId: '',
+        accountNumber: '',
+        ifscCode: '',
+        accountHolderName: '',
       };
     }
   },
