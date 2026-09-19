@@ -11,10 +11,12 @@ import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import {
   X, Calendar, MapPin, ShieldCheck, Check, Clock, CreditCard,
-  MessageSquare, ChevronRight, FileText, Lock
+  MessageSquare, ChevronRight, FileText, Lock, Camera
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ShootContractModal } from './ShootContractModal';
+import { PhotoProofingModal } from './PhotoProofingModal';
+import { CallSheetModal } from './CallSheetModal';
 
 interface BookingDetailModalProps {
   visible: boolean;
@@ -38,6 +40,8 @@ export const BookingDetailModal: React.FC<BookingDetailModalProps> = ({
   const { colors, isDark } = useTheme();
   const { user } = useAuthStore();
   const [showContract, setShowContract] = useState(false);
+  const [showVault, setShowVault] = useState(false);
+  const [showCallSheet, setShowCallSheet] = useState(false);
 
   if (!booking) return null;
 
@@ -224,6 +228,32 @@ export const BookingDetailModal: React.FC<BookingDetailModalProps> = ({
                 <ChevronRight size={16} color={colors.textSecondary} style={{ marginLeft: 'auto' }} />
               </TouchableOpacity>
 
+              {/* Camqrew Vault Photo Proofing Button */}
+              <TouchableOpacity 
+                style={[styles.viewContractBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight, marginTop: 8 }]}
+                activeOpacity={0.8}
+                onPress={() => setShowVault(true)}
+              >
+                <Camera size={15} color={colors.accent} style={{ marginRight: 6 }} />
+                <Text style={[styles.viewContractBtnText, { color: colors.textPrimary }]}>
+                  🖼️ Camqrew Vault (Photo Proofing)
+                </Text>
+                <ChevronRight size={16} color={colors.textSecondary} style={{ marginLeft: 'auto' }} />
+              </TouchableOpacity>
+
+              {/* Digital Call Sheet Button */}
+              <TouchableOpacity 
+                style={[styles.viewContractBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight, marginTop: 8 }]}
+                activeOpacity={0.8}
+                onPress={() => setShowCallSheet(true)}
+              >
+                <FileText size={15} color={colors.accent} style={{ marginRight: 6 }} />
+                <Text style={[styles.viewContractBtnText, { color: colors.textPrimary }]}>
+                  🎬 Shoot Call Sheet & Schedule
+                </Text>
+                <ChevronRight size={16} color={colors.textSecondary} style={{ marginLeft: 'auto' }} />
+              </TouchableOpacity>
+
               {Boolean(booking.contractSignature) && (
                 <View style={[styles.detailRow, { borderTopWidth: 1, borderTopColor: colors.borderLight, paddingTop: 10, marginTop: 6 }]}>
                   <FileText size={16} color={colors.accent} />
@@ -386,6 +416,24 @@ export const BookingDetailModal: React.FC<BookingDetailModalProps> = ({
         booking={booking}
         currentUserId={user?.id}
         onClose={() => setShowContract(false)}
+      />
+
+      {/* Camqrew Vault Photo Proofing Modal */}
+      <PhotoProofingModal
+        visible={showVault}
+        booking={booking}
+        currentUserId={user?.id}
+        onClose={() => setShowVault(false)}
+        onMilestoneReleased={() => {
+          if (onReleaseMilestone) onReleaseMilestone('final');
+        }}
+      />
+
+      {/* Digital Call Sheet Modal */}
+      <CallSheetModal
+        visible={showCallSheet}
+        booking={booking}
+        onClose={() => setShowCallSheet(false)}
       />
     </>
   );
