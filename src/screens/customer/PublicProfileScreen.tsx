@@ -14,7 +14,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { ProductCard } from '../../components/cards/ProductCard';
 import { useCartStore } from '../../store/cartStore';
-import { Star, MapPin, X, ArrowLeft, ShieldCheck, Zap, ChevronLeft, ChevronRight, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink } from 'lucide-react-native';
+import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -232,7 +232,6 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
             onPress={() => navigation.navigate('Booking', { proId: profile.id, type: bookingType })}
             activeOpacity={0.8}
           >
-            <Zap size={18} color="#ffffff" style={{ marginRight: 8 }} />
             <Text style={styles.bookBtnText}>Book Now • ₹{(profile.ratePerDay || 15000).toLocaleString('en-IN')}</Text>
           </TouchableOpacity>
         </View>

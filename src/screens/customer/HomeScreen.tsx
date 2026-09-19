@@ -32,7 +32,6 @@ import {
   Check,
   X,
   Star,
-  Zap,
   MessageSquare,
   Video,
   Building2,

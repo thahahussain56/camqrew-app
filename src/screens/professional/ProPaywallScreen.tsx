@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
-import { Shield, Zap, CheckCircle, CreditCard } from 'lucide-react-native';
+import { Shield, CheckCircle, CreditCard } from 'lucide-react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { Button } from '../../components/ui/Button';
