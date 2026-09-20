@@ -38,6 +38,8 @@ import {
   Film,
   Package,
   Briefcase,
+  Radio,
+  Send,
 } from 'lucide-react-native';
 import { ALL_INDIAN_CITIES } from '../../constants/locations';
 import { useLocationStore } from '../../store/locationStore';
@@ -66,6 +68,7 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { selectedCity, setSelectedCity, loadPersistedLocation, isLoadingLocation } = useLocationStore();
 
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
   const [locationSearch, setLocationSearch] = useState('');
 
   const filteredCities = ALL_INDIAN_CITIES.filter(c =>
@@ -147,11 +150,11 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </TouchableOpacity>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            {/* Create Job Request Button */}
+            {/* Broadcast & Job Board Hub Button */}
             <TouchableOpacity
               style={[styles.topBellBtn, { backgroundColor: colors.accentGlow, borderColor: colors.accent, borderWidth: 1 }]}
               activeOpacity={0.8}
-              onPress={() => navigation.navigate('CreateJob')}
+              onPress={() => setShowBroadcastModal(true)}
             >
               <Briefcase size={20} color={colors.accent} />
             </TouchableOpacity>
@@ -312,6 +315,46 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </TouchableOpacity>
         </ScrollView>
 
+        {/* Instant Locality Broadcast Banner Card */}
+        <View style={[styles.broadcastCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+          <View style={styles.broadcastBadgeRow}>
+            <View style={[styles.broadcastBadge, { backgroundColor: colors.accentGlow }]}>
+              <Radio size={12} color={colors.accent} />
+              <Text style={[styles.broadcastBadgeText, { color: colors.accent }]}>INSTANT LOCALITY BROADCAST</Text>
+            </View>
+            <Text style={[styles.broadcastCityPill, { color: colors.textSecondary }]}>
+              📍 {selectedCity.city}
+            </Text>
+          </View>
+
+          <Text style={[styles.broadcastTitle, { color: colors.textPrimary }]}>
+            Need a Production Crew Urgently?
+          </Text>
+          <Text style={[styles.broadcastDesc, { color: colors.textSecondary }]}>
+            Post your shoot date, budget & requirements to get pitches from verified local pros, or browse active shoot broadcasts.
+          </Text>
+
+          <View style={styles.broadcastActionsRow}>
+            <TouchableOpacity
+              style={[styles.broadcastPrimaryBtn, { backgroundColor: colors.accent }]}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('CreateJob')}
+            >
+              <Send size={15} color="#ffffff" style={{ marginRight: 6 }} />
+              <Text style={styles.broadcastPrimaryBtnText}>Post Broadcast Job</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.broadcastSecondaryBtn, { borderColor: colors.accent, backgroundColor: colors.accentGlow }]}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('JobBoardScreen')}
+            >
+              <Briefcase size={15} color={colors.accent} style={{ marginRight: 6 }} />
+              <Text style={[styles.broadcastSecondaryBtnText, { color: colors.accent }]}>Job Board</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* 6. Main Feed Segment */}
         <View style={styles.sectionHeader}>
           <View>
@@ -408,6 +451,65 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Broadcast & Job Board Hub Modal */}
+      <Modal visible={showBroadcastModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.surfaceCard }]}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Broadcast & Job Board</Text>
+                <Text style={[styles.modalSub, { color: colors.textFaint }]}>Shoot requirements and live creator pitching</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowBroadcastModal(false)} style={[styles.closeBtn, { backgroundColor: colors.background }]}>
+                <X size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ gap: 12, marginTop: 8 }}>
+              <TouchableOpacity
+                style={[styles.hubOptionCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.accent, borderWidth: 1 }]}
+                activeOpacity={0.85}
+                onPress={() => {
+                  setShowBroadcastModal(false);
+                  navigation.navigate('CreateJob');
+                }}
+              >
+                <View style={[styles.hubIconCircle, { backgroundColor: colors.accentGlow }]}>
+                  <Send size={22} color={colors.accent} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 14 }}>
+                  <Text style={[styles.hubOptionTitle, { color: colors.textPrimary }]}>Post a Broadcast Job</Text>
+                  <Text style={[styles.hubOptionSub, { color: colors.textSecondary }]}>
+                    Publish shoot date, budget & requirements to verified local crew in {selectedCity.city}.
+                  </Text>
+                </View>
+                <ChevronRight size={20} color={colors.textFaint} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.hubOptionCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border, borderWidth: 1 }]}
+                activeOpacity={0.85}
+                onPress={() => {
+                  setShowBroadcastModal(false);
+                  navigation.navigate('JobBoardScreen');
+                }}
+              >
+                <View style={[styles.hubIconCircle, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
+                  <Briefcase size={22} color="#3b82f6" />
+                </View>
+                <View style={{ flex: 1, marginLeft: 14 }}>
+                  <Text style={[styles.hubOptionTitle, { color: colors.textPrimary }]}>Live Pro Job Board</Text>
+                  <Text style={[styles.hubOptionSub, { color: colors.textSecondary }]}>
+                    Browse active client shoot requests, review budgets & claim jobs with reverse pitching.
+                  </Text>
+                </View>
+                <ChevronRight size={20} color={colors.textFaint} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -468,6 +570,108 @@ const styles = StyleSheet.create({
   },
   filterChipText: { fontSize: 13, fontWeight: '700' },
   
+  // Broadcast Banner Card
+  broadcastCard: {
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 24,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  broadcastBadgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  broadcastBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  broadcastBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  broadcastCityPill: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  broadcastTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    marginBottom: 6,
+  },
+  broadcastDesc: {
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 16,
+  },
+  broadcastActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  broadcastPrimaryBtn: {
+    flex: 1.2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+  },
+  broadcastPrimaryBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  broadcastSecondaryBtn: {
+    flex: 0.9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  broadcastSecondaryBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+
+  // Hub Modal Cards
+  hubOptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 18,
+  },
+  hubIconCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hubOptionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  hubOptionSub: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 2,
+  },
+
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 },
   exploreCount: { fontSize: 20, fontWeight: '900' },
   sectionSub: { fontSize: 13, fontWeight: '600', marginTop: 4 },

@@ -76,6 +76,8 @@ function HomeStack() {
       <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
       <Stack.Screen name="ProfessionalEdit" component={ProfessionalEditScreen} />
       <Stack.Screen name="ReelsFeed" component={ReelsFeedScreen} />
+      <Stack.Screen name="JobBoardScreen" component={JobBoardScreen} />
+      <Stack.Screen name="JobBoard" component={JobBoardScreen} />
     </Stack.Navigator>
   );
 }
@@ -92,6 +94,8 @@ function ExploreStack() {
       <Stack.Screen name="ChatInfo" component={ChatInfoScreen} />
       <Stack.Screen name="ProfessionalEdit" component={ProfessionalEditScreen} />
       <Stack.Screen name="ReelsFeed" component={ReelsFeedScreen} />
+      <Stack.Screen name="JobBoardScreen" component={JobBoardScreen} />
+      <Stack.Screen name="JobBoard" component={JobBoardScreen} />
     </Stack.Navigator>
   );
 }
@@ -114,9 +118,8 @@ function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="CustomerProfile" component={CustomerProfileScreen} />
-      <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
-      <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="PrimeSubscription" component={PrimeSubscriptionScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="About" component={AboutScreen} />
@@ -131,14 +134,9 @@ function ProfileStack() {
       <Stack.Screen name="JobReview" component={JobReviewScreen} />
       <Stack.Screen name="Booking" component={BookingScreen} />
       <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
-    </Stack.Navigator>
-  );
-}
-
-function JobStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="CreateJob" component={CreateJobScreen} />
       <Stack.Screen name="JobBoardScreen" component={JobBoardScreen} />
+      <Stack.Screen name="JobBoard" component={JobBoardScreen} />
     </Stack.Navigator>
   );
 }
@@ -165,7 +163,11 @@ export const CustomerTabs: React.FC = () => {
 
   const getDynamicTabStyle = (route: any) => {
     const routeName = getFocusedRouteNameFromRoute(route) ?? '';
-    const hiddenScreens = ['ProductDetail', 'Cart', 'SaleCheckout', 'RentalCheckout', 'Chat', 'ChatInfo', 'Booking', 'OrderDetail', 'PublicProfile', 'EditProfile', 'PrimeSubscription', 'CreateJob'];
+    const hiddenScreens = [
+      'ProductDetail', 'Cart', 'SaleCheckout', 'RentalCheckout', 'Chat', 'ChatInfo',
+      'Booking', 'OrderDetail', 'PublicProfile', 'EditProfile', 'PrimeSubscription',
+      'CreateJob', 'JobBoardScreen', 'JobBoard'
+    ];
     if (hiddenScreens.includes(routeName)) {
       return { display: 'none' as const };
     }
@@ -231,17 +233,6 @@ export const CustomerTabs: React.FC = () => {
           tabBarStyle: getDynamicTabStyle(route),
         })}
       />
-      {user?.role === 'professional' && (
-        <Tab.Screen
-          name="JobTab"
-          component={JobStack}
-          options={({ route }) => ({
-            tabBarLabel: 'Job Board',
-            tabBarIcon: ({ focused, color }) => <Briefcase color={color} size={20} fill={focused ? color : 'transparent'} />,
-            tabBarStyle: getDynamicTabStyle(route),
-          })}
-        />
-      )}
       <Tab.Screen
         name="ProfileTab"
         component={ProfileStack}

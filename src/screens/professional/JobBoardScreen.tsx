@@ -8,13 +8,15 @@ import { professionalApi } from '../../api/professionalApi';
 import { JobRequest } from '../../types/job';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { MapPin, Wallet, CalendarClock, Compass, Globe, Building2, Map } from 'lucide-react-native';
+import { MapPin, Wallet, CalendarClock, Compass, Globe, Building2, Map, ArrowLeft } from 'lucide-react-native';
+import { useLocationStore } from '../../store/locationStore';
 
 type ScopeType = 'city' | 'district' | 'state' | 'all';
 
 export const JobBoardScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors } = useTheme();
   const { user } = useAuthStore();
+  const { selectedCity } = useLocationStore();
   
   const [jobs, setJobs] = useState<JobRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,13 +32,24 @@ export const JobBoardScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
   }, [scope]);
 
   const loadProProfileAndJobs = async () => {
-    if (!user?.id) return;
     setLoading(true);
     try {
-      const profile = await professionalApi.getProfileById(user.id);
-      const c = profile?.city || 'Mumbai';
-      const d = profile?.district || profile?.city || 'Mumbai Suburban';
-      const s = profile?.state || 'Maharashtra';
+      let c = selectedCity?.city || 'Mumbai';
+      let d = selectedCity?.district || 'Mumbai Suburban';
+      let s = selectedCity?.state || 'Maharashtra';
+
+      if (user?.id) {
+        try {
+          const profile = await professionalApi.getProfileById(user.id);
+          if (profile) {
+            c = profile.city || c;
+            d = profile.district || profile.city || d;
+            s = profile.state || s;
+          }
+        } catch {
+          // User might be customer or profile loading, use fallback
+        }
+      }
 
       setProCity(c);
       setProDistrict(d);
@@ -49,7 +62,7 @@ export const JobBoardScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
         scope,
       };
 
-      const openJobs = await jobApi.getOpenJobs(filter, user.id);
+      const openJobs = await jobApi.getOpenJobs(filter, user?.id);
       setJobs(openJobs);
     } catch (e) {
       console.warn('Error loading jobs:', e);
@@ -65,6 +78,15 @@ export const JobBoardScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
   };
 
   const handleAccept = async (jobId: string) => {
+    if (!user?.id) {
+      Alert.alert('Sign In Required', 'Please sign in to pitch on broadcast jobs.');
+      return;
+    }
+    if (user?.role !== 'professional') {
+      Alert.alert('Creator Profile Required', 'Only registered creators and crew can pitch on broadcast jobs. Please switch to or register a professional account.');
+      return;
+    }
+
     Alert.alert(
       'Accept & Pitch',
       'Are you sure you want to accept this job? This will lock it for you while the client reviews your profile.',
@@ -98,9 +120,20 @@ export const JobBoardScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Pro Job Board</Text>
-          <Text style={{ color: colors.textSecondary, marginTop: 2, fontSize: 13 }}>Reverse Pitching Broadcasts</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {navigation.canGoBack() && (
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={{ marginRight: 12, padding: 4 }}
+              activeOpacity={0.7}
+            >
+              <ArrowLeft size={22} color={colors.textPrimary} />
+            </TouchableOpacity>
+          )}
+          <View>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Pro Job Board</Text>
+            <Text style={{ color: colors.textSecondary, marginTop: 2, fontSize: 13 }}>Reverse Pitching Broadcasts</Text>
+          </View>
         </View>
 
         {proCity ? (

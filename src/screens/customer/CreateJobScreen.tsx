@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
@@ -9,7 +9,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { LocationCascader } from '../../components/forms/LocationCascader';
 import { formatLocationString } from '../../constants/locations';
-import { Briefcase } from 'lucide-react-native';
+import { Briefcase, ArrowLeft, ArrowRight } from 'lucide-react-native';
 
 export const CreateJobScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors } = useTheme();
@@ -62,7 +62,18 @@ export const CreateJobScreen: React.FC<{ navigation: any }> = ({ navigation }) =
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Post a Job Request</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {navigation.canGoBack() && (
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={{ marginRight: 12, padding: 4 }}
+                activeOpacity={0.7}
+              >
+                <ArrowLeft size={22} color={colors.textPrimary} />
+              </TouchableOpacity>
+            )}
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Post a Job Request</Text>
+          </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.content}>
@@ -73,6 +84,19 @@ export const CreateJobScreen: React.FC<{ navigation: any }> = ({ navigation }) =
               Post your exact requirements and budget. Verified Pro members in your city will see this and can pitch directly to you. First to accept will be locked in for your review.
             </Text>
           </View>
+
+          <TouchableOpacity
+            style={[styles.jobBoardLink, { backgroundColor: colors.surfaceElevated, borderColor: colors.accent, borderWidth: 1 }]}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('JobBoardScreen')}
+          >
+            <Briefcase size={18} color={colors.accent} style={{ marginRight: 10 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.jobBoardLinkTitle, { color: colors.textPrimary }]}>Looking to accept jobs instead?</Text>
+              <Text style={[styles.jobBoardLinkSub, { color: colors.textSecondary }]}>Browse open shoot leads on the Job Board</Text>
+            </View>
+            <ArrowRight size={16} color={colors.accent} />
+          </TouchableOpacity>
 
           <Input
             label="Job Title"
@@ -138,4 +162,13 @@ const styles = StyleSheet.create({
   infoBox: { padding: 16, borderRadius: 12 },
   infoTitle: { fontSize: 16, fontWeight: '800', marginBottom: 4 },
   infoDesc: { fontSize: 13, lineHeight: 20 },
+  jobBoardLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 14,
+    marginTop: 14,
+  },
+  jobBoardLinkTitle: { fontSize: 14, fontWeight: '800' },
+  jobBoardLinkSub: { fontSize: 12, marginTop: 2 },
 });
