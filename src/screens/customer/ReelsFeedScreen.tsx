@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
   FlatList,
   TouchableOpacity,
   Image,
@@ -13,11 +12,16 @@ import {
   StatusBar,
   Platform,
   ViewToken,
+  Modal,
+  useWindowDimensions,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuthStore } from '../../store/authStore';
 import { professionalApi } from '../../api/professionalApi';
 import { FeedReelItem } from '../../types/professional';
 import {
@@ -29,24 +33,38 @@ import {
   Volume2,
   VolumeX,
   Play,
+  Pause,
   MapPin,
   Film,
   ArrowRight,
   User,
+  Star,
+  X,
+  Music,
+  ShieldCheck,
+  Briefcase,
+  Compass,
 } from 'lucide-react-native';
 import { isCustomAvatar } from '../../utils/avatarUtils';
 
-const { width: SCREEN_WIDTH, height: WINDOW_HEIGHT } = Dimensions.get('window');
-
-const CATEGORIES = ['All', 'Commercial', 'Wedding Film', 'Drone & Aerial', 'Fashion Reel', 'Cinematography'];
+const CATEGORIES = [
+  'All',
+  'Commercial',
+  'Wedding Film',
+  'Drone & Aerial',
+  'Fashion Reel',
+  'Cinematography',
+  'Music Video',
+];
 
 export const ReelsFeedScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { colors, isDark } = useTheme();
+  const { user } = useAuthStore();
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
 
-  // Tab bar height allowance (tab bar is absolute floating at bottom 20 with height 64)
-  const ITEM_HEIGHT = WINDOW_HEIGHT;
+  const ITEM_HEIGHT = SCREEN_HEIGHT;
 
   const [reels, setReels] = useState<FeedReelItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,12 +73,26 @@ export const ReelsFeedScreen: React.FC = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [likedReels, setLikedReels] = useState<{ [id: string]: boolean }>({});
   const [likeCounts, setLikeCounts] = useState<{ [id: string]: number }>({});
+  const [isPaused, setIsPaused] = useState(false);
+  const [showPlayPauseAnim, setShowPlayPauseAnim] = useState(false);
   const [showHeartAnim, setShowHeartAnim] = useState(false);
+  const [selectedCreator, setSelectedCreator] = useState<FeedReelItem | null>(null);
+  const [expandedCaptions, setExpandedCaptions] = useState<{ [id: string]: boolean }>({});
 
   const heartScale = useRef(new Animated.Value(0)).current;
+  const playPauseOpacity = useRef(new Animated.Value(0)).current;
   const lastTapRef = useRef<number>(0);
+  const tapTimerRef = useRef<any>(null);
 
-  // Fetch reels from API
+  const triggerHaptic = (style = Haptics.ImpactFeedbackStyle.Light) => {
+    try {
+      Haptics.impactAsync(style);
+    } catch {
+      // Haptics unavailable on emulator
+    }
+  };
+
+  // Fetch showreels from API
   const loadReels = useCallback(async () => {
     try {
       setLoading(true);
@@ -92,6 +124,7 @@ export const ReelsFeedScreen: React.FC = () => {
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (viewableItems && viewableItems.length > 0 && viewableItems[0].index !== null) {
       setActiveIndex(viewableItems[0].index);
+      setIsPaused(false);
     }
   }).current;
 
@@ -99,29 +132,27 @@ export const ReelsFeedScreen: React.FC = () => {
     itemVisiblePercentThreshold: 60,
   }).current;
 
-  // Double tap to like animation
-  const handleDoubleTap = (reelId: string) => {
-    const now = Date.now();
-    const DOUBLE_PRESS_DELAY = 300;
-    if (lastTapRef.current && now - lastTapRef.current < DOUBLE_PRESS_DELAY) {
-      // Trigger like
-      if (!likedReels[reelId]) {
-        setLikedReels((prev) => ({ ...prev, [reelId]: true }));
-        setLikeCounts((prev) => ({ ...prev, [reelId]: (prev[reelId] || 0) + 1 }));
+  // Double tap to like with animated heart and haptic
+  const triggerLike = (reelId: string) => {
+    setLikedReels((prev) => {
+      const alreadyLiked = !!prev[reelId];
+      if (!alreadyLiked) {
+        setLikeCounts((c) => ({ ...c, [reelId]: (c[reelId] || 0) + 1 }));
       }
-      // Trigger heart pop
-      setShowHeartAnim(true);
-      heartScale.setValue(0);
-      Animated.sequence([
-        Animated.spring(heartScale, { toValue: 1.2, friction: 3, useNativeDriver: true }),
-        Animated.timing(heartScale, { toValue: 1, duration: 100, useNativeDriver: true }),
-        Animated.timing(heartScale, { toValue: 0, duration: 200, delay: 400, useNativeDriver: true }),
-      ]).start(() => setShowHeartAnim(false));
-    }
-    lastTapRef.current = now;
+      return { ...prev, [reelId]: true };
+    });
+
+    setShowHeartAnim(true);
+    heartScale.setValue(0);
+    Animated.sequence([
+      Animated.spring(heartScale, { toValue: 1.25, friction: 3, useNativeDriver: true }),
+      Animated.timing(heartScale, { toValue: 1, duration: 120, useNativeDriver: true }),
+      Animated.timing(heartScale, { toValue: 0, duration: 220, delay: 350, useNativeDriver: true }),
+    ]).start(() => setShowHeartAnim(false));
   };
 
   const toggleLike = (reelId: string) => {
+    triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
     setLikedReels((prev) => {
       const isLiked = !!prev[reelId];
       setLikeCounts((c) => ({ ...c, [reelId]: (c[reelId] || 0) + (isLiked ? -1 : 1) }));
@@ -129,10 +160,57 @@ export const ReelsFeedScreen: React.FC = () => {
     });
   };
 
+  // Play / Pause toggle with animated indicator
+  const togglePlayPause = () => {
+    triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
+    setIsPaused((prev) => {
+      const next = !prev;
+      setShowPlayPauseAnim(true);
+      playPauseOpacity.setValue(1);
+      Animated.timing(playPauseOpacity, {
+        toValue: 0,
+        duration: 450,
+        delay: 250,
+        useNativeDriver: true,
+      }).start(() => setShowPlayPauseAnim(false));
+      return next;
+    });
+  };
+
+  // Tap handler to differentiate single tap (play/pause) and double tap (like)
+  const handleVideoPress = (reelId: string) => {
+    const now = Date.now();
+    const DOUBLE_PRESS_DELAY = 280;
+    if (now - lastTapRef.current < DOUBLE_PRESS_DELAY) {
+      if (tapTimerRef.current) {
+        clearTimeout(tapTimerRef.current);
+        tapTimerRef.current = null;
+      }
+      triggerHaptic(Haptics.ImpactFeedbackStyle.Medium);
+      triggerLike(reelId);
+    } else {
+      lastTapRef.current = now;
+      tapTimerRef.current = setTimeout(() => {
+        togglePlayPause();
+        tapTimerRef.current = null;
+      }, DOUBLE_PRESS_DELAY);
+    }
+  };
+
+  const toggleMute = () => {
+    triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
+    setIsMuted((m) => !m);
+  };
+
+  const toggleCaption = (id: string) => {
+    setExpandedCaptions((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
   const handleShare = async (reel: FeedReelItem) => {
+    triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
     try {
       await Share.share({
-        message: `Watch "${reel.title}" by ${reel.creatorName} on Camqrew! Book verified cinematographers & creators: ${reel.url}`,
+        message: `Watch "${reel.title}" by ${reel.creatorName} on Camqrew! Book verified cinematographers & crew: ${reel.url}`,
         url: reel.url,
       });
     } catch (e) {
@@ -141,6 +219,7 @@ export const ReelsFeedScreen: React.FC = () => {
   };
 
   const handleBook = (reel: FeedReelItem) => {
+    triggerHaptic(Haptics.ImpactFeedbackStyle.Medium);
     navigation.navigate('Booking', {
       professionalId: reel.creatorId,
       professionalName: reel.creatorName,
@@ -166,7 +245,8 @@ export const ReelsFeedScreen: React.FC = () => {
   const renderItem = ({ item, index }: { item: FeedReelItem; index: number }) => {
     const isActive = index === activeIndex;
     const isLiked = !!likedReels[item.id];
-    const likes = likeCounts[item.id] || item.likesCount || 120;
+    const likes = likeCounts[item.id] || item.likesCount || 0;
+    const isCaptionExpanded = !!expandedCaptions[item.id];
 
     // Detect direct video (MP4/WebM) vs iframe embed (YouTube/Vimeo)
     const isDirectVideo = !!(
@@ -205,14 +285,15 @@ export const ReelsFeedScreen: React.FC = () => {
           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; background: #000; }
-            html, body { width: 100%; height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+            html, body { width: 100%; height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #000; }
             video { width: 100%; height: 100%; object-fit: cover; }
           </style>
         </head>
         <body>
           <video 
+            id="v"
             src="${videoSrc}" 
-            autoplay 
+            ${isPaused ? '' : 'autoplay'} 
             loop 
             ${isMuted ? 'muted' : ''} 
             playsinline 
@@ -228,14 +309,14 @@ export const ReelsFeedScreen: React.FC = () => {
           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; background: #000; }
-            html, body { width: 100%; height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+            html, body { width: 100%; height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #000; }
             iframe { width: 100%; height: 100%; border: none; object-fit: cover; }
           </style>
         </head>
         <body>
           <iframe 
             src="${cleanEmbedUrl}" 
-            allow="autoplay; fullscreen" 
+            allow="autoplay; fullscreen; encrypted-media" 
             allowfullscreen
           ></iframe>
         </body>
@@ -243,25 +324,27 @@ export const ReelsFeedScreen: React.FC = () => {
     `;
 
     return (
-      <View style={[styles.reelContainer, { height: ITEM_HEIGHT }]}>
-        {/* Background Video or Thumbnail */}
+      <View style={[styles.reelContainer, { height: ITEM_HEIGHT, width: SCREEN_WIDTH }]}>
+        {/* Background Video Player with touch interception */}
         <TouchableOpacity
           activeOpacity={1}
-          onPress={() => handleDoubleTap(item.id)}
+          onPress={() => handleVideoPress(item.id)}
           style={StyleSheet.absoluteFill}
         >
           {isActive ? (
-            <WebView
-              key={`${item.id}_${isMuted ? 'm' : 'u'}`}
-              originWhitelist={['*']}
-              source={{ html: htmlContent }}
-              style={styles.videoPlayer}
-              allowsInlineMediaPlayback={true}
-              mediaPlaybackRequiresUserAction={false}
-              scrollEnabled={false}
-              javaScriptEnabled={true}
-              domStorageEnabled={true}
-            />
+            <View style={StyleSheet.absoluteFill} pointerEvents="none">
+              <WebView
+                key={`${item.id}_${isMuted ? 'm' : 'u'}_${isPaused ? 'p' : 'r'}`}
+                originWhitelist={['*']}
+                source={{ html: htmlContent }}
+                style={styles.videoPlayer}
+                allowsInlineMediaPlayback={true}
+                mediaPlaybackRequiresUserAction={false}
+                scrollEnabled={false}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+              />
+            </View>
           ) : (
             <Image
               source={{ uri: item.thumbnailUrl || 'https://images.unsplash.com/photo-1518173946687-a4c8a383392e?q=80&w=800' }}
@@ -270,12 +353,20 @@ export const ReelsFeedScreen: React.FC = () => {
             />
           )}
 
-          {/* Vignette Gradients for readability */}
-          <View style={styles.topVignette} />
-          <View style={styles.bottomVignette} />
+          {/* Top & Bottom Cinematic Linear Gradient Vignettes */}
+          <LinearGradient
+            colors={['rgba(11,15,18,0.85)', 'rgba(11,15,18,0.3)', 'transparent']}
+            style={styles.topVignette}
+            pointerEvents="none"
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(11,15,18,0.45)', 'rgba(11,15,18,0.95)']}
+            style={styles.bottomVignette}
+            pointerEvents="none"
+          />
         </TouchableOpacity>
 
-        {/* Double-tap Heart Animation */}
+        {/* Double-tap Center Heart Pop Animation */}
         {showHeartAnim && (
           <Animated.View
             pointerEvents="none"
@@ -284,30 +375,53 @@ export const ReelsFeedScreen: React.FC = () => {
               { transform: [{ scale: heartScale }] },
             ]}
           >
-            <Heart size={90} color="#ff3b5c" fill="#ff3b5c" />
+            <View style={styles.heartGlowCircle}>
+              <Heart size={86} color="#FF334B" fill="#FF334B" />
+            </View>
           </Animated.View>
         )}
 
-        {/* Right Action Column */}
-        <View style={[styles.rightActionColumn, { bottom: insets.bottom + 90 }]}>
-          {/* Creator Avatar with Glow & Profile link */}
+        {/* Single-tap Play/Pause Indicator Animation */}
+        {showPlayPauseAnim && (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.playPauseAnimContainer,
+              { opacity: playPauseOpacity },
+            ]}
+          >
+            <View style={styles.playPauseIconCircle}>
+              {isPaused ? (
+                <Pause size={38} color="#ffffff" />
+              ) : (
+                <Play size={38} color="#ffffff" style={{ marginLeft: 4 }} />
+              )}
+            </View>
+          </Animated.View>
+        )}
+
+        {/* Right Floating Action Column */}
+        <View style={[styles.rightActionColumn, { bottom: insets.bottom + 94 }]}>
+          {/* Creator Avatar with emerald border & quick pro profile modal */}
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={() => handleViewProfile(item)}
-            style={styles.creatorAvatarBtn}
+            onPress={() => {
+              triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
+              setSelectedCreator(item);
+            }}
+            style={styles.actionAvatarBtn}
           >
-            {isCustomAvatar(item.creatorAvatar) ? (
-              <Image
-                source={{ uri: item.creatorAvatar! }}
-                style={styles.creatorAvatarImg}
-              />
-            ) : (
-              <View style={[styles.creatorAvatarImg, { backgroundColor: '#1a2228', alignItems: 'center', justifyContent: 'center' }]}>
-                <User size={20} color="#9ca3af" />
-              </View>
-            )}
-            <View style={styles.avatarVerifiedBadge}>
-              <CheckCircle size={12} color="#ffffff" fill="#3fb668" />
+            <View style={[styles.actionAvatarRing, { borderColor: colors.accent }]}>
+              {isCustomAvatar(item.creatorAvatar) ? (
+                <Image source={{ uri: item.creatorAvatar! }} style={styles.actionAvatarImg} />
+              ) : (
+                <View style={[styles.actionAvatarImg, { backgroundColor: colors.surfaceCard, alignItems: 'center', justifyContent: 'center' }]}>
+                  <User size={20} color={colors.textSecondary} />
+                </View>
+              )}
+            </View>
+            <View style={[styles.avatarHirePlusBadge, { backgroundColor: colors.accent }]}>
+              <Briefcase size={9} color="#ffffff" />
             </View>
           </TouchableOpacity>
 
@@ -320,23 +434,41 @@ export const ReelsFeedScreen: React.FC = () => {
             <View style={[styles.actionIconCircle, isLiked && styles.actionIconCircleLiked]}>
               <Heart
                 size={22}
-                color={isLiked ? '#ff3b5c' : '#ffffff'}
-                fill={isLiked ? '#ff3b5c' : 'transparent'}
+                color={isLiked ? '#FF334B' : '#ffffff'}
+                fill={isLiked ? '#FF334B' : 'transparent'}
               />
             </View>
-            <Text style={styles.actionCountText}>{likes}</Text>
+            <Text style={styles.actionLabel}>{likes}</Text>
           </TouchableOpacity>
 
-          {/* Message / Chat Button */}
+          {/* Creator Quick Details / Pro Info Button */}
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={() => handleMessage(item)}
+            onPress={() => {
+              triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
+              setSelectedCreator(item);
+            }}
             style={styles.actionBtn}
           >
             <View style={styles.actionIconCircle}>
-              <MessageSquare size={21} color="#ffffff" />
+              <Briefcase size={20} color="#ffffff" />
             </View>
-            <Text style={styles.actionCountText}>Chat</Text>
+            <Text style={styles.actionLabel}>Pro Info</Text>
+          </TouchableOpacity>
+
+          {/* Chat with Creator Button */}
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
+              handleMessage(item);
+            }}
+            style={styles.actionBtn}
+          >
+            <View style={styles.actionIconCircle}>
+              <MessageSquare size={20} color="#ffffff" />
+            </View>
+            <Text style={styles.actionLabel}>Chat</Text>
           </TouchableOpacity>
 
           {/* Share Button */}
@@ -346,160 +478,260 @@ export const ReelsFeedScreen: React.FC = () => {
             style={styles.actionBtn}
           >
             <View style={styles.actionIconCircle}>
-              <Share2 size={21} color="#ffffff" />
+              <Share2 size={20} color="#ffffff" />
             </View>
-            <Text style={styles.actionCountText}>Share</Text>
+            <Text style={styles.actionLabel}>Share</Text>
           </TouchableOpacity>
 
-          {/* Sound Toggle Button */}
+          {/* Sound / Mute Toggle Button */}
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={() => setIsMuted((m) => !m)}
+            onPress={toggleMute}
             style={styles.actionBtn}
           >
             <View style={styles.actionIconCircle}>
               {isMuted ? (
                 <VolumeX size={20} color="#ffffff" />
               ) : (
-                <Volume2 size={20} color="#3fb668" />
+                <Volume2 size={20} color={colors.accent} />
               )}
             </View>
-            <Text style={styles.actionCountText}>{isMuted ? 'Muted' : 'Sound'}</Text>
+            <Text style={styles.actionLabel}>{isMuted ? 'Muted' : 'Sound'}</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Bottom Information & Book Creator CTA */}
-        <View style={[styles.bottomInfoContainer, { bottom: insets.bottom + 90 }]}>
-          {/* Category & Short Badge */}
-          <View style={styles.reelBadgeRow}>
-            <View style={styles.categoryPill}>
-              <Text style={styles.categoryPillText}>{item.category || 'Cinematography'}</Text>
+        {/* Bottom Information Container */}
+        <View style={[styles.bottomInfoContainer, { bottom: insets.bottom + 94 }]}>
+          {/* Metadata Badges Row */}
+          <View style={styles.badgeRow}>
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryBadgeText}>{item.category || 'Cinematography'}</Text>
             </View>
             {item.isShort && (
-              <View style={[styles.categoryPill, styles.shortPill]}>
-                <Text style={styles.shortPillText}>9:16 Short</Text>
+              <View style={[styles.categoryBadge, styles.shortBadge]}>
+                <Text style={styles.shortBadgeText}>9:16 Short</Text>
               </View>
             )}
+            <View style={styles.locationBadge}>
+              <MapPin size={11} color="rgba(255,255,255,0.75)" style={{ marginRight: 3 }} />
+              <Text style={styles.locationBadgeText}>{item.creatorCity || 'India'}</Text>
+            </View>
+            {item.creatorRating && item.creatorRating > 0 ? (
+              <View style={styles.ratingBadge}>
+                <Star size={10} color="#f59e0b" fill="#f59e0b" style={{ marginRight: 3 }} />
+                <Text style={styles.ratingBadgeText}>{item.creatorRating.toFixed(1)}</Text>
+              </View>
+            ) : null}
           </View>
 
-          {/* Creator Name & Title */}
+          {/* Creator Identity Row */}
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={() => handleViewProfile(item)}
-            style={styles.creatorNameRow}
+            onPress={() => setSelectedCreator(item)}
+            style={styles.creatorIdentityRow}
           >
             <Text style={styles.creatorNameText}>{item.creatorName}</Text>
             {item.creatorVerified && (
-              <CheckCircle size={15} color="#3fb668" fill="#3fb668" style={{ marginLeft: 5 }} />
+              <CheckCircle size={15} color={colors.accent} fill={colors.accent} style={{ marginLeft: 5 }} />
             )}
-          </TouchableOpacity>
-
-          {/* Professional Details & Location */}
-          <View style={styles.creatorMetaRow}>
-            <MapPin size={12} color="rgba(255,255,255,0.7)" style={{ marginRight: 3 }} />
-            <Text style={styles.creatorLocationText}>{item.creatorCity || 'India'}</Text>
-            <Text style={styles.creatorMetaDivider}>•</Text>
+            <Text style={styles.creatorDividerDot}>•</Text>
             <Text style={styles.creatorTitleText} numberOfLines={1}>
               {item.creatorTitle || 'Specialist'}
             </Text>
+          </TouchableOpacity>
+
+          {/* Reel Caption / Description with Expand/Collapse */}
+          <View style={styles.captionContainer}>
+            <Text
+              style={styles.captionText}
+              numberOfLines={isCaptionExpanded ? undefined : 2}
+            >
+              {item.title}
+            </Text>
+            {item.title && item.title.length > 70 && (
+              <TouchableOpacity
+                onPress={() => toggleCaption(item.id)}
+                style={styles.expandCaptionBtn}
+              >
+                <Text style={styles.expandCaptionText}>
+                  {isCaptionExpanded ? 'less' : 'more'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
-          {/* Reel Caption / Title */}
-          <Text style={styles.reelTitleText} numberOfLines={2}>
-            {item.title}
-          </Text>
+          {/* Audio Ticker Indicator */}
+          <View style={styles.audioTickerRow}>
+            <Music size={12} color="rgba(255,255,255,0.75)" style={{ marginRight: 5 }} />
+            <Text style={styles.audioTickerText} numberOfLines={1}>
+              Original Audio • {item.creatorName}
+            </Text>
+          </View>
 
-          {/* Book Creator Instant Escrow CTA Button */}
+          {/* Integrated Escrow Quick Booking Bar */}
           <TouchableOpacity
             activeOpacity={0.88}
             onPress={() => handleBook(item)}
-            style={styles.bookCreatorBtn}
+            style={[styles.quickHireBar, { borderColor: 'rgba(63, 182, 104, 0.4)' }]}
           >
-            <View style={styles.bookBtnInner}>
-              <View style={styles.bookBtnIconBox}>
-                <CalendarCheck size={16} color="#ffffff" />
+            <View style={styles.quickHireLeft}>
+              <View style={[styles.quickHireIconCircle, { backgroundColor: colors.accentGlow }]}>
+                <CalendarCheck size={16} color={colors.accent} />
               </View>
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <Text style={styles.bookBtnMainText}>Book {item.creatorName.split(' ')[0]}</Text>
-                <Text style={styles.bookBtnSubText}>
-                  From ₹{(item.creatorRatePerDay || 18000).toLocaleString('en-IN')}/day • Escrow Protected
+              <View style={{ marginLeft: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.quickHireTitle}>Book {item.creatorName.split(' ')[0]}</Text>
+                  <View style={styles.escrowBadgeMini}>
+                    <ShieldCheck size={10} color={colors.accent} />
+                    <Text style={[styles.escrowBadgeMiniText, { color: colors.accent }]}>Escrow</Text>
+                  </View>
+                </View>
+                <Text style={styles.quickHireRate}>
+                  {item.creatorRatePerDay
+                    ? `₹${item.creatorRatePerDay.toLocaleString('en-IN')}/day • Verified Rate`
+                    : 'Standard Day Rate • Protected'}
                 </Text>
               </View>
-              <View style={styles.bookBtnArrow}>
-                <ArrowRight size={16} color="#ffffff" />
-              </View>
+            </View>
+            <View style={[styles.quickHireRightBtn, { backgroundColor: colors.accent }]}>
+              <Text style={styles.quickHireBtnText}>Book</Text>
+              <ArrowRight size={13} color="#ffffff" style={{ marginLeft: 3 }} />
             </View>
           </TouchableOpacity>
+        </View>
+
+        {/* Video Bottom Progress Bar Line */}
+        <View style={styles.bottomProgressBarTrack}>
+          <View style={[styles.bottomProgressBarFill, { backgroundColor: colors.accent }]} />
         </View>
       </View>
     );
   };
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Top Header Category Chips */}
+      {/* Floating Top Frosted Header Bar */}
       <View style={[styles.topHeaderBar, { top: insets.top + 8 }]}>
-        <View style={styles.headerTitleRow}>
-          <Film size={18} color="#3fb668" style={{ marginRight: 6 }} />
-          <Text style={styles.headerBrandTitle}>Camqrew</Text>
-          <Text style={styles.headerSubTitle}>Reels</Text>
+        <View style={styles.headerBrandRow}>
+          <View style={styles.brandTitleWrap}>
+            <Film size={18} color={colors.accent} style={{ marginRight: 6 }} />
+            <Text style={styles.headerBrandTitle}>Camqrew</Text>
+            <Text style={[styles.headerSubTitle, { color: colors.accent }]}>Reels</Text>
+          </View>
+
+          {filteredReels.length > 0 && (
+            <View style={styles.headerCounterBadge}>
+              <Text style={styles.headerCounterText}>
+                {activeIndex + 1}/{filteredReels.length}
+              </Text>
+            </View>
+          )}
         </View>
 
+        {/* Category Pills Scroll */}
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
           data={CATEGORIES}
           keyExtractor={(item) => item}
           contentContainerStyle={styles.categoryScrollContent}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              activeOpacity={0.75}
-              onPress={() => setActiveCategory(item)}
-              style={[
-                styles.categoryFilterChip,
-                activeCategory === item && styles.categoryFilterChipActive,
-              ]}
-            >
-              <Text
+          renderItem={({ item }) => {
+            const isSelected = activeCategory === item;
+            return (
+              <TouchableOpacity
+                activeOpacity={0.75}
+                onPress={() => {
+                  triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
+                  setActiveCategory(item);
+                }}
                 style={[
-                  styles.categoryFilterText,
-                  activeCategory === item && styles.categoryFilterTextActive,
+                  styles.categoryFilterChip,
+                  isSelected && [styles.categoryFilterChipActive, { backgroundColor: colors.accent, borderColor: colors.accent }],
                 ]}
               >
-                {item}
-              </Text>
-            </TouchableOpacity>
-          )}
+                <Text
+                  style={[
+                    styles.categoryFilterText,
+                    isSelected && styles.categoryFilterTextActive,
+                  ]}
+                >
+                  {item}
+                </Text>
+              </TouchableOpacity>
+            );
+          }}
         />
       </View>
 
       {/* Main Reels Vertical Pager */}
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3fb668" />
-          <Text style={styles.loadingText}>Loading Creator Showreels...</Text>
+        <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.loadingCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+            <ActivityIndicator size="large" color={colors.accent} />
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+              Loading Creator Showreels...
+            </Text>
+          </View>
         </View>
       ) : filteredReels.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Film size={48} color="rgba(255,255,255,0.4)" />
-          <Text style={styles.emptyTitle}>
-            {reels.length === 0 ? 'No Showreels Uploaded Yet' : 'No Reels in this Category'}
-          </Text>
-          <Text style={styles.emptySubtitle}>
-            {reels.length === 0
-              ? 'Creator video showreels will appear here once professionals upload them.'
-              : 'Switch to "All" to view all cinematic creator showcases.'}
-          </Text>
-          {activeCategory !== 'All' && (
-            <TouchableOpacity
-              style={styles.emptyResetBtn}
-              onPress={() => setActiveCategory('All')}
-            >
-              <Text style={styles.emptyResetText}>View All Reels</Text>
-            </TouchableOpacity>
-          )}
+        <View style={[styles.emptyScreenContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.emptyCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+            <View style={[styles.emptyIconCircle, { backgroundColor: colors.accentGlow }]}>
+              <Film size={34} color={colors.accent} />
+            </View>
+            <Text style={[styles.emptyCardTitle, { color: colors.textPrimary }]}>
+              {reels.length === 0 ? 'Creator Showreels' : `No ${activeCategory} Reels`}
+            </Text>
+            <Text style={[styles.emptyCardDesc, { color: colors.textSecondary }]}>
+              {reels.length === 0
+                ? 'Verified cinematographers and filmmakers showcase their 9:16 vertical portfolio showreels here. Once creators upload showreels, they will appear in this feed.'
+                : `There are currently no showreels in the "${activeCategory}" category. Explore all categories or browse verified creators.`}
+            </Text>
+
+            <View style={styles.emptyActionsRow}>
+              {activeCategory !== 'All' && (
+                <TouchableOpacity
+                  style={[styles.emptyPrimaryBtn, { backgroundColor: colors.accent }]}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
+                    setActiveCategory('All');
+                  }}
+                >
+                  <Compass size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                  <Text style={styles.emptyPrimaryBtnText}>View All Reels</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={[styles.emptySecondaryBtn, { borderColor: colors.accent, backgroundColor: colors.accentGlow }]}
+                activeOpacity={0.85}
+                onPress={() => {
+                  triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
+                  navigation.navigate('HomeTab');
+                }}
+              >
+                <User size={16} color={colors.accent} style={{ marginRight: 6 }} />
+                <Text style={[styles.emptySecondaryBtnText, { color: colors.accent }]}>Browse Verified Creators</Text>
+              </TouchableOpacity>
+
+              {user?.role === 'professional' && (
+                <TouchableOpacity
+                  style={[styles.emptyGhostBtn, { borderColor: colors.border }]}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
+                    navigation.navigate('ProfessionalEdit');
+                  }}
+                >
+                  <Briefcase size={16} color={colors.textPrimary} style={{ marginRight: 6 }} />
+                  <Text style={[styles.emptyGhostBtnText, { color: colors.textPrimary }]}>Add Showreel to Profile</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
         </View>
       ) : (
         <FlatList
@@ -519,6 +751,147 @@ export const ReelsFeedScreen: React.FC = () => {
           removeClippedSubviews={Platform.OS === 'android'}
         />
       )}
+
+      {/* Creator Quick View Bottom Sheet Modal */}
+      <Modal
+        visible={!!selectedCreator}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSelectedCreator(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setSelectedCreator(null)}
+          />
+          <View style={[styles.creatorSheetCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+            {/* Sheet Drag Handle */}
+            <View style={[styles.sheetDragBar, { backgroundColor: colors.borderLight }]} />
+
+            {/* Creator Sheet Header */}
+            <View style={styles.sheetHeaderRow}>
+              <View style={styles.sheetCreatorMeta}>
+                {isCustomAvatar(selectedCreator?.creatorAvatar) ? (
+                  <Image source={{ uri: selectedCreator!.creatorAvatar! }} style={styles.sheetAvatar} />
+                ) : (
+                  <View style={[styles.sheetAvatar, { backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center' }]}>
+                    <User size={28} color={colors.textSecondary} />
+                  </View>
+                )}
+                <View style={{ marginLeft: 14, flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={[styles.sheetCreatorName, { color: colors.textPrimary }]}>
+                      {selectedCreator?.creatorName}
+                    </Text>
+                    {selectedCreator?.creatorVerified && (
+                      <CheckCircle size={16} color={colors.accent} fill={colors.accent} />
+                    )}
+                  </View>
+                  <Text style={[styles.sheetCreatorTitle, { color: colors.textSecondary }]} numberOfLines={1}>
+                    {selectedCreator?.creatorTitle || 'Specialist'}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                      <MapPin size={12} color={colors.textFaint} />
+                      <Text style={[styles.sheetMetaText, { color: colors.textSecondary }]}>
+                        {selectedCreator?.creatorCity || 'India'}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                      <Star size={12} color="#f59e0b" fill="#f59e0b" />
+                      <Text style={[styles.sheetMetaText, { color: colors.textSecondary, fontWeight: '700' }]}>
+                        {selectedCreator?.creatorRating && selectedCreator.creatorRating > 0
+                          ? selectedCreator.creatorRating.toFixed(1)
+                          : 'New Pro'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => setSelectedCreator(null)}
+                style={[styles.sheetCloseBtn, { backgroundColor: colors.surfaceElevated }]}
+              >
+                <X size={18} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Escrow Guarantee Highlight Banner */}
+            <View style={[styles.escrowBanner, { backgroundColor: colors.accentGlow, borderColor: colors.accent }]}>
+              <ShieldCheck size={20} color={colors.accent} />
+              <View style={{ marginLeft: 10, flex: 1 }}>
+                <Text style={[styles.escrowBannerTitle, { color: colors.accent }]}>
+                  Camqrew 100% Escrow Protection
+                </Text>
+                <Text style={[styles.escrowBannerDesc, { color: colors.textSecondary }]}>
+                  Milestone payments: 30% Advance • 40% Shoot Wrap • 30% Final Delivery. Funds released only when you approve.
+                </Text>
+              </View>
+            </View>
+
+            {/* Rate Showcase Card */}
+            <View style={[styles.rateCardRow, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+              <View>
+                <Text style={[styles.rateCardLabel, { color: colors.textFaint }]}>CREATOR DAY RATE</Text>
+                <Text style={[styles.rateCardAmount, { color: colors.textPrimary }]}>
+                  ₹{(selectedCreator?.creatorRatePerDay || 18000).toLocaleString('en-IN')}
+                  <Text style={{ fontSize: 13, fontWeight: '500', color: colors.textSecondary }}> / full shoot day</Text>
+                </Text>
+              </View>
+              <View style={[styles.availabilityBadge, { backgroundColor: 'rgba(34, 197, 94, 0.15)' }]}>
+                <View style={[styles.availableDot, { backgroundColor: colors.success }]} />
+                <Text style={[styles.availableText, { color: colors.success }]}>Accepting Shoots</Text>
+              </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.sheetActionsContainer}>
+              <TouchableOpacity
+                style={[styles.sheetPrimaryBtn, { backgroundColor: colors.accent }]}
+                activeOpacity={0.88}
+                onPress={() => {
+                  const c = selectedCreator;
+                  setSelectedCreator(null);
+                  if (c) handleBook(c);
+                }}
+              >
+                <CalendarCheck size={18} color="#ffffff" style={{ marginRight: 8 }} />
+                <Text style={styles.sheetPrimaryBtnText}>Book Shoot with Escrow</Text>
+              </TouchableOpacity>
+
+              <View style={styles.sheetSecondaryRow}>
+                <TouchableOpacity
+                  style={[styles.sheetSecondaryBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    const c = selectedCreator;
+                    setSelectedCreator(null);
+                    if (c) handleMessage(c);
+                  }}
+                >
+                  <MessageSquare size={16} color={colors.textPrimary} style={{ marginRight: 6 }} />
+                  <Text style={[styles.sheetSecondaryBtnText, { color: colors.textPrimary }]}>Direct Chat</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.sheetSecondaryBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    const c = selectedCreator;
+                    setSelectedCreator(null);
+                    if (c) handleViewProfile(c);
+                  }}
+                >
+                  <User size={16} color={colors.textPrimary} style={{ marginRight: 6 }} />
+                  <Text style={[styles.sheetSecondaryBtnText, { color: colors.textPrimary }]}>Full Profile</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -526,15 +899,14 @@ export const ReelsFeedScreen: React.FC = () => {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#0B0F12',
   },
   reelContainer: {
-    width: SCREEN_WIDTH,
     position: 'relative',
     backgroundColor: '#000000',
   },
   videoPlayer: {
-    width: SCREEN_WIDTH,
+    width: '100%',
     height: '100%',
     backgroundColor: '#000000',
   },
@@ -543,89 +915,159 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 140,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    height: 180,
   },
   bottomVignette: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 340,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    height: 420,
   },
+
+  // Floating Header Bar
   topHeaderBar: {
     position: 'absolute',
     left: 0,
     right: 0,
     zIndex: 100,
-    paddingHorizontal: 16,
   },
-  headerTitleRow: {
+  headerBrandRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
     marginBottom: 10,
+  },
+  brandTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerBrandTitle: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   headerSubTitle: {
-    color: '#3fb668',
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 19,
+    fontWeight: '900',
     marginLeft: 5,
   },
+  headerCounterBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  headerCounterText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  // Category Filter Pills
   categoryScrollContent: {
+    paddingHorizontal: 16,
     gap: 8,
-    paddingRight: 20,
   },
   categoryFilterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 15,
+    paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(20, 25, 30, 0.7)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   categoryFilterChipActive: {
-    backgroundColor: '#3fb668',
-    borderColor: '#3fb668',
+    shadowColor: '#3fb668',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 5,
+    elevation: 3,
   },
   categoryFilterText: {
-    color: 'rgba(255,255,255,0.85)',
+    color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 12,
     fontWeight: '700',
   },
   categoryFilterTextActive: {
     color: '#ffffff',
+    fontWeight: '800',
   },
+
+  // Center Animations
+  heartAnimContainer: {
+    position: 'absolute',
+    top: '40%',
+    left: '50%',
+    marginLeft: -55,
+    marginTop: -55,
+    zIndex: 999,
+  },
+  heartGlowCircle: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playPauseAnimContainer: {
+    position: 'absolute',
+    top: '42%',
+    left: '50%',
+    marginLeft: -38,
+    marginTop: -38,
+    zIndex: 998,
+  },
+  playPauseIconCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+
+  // Right Floating Actions
   rightActionColumn: {
     position: 'absolute',
     right: 14,
     alignItems: 'center',
-    gap: 16,
+    gap: 15,
     zIndex: 90,
   },
-  creatorAvatarBtn: {
+  actionAvatarBtn: {
     position: 'relative',
-    marginBottom: 6,
+    marginBottom: 4,
   },
-  creatorAvatarImg: {
+  actionAvatarRing: {
     width: 48,
     height: 48,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: '#3fb668',
+    overflow: 'hidden',
   },
-  avatarVerifiedBadge: {
+  actionAvatarImg: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarHirePlusBadge: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
-    backgroundColor: '#000000',
-    borderRadius: 8,
+    bottom: -3,
+    right: -3,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#000000',
   },
   actionBtn: {
     alignItems: 'center',
@@ -634,189 +1076,476 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(20, 25, 30, 0.75)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   actionIconCircleLiked: {
-    backgroundColor: 'rgba(255, 59, 92, 0.2)',
-    borderColor: 'rgba(255, 59, 92, 0.5)',
+    backgroundColor: 'rgba(255, 51, 75, 0.25)',
+    borderColor: 'rgba(255, 51, 75, 0.6)',
   },
-  actionCountText: {
+  actionLabel: {
     color: '#ffffff',
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '700',
     marginTop: 4,
-    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowColor: 'rgba(0,0,0,0.85)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
+
+  // Bottom Information Area
   bottomInfoContainer: {
     position: 'absolute',
-    left: 16,
-    right: 76,
+    left: 14,
+    right: 74,
     zIndex: 90,
   },
-  reelBadgeRow: {
+  badgeRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     marginBottom: 6,
   },
-  categoryPill: {
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  categoryPillText: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  shortPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(63, 182, 104, 0.2)',
+  categoryBadge: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(63, 182, 104, 0.4)',
+    borderColor: 'rgba(255,255,255,0.12)',
   },
-  shortPillText: {
-    color: '#3fb668',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  creatorNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  creatorNameText: {
+  categoryBadgeText: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 10.5,
     fontWeight: '800',
     letterSpacing: 0.2,
   },
-  creatorMetaRow: {
+  shortBadge: {
+    backgroundColor: 'rgba(63, 182, 104, 0.2)',
+    borderColor: 'rgba(63, 182, 104, 0.4)',
+  },
+  shortBadgeText: {
+    color: '#3fb668',
+    fontSize: 10.5,
+    fontWeight: '800',
+  },
+  locationBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  creatorLocationText: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 12,
+  locationBadgeText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 10.5,
     fontWeight: '600',
   },
-  creatorMetaDivider: {
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    paddingHorizontal: 7,
+    paddingVertical: 3.5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+  },
+  ratingBadgeText: {
+    color: '#f59e0b',
+    fontSize: 10.5,
+    fontWeight: '800',
+  },
+
+  creatorIdentityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  creatorNameText: {
+    color: '#ffffff',
+    fontSize: 16.5,
+    fontWeight: '900',
+    letterSpacing: 0.2,
+  },
+  creatorDividerDot: {
     color: 'rgba(255,255,255,0.4)',
     marginHorizontal: 6,
     fontSize: 12,
   },
   creatorTitleText: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12.5,
     fontWeight: '600',
     flex: 1,
   },
-  reelTitleText: {
+
+  captionContainer: {
+    marginBottom: 6,
+  },
+  captionText: {
     color: '#ffffff',
     fontSize: 13.5,
+    lineHeight: 18.5,
     fontWeight: '600',
-    lineHeight: 18,
-    marginBottom: 12,
-    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowColor: 'rgba(0,0,0,0.9)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
-  bookCreatorBtn: {
-    backgroundColor: '#3fb668',
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    shadowColor: '#3fb668',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 4,
+  expandCaptionBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 2,
   },
-  bookBtnInner: {
+  expandCaptionText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
+
+  audioTickerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 10,
   },
-  bookBtnIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(0,0,0,0.15)',
+  audioTickerText: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 11.5,
+    fontWeight: '600',
+    flex: 1,
+  },
+
+  // Quick Hire Integrated Booking Bar
+  quickHireBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(19, 23, 26, 0.88)',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  quickHireLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  quickHireIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bookBtnMainText: {
+  quickHireTitle: {
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '800',
   },
-  bookBtnSubText: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  bookBtnArrow: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  escrowBadgeMini: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 3,
+    marginLeft: 6,
+    backgroundColor: 'rgba(63, 182, 104, 0.15)',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 6,
   },
-  heartAnimContainer: {
+  escrowBadgeMiniText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+  },
+  quickHireRate: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  quickHireRightBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+  quickHireBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+
+  // Bottom Progress Bar Line
+  bottomProgressBarTrack: {
     position: 'absolute',
-    top: '42%',
-    left: SCREEN_WIDTH / 2 - 45,
-    zIndex: 999,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
+  bottomProgressBarFill: {
+    width: '100%',
+    height: '100%',
+  },
+
+  // Loading Screen
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000000',
+    padding: 24,
+  },
+  loadingCard: {
+    paddingVertical: 24,
+    paddingHorizontal: 30,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
   },
   loadingText: {
-    color: 'rgba(255,255,255,0.7)',
     fontSize: 14,
-    fontWeight: '600',
-    marginTop: 12,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-    backgroundColor: '#000000',
-  },
-  emptyTitle: {
-    color: '#ffffff',
-    fontSize: 18,
     fontWeight: '700',
     marginTop: 14,
   },
-  emptySubtitle: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 13,
-    textAlign: 'center',
-    marginTop: 6,
+
+  // Empty Screen State
+  emptyScreenContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  emptyCard: {
+    width: '100%',
+    maxWidth: 380,
+    padding: 26,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  emptyIconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
   },
-  emptyResetBtn: {
-    backgroundColor: '#3fb668',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
+  emptyCardTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 8,
   },
-  emptyResetText: {
+  emptyCardDesc: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 22,
+  },
+  emptyActionsRow: {
+    width: '100%',
+    gap: 10,
+  },
+  emptyPrimaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 13,
+    borderRadius: 14,
+  },
+  emptyPrimaryBtnText: {
     color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  emptySecondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 13,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  emptySecondaryBtnText: {
+    fontSize: 13.5,
+    fontWeight: '800',
+  },
+  emptyGhostBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  emptyGhostBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  // Creator Quick View Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'flex-end',
+  },
+  creatorSheetCard: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    padding: 22,
+    paddingBottom: Platform.OS === 'ios' ? 38 : 28,
+  },
+  sheetDragBar: {
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 18,
+  },
+  sheetHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 18,
+  },
+  sheetCreatorMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  sheetAvatar: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    borderWidth: 2,
+    borderColor: '#3fb668',
+  },
+  sheetCreatorName: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  sheetCreatorTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  sheetMetaText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  sheetCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  escrowBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 14,
+  },
+  escrowBannerTitle: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  escrowBannerDesc: {
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  rateCardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 18,
+  },
+  rateCardLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  rateCardAmount: {
+    fontSize: 18,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  availabilityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 10,
+    gap: 5,
+  },
+  availableDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  availableText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  sheetActionsContainer: {
+    gap: 10,
+  },
+  sheetPrimaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 16,
+  },
+  sheetPrimaryBtnText: {
+    color: '#ffffff',
+    fontSize: 14.5,
+    fontWeight: '800',
+  },
+  sheetSecondaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  sheetSecondaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  sheetSecondaryBtnText: {
     fontSize: 13,
     fontWeight: '700',
   },
