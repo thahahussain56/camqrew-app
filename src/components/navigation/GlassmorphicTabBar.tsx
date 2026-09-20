@@ -127,20 +127,10 @@ export const GlassmorphicTabBar: React.FC<BottomTabBarProps> = ({
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  // Hide tab bar on specific child screens (Booking, Chat, ProductDetail, etc.)
-  const focusedRoute = state.routes[state.index];
-  const focusedRouteName = getFocusedRouteNameFromRoute(focusedRoute) ?? '';
-  const focusedOptions = descriptors[focusedRoute.key].options;
-  const tabStyle = focusedOptions.tabBarStyle as any;
-
-  if (HIDDEN_SCREENS.includes(focusedRouteName) || (tabStyle && tabStyle.display === 'none')) {
-    return null;
-  }
-
   const SIDE_MARGIN = 20;
   const [barWidth, setBarWidth] = useState(SCREEN_WIDTH - SIDE_MARGIN * 2);
 
-  const TAB_COUNT = state.routes.length;
+  const TAB_COUNT = Math.max(state.routes.length, 1);
   const tabWidth = barWidth / TAB_COUNT;
   const PILL_H_MARGIN = 6;
   const pillWidth = Math.max(tabWidth - PILL_H_MARGIN * 2, 40);
@@ -156,6 +146,16 @@ export const GlassmorphicTabBar: React.FC<BottomTabBarProps> = ({
       useNativeDriver: true,
     }).start();
   }, [state.index]);
+
+  // Hide tab bar on specific child screens (Booking, Chat, ProductDetail, etc.)
+  const focusedRoute = state.routes[state.index];
+  const focusedRouteName = getFocusedRouteNameFromRoute(focusedRoute) ?? '';
+  const focusedOptions = descriptors[focusedRoute?.key]?.options || {};
+  const tabStyle = focusedOptions.tabBarStyle as any;
+
+  if (HIDDEN_SCREENS.includes(focusedRouteName) || (tabStyle && tabStyle.display === 'none')) {
+    return null;
+  }
 
   const translateX = pillAnim.interpolate({
     inputRange: state.routes.map((_, i) => i),

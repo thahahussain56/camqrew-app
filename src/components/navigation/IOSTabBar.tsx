@@ -154,14 +154,6 @@ export const IOSTabBar: React.FC<BottomTabBarProps> = ({
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  // Check if current tab wants to hide bar (e.g. detail screens)
-  const focusedRoute = state.routes[state.index];
-  const focusedOptions = descriptors[focusedRoute.key].options;
-  const tabStyle = focusedOptions.tabBarStyle as any;
-  if (tabStyle && tabStyle.display === "none") {
-    return null;
-  }
-
   const TAB_COUNT = state.routes.length;
   const SIDE_MARGIN = 16;
   const BAR_WIDTH = SCREEN_WIDTH - SIDE_MARGIN * 2;
@@ -174,6 +166,14 @@ export const IOSTabBar: React.FC<BottomTabBarProps> = ({
   const pillStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: pillX.value }],
   }));
+
+  // Check if current tab wants to hide bar (e.g. detail screens)
+  const focusedRoute = state.routes[state.index];
+  const focusedOptions = descriptors[focusedRoute.key].options;
+  const tabStyle = focusedOptions.tabBarStyle as any;
+  if (tabStyle && tabStyle.display === "none") {
+    return null;
+  }
 
   return (
     <View
