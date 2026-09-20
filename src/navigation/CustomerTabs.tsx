@@ -1,12 +1,9 @@
 import React from 'react';
-import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
-import { StyleSheet, View, Text, TouchableOpacity, Platform } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
 
 import { HomeScreen } from '../screens/customer/HomeScreen';
@@ -44,6 +41,7 @@ import { ReelsFeedScreen } from '../screens/customer/ReelsFeedScreen';
 import { useAuthStore } from '../store/authStore';
 
 import { Home, LayoutGrid, ShoppingBag, User, MessageSquare, Briefcase, Film } from 'lucide-react-native';
+import { GlassmorphicTabBar } from '../components/navigation/GlassmorphicTabBar';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -143,209 +141,39 @@ function ProfileStack() {
     </Stack.Navigator>
   );
 }
-
-
-const HIDDEN_SCREENS = new Set([
-  'ProductDetail',
-  'Cart',
-  'SaleCheckout',
-  'RentalCheckout',
-  'Chat',
-  'ChatInfo',
-  'Booking',
-  'OrderDetail',
-  'PublicProfile',
-  'EditProfile',
-  'PrimeSubscription',
-  'CreateJob',
-  'JobBoardScreen',
-  'JobBoard',
-]);
-
-const CustomBottomTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
-  const insets = useSafeAreaInsets();
-  const currentRoute = state.routes[state.index];
-  const focusedScreenName = getFocusedRouteNameFromRoute(currentRoute) ?? '';
-
-  if (HIDDEN_SCREENS.has(focusedScreenName)) {
-    return null;
-  }
-
-  const bottomInset = Math.max(insets.bottom, 16);
-
-  return (
-    <View style={[styles.tabBarWrapper, { bottom: bottomInset }]} pointerEvents="box-none">
-      {/* Outer Floating Frosted Glass Capsule */}
-      <View style={styles.tabBarCapsule}>
-        {/* Frosted Dark Glass Acrylic Blur */}
-        <View style={styles.blurClip}>
-          <BlurView tint="dark" intensity={85} style={StyleSheet.absoluteFill} />
-        </View>
-
-        {/* Top Rim Luminous Hairline Highlight */}
-        <LinearGradient
-          colors={['rgba(255, 255, 255, 0.35)', 'rgba(255, 255, 255, 0.10)', 'transparent']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.topRimHighlight}
-        />
-
-        {/* Navigation Items Row */}
-        <View style={styles.tabItemsRow}>
-          {state.routes.map((route, index) => {
-            const isFocused = state.index === index;
-
-            const onPress = () => {
-              const event = navigation.emit({
-                type: 'tabPress',
-                target: route.key,
-                canPreventDefault: true,
-              });
-
-              if (!isFocused && !event.defaultPrevented) {
-                try {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                } catch {}
-                navigation.navigate(route.name);
-              }
-            };
-
-            const onLongPress = () => {
-              navigation.emit({
-                type: 'tabLongPress',
-                target: route.key,
-              });
-            };
-
-            let accessibilityLabel = 'Tab';
-            let IconComponent = Home;
-            let fillActive = false;
-
-            if (route.name === 'HomeTab') {
-              accessibilityLabel = 'Creators';
-              IconComponent = Home;
-              fillActive = true;
-            } else if (route.name === 'ExploreTab') {
-              accessibilityLabel = 'Categories';
-              IconComponent = LayoutGrid;
-              fillActive = false;
-            } else if (route.name === 'ReelsTab') {
-              accessibilityLabel = 'Reels';
-              IconComponent = Film;
-              fillActive = false;
-            } else if (route.name === 'MarketplaceTab') {
-              accessibilityLabel = 'Gear Store';
-              IconComponent = ShoppingBag;
-              fillActive = true;
-            } else if (route.name === 'ProfileTab') {
-              accessibilityLabel = 'Account';
-              IconComponent = User;
-              fillActive = true;
-            }
-
-            return (
-              <TouchableOpacity
-                key={route.key}
-                activeOpacity={0.7}
-                onPress={onPress}
-                onLongPress={onLongPress}
-                accessibilityRole="tab"
-                accessibilityLabel={accessibilityLabel}
-                accessibilityState={{ selected: isFocused }}
-                style={[
-                  styles.tabItem,
-                  isFocused && styles.tabItemActive,
-                ]}
-              >
-                <IconComponent
-                  size={22}
-                  color={isFocused ? '#ffffff' : 'rgba(255, 255, 255, 0.55)'}
-                  fill={isFocused && fillActive ? '#ffffff' : 'transparent'}
-                  strokeWidth={isFocused ? 2.4 : 1.8}
-                />
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-    </View>
-  );
-};
-
 export const CustomerTabs: React.FC = () => {
   return (
     <Tab.Navigator
-      tabBar={(props) => <CustomBottomTabBar {...props} />}
+      tabBar={(props) => <GlassmorphicTabBar {...props} />}
       screenOptions={{
         headerShown: false,
       }}
     >
-      <Tab.Screen name="HomeTab" component={HomeStack} />
-      <Tab.Screen name="ExploreTab" component={ExploreStack} />
-      <Tab.Screen name="ReelsTab" component={ReelsStack} />
-      <Tab.Screen name="MarketplaceTab" component={MarketplaceStack} />
-      <Tab.Screen name="ProfileTab" component={ProfileStack} />
+      <Tab.Screen
+        name="HomeTab"
+        component={HomeStack}
+        options={{ tabBarLabel: 'Creators' }}
+      />
+      <Tab.Screen
+        name="ExploreTab"
+        component={ExploreStack}
+        options={{ tabBarLabel: 'Categories' }}
+      />
+      <Tab.Screen
+        name="ReelsTab"
+        component={ReelsStack}
+        options={{ tabBarLabel: 'Reels' }}
+      />
+      <Tab.Screen
+        name="MarketplaceTab"
+        component={MarketplaceStack}
+        options={{ tabBarLabel: 'Gear Store' }}
+      />
+      <Tab.Screen
+        name="ProfileTab"
+        component={ProfileStack}
+        options={{ tabBarLabel: 'Account' }}
+      />
     </Tab.Navigator>
   );
 };
-
-const styles = StyleSheet.create({
-  tabBarWrapper: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    zIndex: 9999,
-  },
-  tabBarCapsule: {
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(14, 20, 26, 0.65)',
-    borderWidth: 1.2,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    elevation: 12,
-  },
-  blurClip: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 32,
-    overflow: 'hidden',
-  },
-  topRimHighlight: {
-    position: 'absolute',
-    top: 0,
-    left: 24,
-    right: 24,
-    height: 1.2,
-    borderRadius: 1,
-  },
-  tabItemsRow: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 6,
-  },
-  tabItem: {
-    flex: 1,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabItemActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.10)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-});
