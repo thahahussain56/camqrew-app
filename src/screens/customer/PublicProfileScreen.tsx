@@ -14,7 +14,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { ProductCard } from '../../components/cards/ProductCard';
 import { useCartStore } from '../../store/cartStore';
-import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink } from 'lucide-react-native';
+import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, ThumbsUp, Check, Award } from 'lucide-react-native';
 import { getArchetype } from '../../constants/categories';
 
 const { width } = Dimensions.get('window');
@@ -39,6 +39,47 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
   const [selectedRating, setSelectedRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [ratingFilter, setRatingFilter] = useState<'all' | number>('all');
+  const [helpfulVotes, setHelpfulVotes] = useState<Record<string, number>>({});
+  const [userVotedHelpful, setUserVotedHelpful] = useState<Record<string, boolean>>({});
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  const QUICK_TAGS = [
+    'Punctual & Reliable',
+    'Exceptional Quality',
+    'Great Communication',
+    'Creative Direction',
+    'Fast Turnaround',
+    'Escrow Verified Work',
+  ];
+
+  const getRatingSentiment = (r: number) => {
+    switch (r) {
+      case 5: return { label: 'Exceptional Work! 🌟', color: '#10b981' };
+      case 4: return { label: 'Very Good! 👍', color: '#3fb668' };
+      case 3: return { label: 'Satisfactory 👌', color: '#f59e0b' };
+      case 2: return { label: 'Could Be Better 👎', color: '#f97316' };
+      case 1: return { label: 'Disappointing Experience ⚠️', color: '#ef4444' };
+      default: return { label: 'Select Rating', color: colors.textSecondary };
+    }
+  };
+
+  const handleToggleHelpful = (reviewId: string) => {
+    setUserVotedHelpful(prev => {
+      const isAlreadyVoted = !!prev[reviewId];
+      const updatedState = !isAlreadyVoted;
+      
+      setHelpfulVotes(vPrev => ({
+        ...vPrev,
+        [reviewId]: Math.max(0, (vPrev[reviewId] || 0) + (updatedState ? 1 : -1)),
+      }));
+
+      return {
+        ...prev,
+        [reviewId]: updatedState,
+      };
+    });
+  };
 
   useEffect(() => {
     if (!proId) {
@@ -79,19 +120,23 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
     }
     setSelectedRating(5);
     setReviewComment('');
+    setSelectedTags([]);
     setShowReviewModal(true);
   };
 
   const handleSubmitReview = async () => {
     if (!profile) return;
-    if (!reviewComment.trim()) {
-      Alert.alert('Missing Review', 'Please write a brief comment describing your experience.');
+    if (!reviewComment.trim() && selectedTags.length === 0) {
+      Alert.alert('Missing Feedback', 'Please write a comment or select highlights describing your experience.');
       return;
     }
 
     setSubmittingReview(true);
     try {
-      const newRev = await professionalApi.addReview(profile.id, selectedRating, reviewComment);
+      const tagSuffix = selectedTags.length > 0 ? `\n\nHighlights: ${selectedTags.join(' • ')}` : '';
+      const finalComment = `${reviewComment.trim()}${tagSuffix}`.trim();
+
+      const newRev = await professionalApi.addReview(profile.id, selectedRating, finalComment);
       setReviews(prev => [newRev, ...prev]);
       
       // Update profile review stats locally
@@ -108,7 +153,8 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
 
       setShowReviewModal(false);
       setReviewComment('');
-      Alert.alert('Review Submitted! ⭐', 'Thank you! Your verified rating and review have been published.');
+      setSelectedTags([]);
+      Alert.alert('Review Published! ⭐', 'Thank you! Your verified rating and review have been published.');
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to submit review.');
     } finally {
@@ -160,6 +206,26 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
     'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=800',
     'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=800',
     'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=800',
+  ];
+
+  // Ratings Breakdown & Filter calculations
+  const starCounts = [5, 4, 3, 2, 1].map(stars => {
+    const count = reviews.filter(r => Math.round(r.rating) === stars).length;
+    const percentage = reviews.length > 0 ? Math.round((count / reviews.length) * 100) : 0;
+    return { stars, count, percentage };
+  });
+
+  const filteredReviews = ratingFilter === 'all'
+    ? reviews
+    : reviews.filter(r => Math.round(r.rating) === ratingFilter);
+
+  const filterOptions: { label: string; value: 'all' | number; count?: number }[] = [
+    { label: 'All', value: 'all', count: reviews.length },
+    { label: '5 ★', value: 5, count: reviews.filter(r => Math.round(r.rating) === 5).length },
+    { label: '4 ★', value: 4, count: reviews.filter(r => Math.round(r.rating) === 4).length },
+    { label: '3 ★', value: 3, count: reviews.filter(r => Math.round(r.rating) === 3).length },
+    { label: '2 ★', value: 2, count: reviews.filter(r => Math.round(r.rating) === 2).length },
+    { label: '1 ★', value: 1, count: reviews.filter(r => Math.round(r.rating) === 1).length },
   ];
 
   return (
@@ -386,35 +452,142 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
           </Card>
         )}
 
-        {/* ── Client Reviews & Star Ratings Section ── */}
+        {/* ── Redesigned Client Reviews & Star Ratings Section ── */}
         <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+          {/* Header Row */}
           <View style={styles.reviewsHeaderRow}>
-            <View>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 2 }]}>Client Reviews & Ratings</Text>
-              <View style={styles.reviewsSubRatingRow}>
-                <Star size={16} color={colors.warning} fill={colors.warning} style={{ marginRight: 4 }} />
-                <Text style={[styles.reviewsScoreText, { color: colors.textPrimary }]}>
-                  {(profile.rating ?? 5.0).toFixed(1)}
-                </Text>
-                <Text style={[styles.reviewsTotalCount, { color: colors.textSecondary }]}>
-                  • {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
-                </Text>
-              </View>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 2 }]}>
+                Client Reviews & Ratings
+              </Text>
+              <Text style={[styles.reviewsSubtitle, { color: colors.textSecondary }]}>
+                Verified feedback from completed bookings
+              </Text>
             </View>
 
             <TouchableOpacity
-              style={[styles.writeReviewBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
+              style={[styles.writeReviewBtn, { backgroundColor: colors.accentGlow, borderColor: colors.accent }]}
               onPress={handleOpenReview}
               activeOpacity={0.8}
             >
               <Star size={14} color={colors.accent} fill={colors.accent} style={{ marginRight: 6 }} />
-              <Text style={[styles.writeReviewBtnText, { color: colors.textPrimary }]}>Write a Review</Text>
+              <Text style={[styles.writeReviewBtnText, { color: colors.accent }]}>Write Review</Text>
             </TouchableOpacity>
           </View>
 
+          {/* Hero Rating Summary Card (Score + 5-Bar Histogram) */}
+          <View style={[styles.heroRatingCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+            <View style={styles.heroScoreCol}>
+              <Text style={[styles.heroBigScore, { color: colors.textPrimary }]}>
+                {(profile.rating ?? 5.0).toFixed(1)}
+              </Text>
+              <View style={styles.heroStarsRow}>
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    size={15}
+                    color="#FFB800"
+                    fill={s <= Math.round(profile.rating ?? 5.0) ? '#FFB800' : 'transparent'}
+                    style={{ marginHorizontal: 1 }}
+                  />
+                ))}
+              </View>
+              <Text style={[styles.heroRatingCount, { color: colors.textSecondary }]}>
+                {reviews.length} {reviews.length === 1 ? 'verified review' : 'verified reviews'}
+              </Text>
+              <View style={[styles.escrowTrustTag, { backgroundColor: colors.accentGlow }]}>
+                <ShieldCheck size={11} color={colors.accent} style={{ marginRight: 4 }} />
+                <Text style={[styles.escrowTrustText, { color: colors.accent }]}>100% Escrow Verified</Text>
+              </View>
+            </View>
+
+            <View style={[styles.heroDivider, { backgroundColor: colors.border }]} />
+
+            {/* 5-Bar Histogram */}
+            <View style={styles.histogramCol}>
+              {starCounts.map(({ stars, count, percentage }) => (
+                <TouchableOpacity
+                  key={stars}
+                  style={styles.histogramRow}
+                  onPress={() => setRatingFilter(ratingFilter === stars ? 'all' : stars)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.histogramStarLabel, { color: colors.textSecondary }]}>{stars}★</Text>
+                  <View style={[styles.histogramTrack, { backgroundColor: colors.border }]}>
+                    <View
+                      style={[
+                        styles.histogramFill,
+                        {
+                          width: `${Math.max(percentage, count > 0 ? 8 : 0)}%`,
+                          backgroundColor: ratingFilter === stars ? colors.accent : '#FFB800',
+                        }
+                      ]}
+                    />
+                  </View>
+                  <Text style={[styles.histogramCountLabel, { color: colors.textFaint }]}>{count}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Trust Badges Strip */}
+          <View style={styles.trustBadgesStrip}>
+            <View style={[styles.trustPill, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+              <CheckCircle size={11} color={colors.accent} style={{ marginRight: 4 }} />
+              <Text style={[styles.trustPillText, { color: colors.textSecondary }]}>Verified Bookings</Text>
+            </View>
+            <View style={[styles.trustPill, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+              <ShieldCheck size={11} color="#00dbe9" style={{ marginRight: 4 }} />
+              <Text style={[styles.trustPillText, { color: colors.textSecondary }]}>Escrow Protection</Text>
+            </View>
+            <View style={[styles.trustPill, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+              <Award size={11} color="#FFB800" style={{ marginRight: 4 }} />
+              <Text style={[styles.trustPillText, { color: colors.textSecondary }]}>Authentic Clients</Text>
+            </View>
+          </View>
+
+          {/* Filter Chips Bar (when reviews > 0) */}
+          {reviews.length > 0 && (
+            <View style={styles.filterChipsContainer}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipsScroll}>
+                {filterOptions
+                  .filter(opt => opt.value === 'all' || (opt.count ?? 0) > 0)
+                  .map((opt) => {
+                    const isActive = ratingFilter === opt.value;
+                    return (
+                      <TouchableOpacity
+                        key={String(opt.value)}
+                        style={[
+                          styles.filterChip,
+                          {
+                            backgroundColor: isActive ? colors.accent : colors.surfaceElevated,
+                            borderColor: isActive ? colors.accent : colors.border,
+                          }
+                        ]}
+                        onPress={() => setRatingFilter(opt.value)}
+                        activeOpacity={0.7}
+                      >
+                        <Text
+                          style={[
+                            styles.filterChipText,
+                            { color: isActive ? '#ffffff' : colors.textSecondary, fontWeight: isActive ? '800' : '600' }
+                          ]}
+                        >
+                          {opt.label} {opt.count !== undefined ? `(${opt.count})` : ''}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Reviews List or Empty State */}
           {reviews.length === 0 ? (
-            <View style={[styles.emptyReviewsBox, { backgroundColor: colors.background }]}>
-              <MessageCircle size={32} color={colors.textFaint} style={{ marginBottom: 8 }} />
+            <View style={[styles.emptyReviewsBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+              <View style={[styles.emptyIconCircle, { backgroundColor: colors.accentGlow }]}>
+                <MessageCircle size={28} color={colors.accent} />
+              </View>
               <Text style={[styles.emptyReviewsTitle, { color: colors.textPrimary }]}>No reviews yet</Text>
               <Text style={[styles.emptyReviewsDesc, { color: colors.textSecondary }]}>
                 Be the first to share your experience working with {profile.name}!
@@ -422,50 +595,103 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
               <TouchableOpacity
                 style={[styles.beFirstBtn, { backgroundColor: colors.accent }]}
                 onPress={handleOpenReview}
+                activeOpacity={0.8}
               >
+                <Star size={14} color="#ffffff" fill="#ffffff" style={{ marginRight: 6 }} />
                 <Text style={styles.beFirstBtnText}>Rate & Review Now</Text>
+              </TouchableOpacity>
+            </View>
+          ) : filteredReviews.length === 0 ? (
+            <View style={[styles.emptyFilterBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+              <Text style={[styles.emptyFilterText, { color: colors.textSecondary }]}>
+                No reviews found with {ratingFilter}★ rating.
+              </Text>
+              <TouchableOpacity
+                style={[styles.clearFilterBtn, { borderColor: colors.accent }]}
+                onPress={() => setRatingFilter('all')}
+              >
+                <Text style={[styles.clearFilterBtnText, { color: colors.accent }]}>Show All Reviews</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.reviewsListContainer}>
-              {reviews.map((rev, i) => (
-                <View key={rev.id || i} style={[styles.reviewItemCard, { borderBottomColor: colors.border }]}>
-                  <View style={styles.reviewAuthorRow}>
-                    <View style={styles.reviewerMeta}>
-                      {rev.clientAvatar ? (
-                        <Image source={{ uri: rev.clientAvatar }} style={styles.reviewerAvatar} />
-                      ) : (
-                        <View style={[styles.reviewerInitials, { backgroundColor: colors.accent }]}>
-                          <Text style={styles.reviewerInitialText}>
-                            {rev.clientName ? rev.clientName[0].toUpperCase() : 'C'}
-                          </Text>
+              {filteredReviews.map((rev, i) => {
+                const isHelpful = !!userVotedHelpful[rev.id];
+                const helpfulCount = helpfulVotes[rev.id] || 0;
+                return (
+                  <View
+                    key={rev.id || i}
+                    style={[
+                      styles.reviewItemCard,
+                      {
+                        backgroundColor: colors.surfaceElevated,
+                        borderColor: colors.border,
+                      }
+                    ]}
+                  >
+                    {/* Review Header: Reviewer Info + Rating Pill */}
+                    <View style={styles.reviewAuthorRow}>
+                      <View style={styles.reviewerMeta}>
+                        {rev.clientAvatar ? (
+                          <Image source={{ uri: rev.clientAvatar }} style={styles.reviewerAvatar} />
+                        ) : (
+                          <View style={[styles.reviewerInitials, { backgroundColor: colors.accent }]}>
+                            <Text style={styles.reviewerInitialText}>
+                              {rev.clientName ? rev.clientName[0].toUpperCase() : 'C'}
+                            </Text>
+                          </View>
+                        )}
+                        <View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={[styles.reviewerName, { color: colors.textPrimary }]}>{rev.clientName}</Text>
+                            <View style={styles.verifiedBadgeInline}>
+                              <CheckCircle size={11} color={colors.accent} />
+                              <Text style={[styles.verifiedBadgeInlineText, { color: colors.accent }]}>Verified</Text>
+                            </View>
+                          </View>
+                          <Text style={[styles.reviewDate, { color: colors.textFaint }]}>{rev.date}</Text>
                         </View>
-                      )}
-                      <View>
-                        <Text style={[styles.reviewerName, { color: colors.textPrimary }]}>{rev.clientName}</Text>
-                        <Text style={[styles.reviewDate, { color: colors.textFaint }]}>{rev.date}</Text>
+                      </View>
+
+                      {/* Amber Rating Pill */}
+                      <View style={[styles.reviewStarsPill, { backgroundColor: 'rgba(255, 184, 0, 0.12)', borderColor: 'rgba(255, 184, 0, 0.25)' }]}>
+                        <Star size={13} color="#FFB800" fill="#FFB800" style={{ marginRight: 4 }} />
+                        <Text style={styles.reviewStarsPillText}>{Number(rev.rating).toFixed(1)}</Text>
                       </View>
                     </View>
 
-                    {/* Star Rating Badge */}
-                    <View style={[styles.reviewStarsPill, { backgroundColor: colors.surfaceElevated }]}>
-                      {[1, 2, 3, 4, 5].map((starVal) => (
-                        <Star
-                          key={starVal}
-                          size={13}
-                          color={starVal <= rev.rating ? '#F5A623' : colors.textFaint}
-                          fill={starVal <= rev.rating ? '#F5A623' : 'transparent'}
-                          style={{ marginHorizontal: 1 }}
-                        />
-                      ))}
+                    {/* Review Comment Body */}
+                    <Text style={[styles.reviewCommentText, { color: colors.textSecondary }]}>
+                      {rev.comment}
+                    </Text>
+
+                    {/* Review Card Footer: Escrow Tag & Helpful Button */}
+                    <View style={[styles.reviewFooterRow, { borderTopColor: colors.border }]}>
+                      <View style={styles.escrowFooterBadge}>
+                        <ShieldCheck size={12} color={colors.accent} style={{ marginRight: 4 }} />
+                        <Text style={[styles.escrowFooterText, { color: colors.textSecondary }]}>Escrow Verified Booking</Text>
+                      </View>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.helpfulBtn,
+                          {
+                            backgroundColor: isHelpful ? colors.accentGlow : 'transparent',
+                            borderColor: isHelpful ? colors.accent : colors.border,
+                          }
+                        ]}
+                        onPress={() => handleToggleHelpful(rev.id)}
+                        activeOpacity={0.7}
+                      >
+                        <ThumbsUp size={12} color={isHelpful ? colors.accent : colors.textSecondary} style={{ marginRight: 4 }} />
+                        <Text style={[styles.helpfulBtnText, { color: isHelpful ? colors.accent : colors.textSecondary }]}>
+                          Helpful {helpfulCount > 0 ? `(${helpfulCount})` : ''}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
-
-                  <Text style={[styles.reviewCommentText, { color: colors.textSecondary }]}>
-                    {rev.comment}
-                  </Text>
-                </View>
-              ))}
+                );
+              })}
             </View>
           )}
         </Card>
@@ -522,6 +748,157 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
             </View>
           )}
         </View>
+      </Modal>
+
+      {/* Interactive Client Review Modal */}
+      <Modal
+        visible={showReviewModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowReviewModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.reviewModalOverlay}
+        >
+          <View style={[styles.reviewModalCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border, borderWidth: 1 }]}>
+            {/* Modal Header */}
+            <View style={styles.reviewModalHeader}>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={[styles.reviewModalTitle, { color: colors.textPrimary }]}>Write a Review</Text>
+                <Text style={[styles.reviewModalSub, { color: colors.textSecondary }]} numberOfLines={1}>
+                  Rate your experience with {profile.name}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.reviewCloseBtn, { backgroundColor: colors.surfaceElevated }]}
+                onPress={() => setShowReviewModal(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <X size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+              {/* Star Rating Picker */}
+              <View style={styles.ratingPickerSection}>
+                <Text style={[styles.pickerLabel, { color: colors.textPrimary }]}>How would you rate their service?</Text>
+                <View style={styles.starPickerRow}>
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const isFilled = star <= selectedRating;
+                    return (
+                      <TouchableOpacity
+                        key={star}
+                        style={styles.starTouchItem}
+                        onPress={() => setSelectedRating(star)}
+                        activeOpacity={0.7}
+                      >
+                        <Star
+                          size={32}
+                          color={isFilled ? '#FFB800' : colors.textFaint}
+                          fill={isFilled ? '#FFB800' : 'transparent'}
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <Text style={[styles.starRatingLabel, { color: getRatingSentiment(selectedRating).color }]}>
+                  {getRatingSentiment(selectedRating).label}
+                </Text>
+              </View>
+
+              {/* Quick Experience Tag Chips */}
+              <View style={styles.quickTagsSection}>
+                <Text style={[styles.pickerLabel, { color: colors.textPrimary, marginBottom: 8 }]}>Highlights & Commendations</Text>
+                <View style={styles.quickTagsWrap}>
+                  {QUICK_TAGS.map((tag) => {
+                    const isSelected = selectedTags.includes(tag);
+                    return (
+                      <TouchableOpacity
+                        key={tag}
+                        style={[
+                          styles.quickTagChip,
+                          {
+                            backgroundColor: isSelected ? colors.accentGlow : colors.surfaceElevated,
+                            borderColor: isSelected ? colors.accent : colors.border,
+                          }
+                        ]}
+                        onPress={() => {
+                          setSelectedTags(prev =>
+                            prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+                          );
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        {isSelected && <Check size={12} color={colors.accent} style={{ marginRight: 4 }} />}
+                        <Text
+                          style={[
+                            styles.quickTagText,
+                            { color: isSelected ? colors.accent : colors.textSecondary }
+                          ]}
+                        >
+                          {tag}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Detailed Review TextInput */}
+              <View style={styles.commentSection}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <Text style={[styles.pickerLabel, { color: colors.textPrimary }]}>Detailed Feedback</Text>
+                  <Text style={{ fontSize: 11, color: colors.textFaint }}>{reviewComment.length} characters</Text>
+                </View>
+                <TextInput
+                  style={[
+                    styles.commentTextInput,
+                    {
+                      backgroundColor: colors.inputBackground,
+                      borderColor: colors.border,
+                      color: colors.textPrimary,
+                    }
+                  ]}
+                  placeholder="Share details about punctuality, communication, and overall quality of deliverables..."
+                  placeholderTextColor={colors.textFaint}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  value={reviewComment}
+                  onChangeText={setReviewComment}
+                />
+              </View>
+
+              {/* Action Buttons */}
+              <View style={styles.reviewModalActions}>
+                <TouchableOpacity
+                  style={[styles.reviewCancelBtn, { borderColor: colors.border, backgroundColor: colors.surfaceElevated }]}
+                  onPress={() => setShowReviewModal(false)}
+                  disabled={submittingReview}
+                >
+                  <Text style={[styles.reviewCancelBtnText, { color: colors.textSecondary }]}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.reviewSubmitBtn, { backgroundColor: colors.accent }]}
+                  onPress={handleSubmitReview}
+                  disabled={submittingReview}
+                  activeOpacity={0.8}
+                >
+                  {submittingReview ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <>
+                      <Send size={15} color="#ffffff" style={{ marginRight: 6 }} />
+                      <Text style={styles.reviewSubmitBtnText}>Publish Review</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -666,78 +1043,226 @@ const styles = StyleSheet.create({
   slideshowControls: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingHorizontal: 16, zIndex: 15 },
   navArrow: { backgroundColor: 'rgba(0, 0, 0, 0.5)', width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
 
+  // Redesigned Reviews Section Styles
   reviewsHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
-  reviewsSubRatingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  reviewsSubtitle: {
+    fontSize: 12,
     marginTop: 2,
-  },
-  reviewsScoreText: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  reviewsTotalCount: {
-    fontSize: 13,
-    marginLeft: 4,
   },
   writeReviewBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     borderRadius: 20,
     borderWidth: 1,
   },
   writeReviewBtnText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
   },
-  emptyReviewsBox: {
-    padding: 24,
-    borderRadius: 12,
+
+  // Hero Rating Summary & Histogram
+  heroRatingCard: {
+    flexDirection: 'row',
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  heroScoreCol: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    paddingRight: 16,
+    minWidth: 110,
+  },
+  heroBigScore: {
+    fontSize: 38,
+    fontWeight: '900',
+    letterSpacing: -1,
+    lineHeight: 44,
+  },
+  heroStarsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  heroRatingCount: {
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  escrowTrustTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  escrowTrustText: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  heroDivider: {
+    width: 1,
+    height: '85%',
+    marginRight: 16,
+  },
+  histogramCol: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 6,
+  },
+  histogramRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 1,
+  },
+  histogramStarLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    width: 22,
+  },
+  histogramTrack: {
+    flex: 1,
+    height: 7,
+    borderRadius: 4,
+    marginHorizontal: 8,
+    overflow: 'hidden',
+  },
+  histogramFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  histogramCountLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    width: 18,
+    textAlign: 'right',
+  },
+
+  // Trust Badges Strip
+  trustBadgesStrip: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  trustPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  trustPillText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+
+  // Filter Chips
+  filterChipsContainer: {
+    marginBottom: 16,
+  },
+  filterChipsScroll: {
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  filterChipText: {
+    fontSize: 12,
+  },
+
+  // Empty States
+  emptyReviewsBox: {
+    padding: 24,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  emptyIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   emptyReviewsTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 6,
   },
   emptyReviewsDesc: {
     fontSize: 13,
     textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 16,
+    lineHeight: 19,
+    marginBottom: 18,
     maxWidth: 260,
   },
   beFirstBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: 22,
   },
   beFirstBtnText: {
     color: '#ffffff',
     fontSize: 13,
+    fontWeight: '800',
+  },
+  emptyFilterBox: {
+    padding: 20,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyFilterText: {
+    fontSize: 13,
+    marginBottom: 10,
+  },
+  clearFilterBtn: {
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  clearFilterBtnText: {
+    fontSize: 12,
     fontWeight: '700',
   },
+
+  // Review List & Cards
   reviewsListContainer: {
-    marginTop: 4,
+    gap: 12,
   },
   reviewItemCard: {
-    paddingVertical: 14,
-    borderBottomWidth: 1,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
   },
   reviewAuthorRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   reviewerMeta: {
     flexDirection: 'row',
@@ -745,56 +1270,101 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   reviewerAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
   },
   reviewerInitials: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
   reviewerInitialText: {
     color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '900',
   },
   reviewerName: {
     fontSize: 14,
+    fontWeight: '800',
+  },
+  verifiedBadgeInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  verifiedBadgeInlineText: {
+    fontSize: 11,
     fontWeight: '700',
   },
   reviewDate: {
     fontSize: 11,
-    marginTop: 1,
+    marginTop: 2,
   },
   reviewStarsPill: {
     flexDirection: 'row',
-    paddingHorizontal: 8,
+    alignItems: 'center',
+    paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 12,
-    alignItems: 'center',
+    borderWidth: 1,
+  },
+  reviewStarsPillText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFB800',
   },
   reviewCommentText: {
     fontSize: 13,
-    lineHeight: 19,
-    paddingLeft: 46,
+    lineHeight: 20,
+    marginBottom: 12,
   },
+  reviewFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 10,
+    borderTopWidth: 1,
+  },
+  escrowFooterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  escrowFooterText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  helpfulBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  helpfulBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  // Interactive Review Modal
   reviewModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: 'rgba(0,0,0,0.72)',
     justifyContent: 'center',
-    padding: 20,
+    padding: 18,
   },
   reviewModalCard: {
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 24,
+    padding: 22,
+    maxHeight: '88%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.35,
     shadowRadius: 20,
-    elevation: 8,
+    elevation: 10,
   },
   reviewModalHeader: {
     flexDirection: 'row',
@@ -803,64 +1373,98 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   reviewModalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 19,
+    fontWeight: '900',
   },
   reviewModalSub: {
     fontSize: 13,
-    marginTop: 2,
+    marginTop: 3,
   },
   reviewCloseBtn: {
-    padding: 4,
-  },
-  starPickerRow: {
-    flexDirection: 'row',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    marginVertical: 12,
   },
-  starTouchItem: {
-    padding: 6,
+  ratingPickerSection: {
+    alignItems: 'center',
+    marginBottom: 18,
+    paddingVertical: 6,
   },
-  starRatingLabel: {
-    textAlign: 'center',
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 16,
-  },
-  commentInputLabel: {
+  pickerLabel: {
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 6,
   },
+  starPickerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+    marginVertical: 10,
+  },
+  starTouchItem: {
+    padding: 4,
+  },
+  starRatingLabel: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  quickTagsSection: {
+    marginBottom: 18,
+  },
+  quickTagsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  quickTagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  quickTagText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  commentSection: {
+    marginBottom: 20,
+  },
   commentTextInput: {
     borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 14,
+    padding: 14,
     fontSize: 14,
-    minHeight: 100,
-    marginBottom: 20,
+    minHeight: 110,
+    lineHeight: 20,
   },
   reviewModalActions: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: 4,
+    marginBottom: 8,
   },
   reviewCancelBtn: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 12,
+    borderRadius: 14,
+    paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
   reviewCancelBtnText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   reviewSubmitBtn: {
-    flex: 1.6,
-    borderRadius: 12,
-    paddingVertical: 12,
+    flex: 1.8,
+    borderRadius: 14,
+    paddingVertical: 13,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -868,7 +1472,7 @@ const styles = StyleSheet.create({
   reviewSubmitBtnText: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   reelsHeaderRow: {
     flexDirection: 'row',
