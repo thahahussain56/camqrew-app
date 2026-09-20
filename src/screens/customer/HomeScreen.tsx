@@ -43,6 +43,7 @@ import {
 } from 'lucide-react-native';
 import { ALL_INDIAN_CITIES } from '../../constants/locations';
 import { useLocationStore } from '../../store/locationStore';
+import { useAuthStore } from '../../store/authStore';
 
 const CREATOR_BUBBLES = [
   { id: 'cat_1', name: 'Photographers', icon: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=200' },
@@ -63,6 +64,7 @@ const STUDIO_BUBBLES = [
 
 export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors, isDark } = useTheme();
+  const { user } = useAuthStore();
   const { notifications, unreadCount } = useNotificationStore();
   const { addItem } = useCartStore();
   const { selectedCity, setSelectedCity, loadPersistedLocation, isLoadingLocation } = useLocationStore();
@@ -154,7 +156,13 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <TouchableOpacity
               style={[styles.topBellBtn, { backgroundColor: colors.accentGlow, borderColor: colors.accent, borderWidth: 1 }]}
               activeOpacity={0.8}
-              onPress={() => setShowBroadcastModal(true)}
+              onPress={() => {
+                if (user?.role === 'professional') {
+                  setShowBroadcastModal(true);
+                } else {
+                  navigation.navigate('CreateJob');
+                }
+              }}
             >
               <Briefcase size={20} color={colors.accent} />
             </TouchableOpacity>
@@ -331,12 +339,18 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             Need a Production Crew Urgently?
           </Text>
           <Text style={[styles.broadcastDesc, { color: colors.textSecondary }]}>
-            Post your shoot date, budget & requirements to get pitches from verified local pros, or browse active shoot broadcasts.
+            {user?.role === 'professional'
+              ? 'Post shoot requirements, or browse and pitch on active broadcasts from clients in your locality.'
+              : 'Post your shoot date, budget & requirements to get direct pitches from verified local creators.'}
           </Text>
 
           <View style={styles.broadcastActionsRow}>
             <TouchableOpacity
-              style={[styles.broadcastPrimaryBtn, { backgroundColor: colors.accent }]}
+              style={[
+                styles.broadcastPrimaryBtn,
+                { backgroundColor: colors.accent },
+                user?.role !== 'professional' && { flex: 1 },
+              ]}
               activeOpacity={0.85}
               onPress={() => navigation.navigate('CreateJob')}
             >
@@ -344,14 +358,16 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <Text style={styles.broadcastPrimaryBtnText}>Post Broadcast Job</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.broadcastSecondaryBtn, { borderColor: colors.accent, backgroundColor: colors.accentGlow }]}
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate('JobBoardScreen')}
-            >
-              <Briefcase size={15} color={colors.accent} style={{ marginRight: 6 }} />
-              <Text style={[styles.broadcastSecondaryBtnText, { color: colors.accent }]}>Job Board</Text>
-            </TouchableOpacity>
+            {user?.role === 'professional' && (
+              <TouchableOpacity
+                style={[styles.broadcastSecondaryBtn, { borderColor: colors.accent, backgroundColor: colors.accentGlow }]}
+                activeOpacity={0.85}
+                onPress={() => navigation.navigate('JobBoardScreen')}
+              >
+                <Briefcase size={15} color={colors.accent} style={{ marginRight: 6 }} />
+                <Text style={[styles.broadcastSecondaryBtnText, { color: colors.accent }]}>Job Board</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -487,25 +503,27 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 <ChevronRight size={20} color={colors.textFaint} />
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.hubOptionCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border, borderWidth: 1 }]}
-                activeOpacity={0.85}
-                onPress={() => {
-                  setShowBroadcastModal(false);
-                  navigation.navigate('JobBoardScreen');
-                }}
-              >
-                <View style={[styles.hubIconCircle, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
-                  <Briefcase size={22} color="#3b82f6" />
-                </View>
-                <View style={{ flex: 1, marginLeft: 14 }}>
-                  <Text style={[styles.hubOptionTitle, { color: colors.textPrimary }]}>Live Pro Job Board</Text>
-                  <Text style={[styles.hubOptionSub, { color: colors.textSecondary }]}>
-                    Browse active client shoot requests, review budgets & claim jobs with reverse pitching.
-                  </Text>
-                </View>
-                <ChevronRight size={20} color={colors.textFaint} />
-              </TouchableOpacity>
+              {user?.role === 'professional' && (
+                <TouchableOpacity
+                  style={[styles.hubOptionCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border, borderWidth: 1 }]}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setShowBroadcastModal(false);
+                    navigation.navigate('JobBoardScreen');
+                  }}
+                >
+                  <View style={[styles.hubIconCircle, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
+                    <Briefcase size={22} color="#3b82f6" />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 14 }}>
+                    <Text style={[styles.hubOptionTitle, { color: colors.textPrimary }]}>Live Pro Job Board</Text>
+                    <Text style={[styles.hubOptionSub, { color: colors.textSecondary }]}>
+                      Browse active client shoot requests, review budgets & claim jobs with reverse pitching.
+                    </Text>
+                  </View>
+                  <ChevronRight size={20} color={colors.textFaint} />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>

@@ -8,7 +8,7 @@ import { professionalApi } from '../../api/professionalApi';
 import { JobRequest } from '../../types/job';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { MapPin, Wallet, CalendarClock, Compass, Globe, Building2, Map, ArrowLeft } from 'lucide-react-native';
+import { MapPin, Wallet, CalendarClock, Compass, Globe, Building2, Map, ArrowLeft, Send, Briefcase } from 'lucide-react-native';
 import { useLocationStore } from '../../store/locationStore';
 
 type ScopeType = 'city' | 'district' | 'state' | 'all';
@@ -17,6 +17,7 @@ export const JobBoardScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
   const { colors } = useTheme();
   const { user } = useAuthStore();
   const { selectedCity } = useLocationStore();
+  const isCustomer = user?.role === 'customer';
   
   const [jobs, setJobs] = useState<JobRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,9 +30,17 @@ export const JobBoardScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
 
   useEffect(() => {
     loadProProfileAndJobs();
-  }, [scope]);
+  }, [scope, isCustomer]);
 
   const loadProProfileAndJobs = async () => {
+    // For customer account, they should not get leads in job board, they should only be able to post job requests
+    if (isCustomer) {
+      setJobs([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     setLoading(true);
     try {
       let c = selectedCity?.city || 'Mumbai';
@@ -131,12 +140,16 @@ export const JobBoardScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             </TouchableOpacity>
           )}
           <View>
-            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Pro Job Board</Text>
-            <Text style={{ color: colors.textSecondary, marginTop: 2, fontSize: 13 }}>Reverse Pitching Broadcasts</Text>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
+              {isCustomer ? 'Broadcast Shoot Leads' : 'Pro Job Board'}
+            </Text>
+            <Text style={{ color: colors.textSecondary, marginTop: 2, fontSize: 13 }}>
+              {isCustomer ? 'Crew Matching & Requests' : 'Reverse Pitching Broadcasts'}
+            </Text>
           </View>
         </View>
 
-        {proCity ? (
+        {proCity && !isCustomer ? (
           <View style={[styles.locationBadge, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
             <Compass size={12} color="#3fb668" style={{ marginRight: 4 }} />
             <Text style={[styles.locationBadgeText, { color: colors.textPrimary }]} numberOfLines={1}>
@@ -146,8 +159,41 @@ export const JobBoardScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
         ) : null}
       </View>
 
-      {/* Locality Scope Filter Pills */}
-      <View style={styles.scopeContainer}>
+      {/* For customer account, they should not get leads in job board; show post job request card */}
+      {isCustomer ? (
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={[styles.customerRestrictedCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+            <View style={[styles.customerIconBadge, { backgroundColor: colors.accentGlow }]}>
+              <Briefcase size={36} color={colors.accent} />
+            </View>
+            <Text style={[styles.customerRestrictedTitle, { color: colors.textPrimary }]}>
+              Exclusive for Creative Professionals
+            </Text>
+            <Text style={[styles.customerRestrictedDesc, { color: colors.textSecondary }]}>
+              The Job Board and reverse pitching leads are available exclusively to verified cinematographers, photographers, and crew members to receive shoot jobs.
+            </Text>
+            <View style={[styles.customerHighlightBox, { backgroundColor: colors.surfaceElevated }]}>
+              <Text style={[styles.customerHighlightTitle, { color: colors.textPrimary }]}>
+                Need to hire a crew for your shoot?
+              </Text>
+              <Text style={[styles.customerHighlightSub, { color: colors.textSecondary }]}>
+                Post your shoot date, budget, and requirements. Nearby verified creators in your city will receive instant alerts and pitch directly.
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.customerPostBtn, { backgroundColor: colors.accent }]}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('CreateJob')}
+            >
+              <Send size={16} color="#ffffff" style={{ marginRight: 8 }} />
+              <Text style={styles.customerPostBtnText}>Post a Job Request</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      ) : (
+        <>
+          {/* Locality Scope Filter Pills */}
+          <View style={styles.scopeContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scopeScroll}>
           {scopeTabs.map(tab => {
             const isActive = scope === tab.id;
@@ -249,12 +295,75 @@ export const JobBoardScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
           ))
         )}
       </ScrollView>
+      </>
+      )}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  customerRestrictedCard: {
+    padding: 24,
+    borderRadius: 24,
+    alignItems: 'center',
+    marginTop: 20,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  customerIconBadge: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  customerRestrictedTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  customerRestrictedDesc: {
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  customerHighlightBox: {
+    width: '100%',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  customerHighlightTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  customerHighlightSub: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  customerPostBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    width: '100%',
+  },
+  customerPostBtnText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '800',
+  },
   header: {
     paddingHorizontal: 16,
     paddingTop: 8,

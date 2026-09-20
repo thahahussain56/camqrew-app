@@ -85,18 +85,20 @@ export const CreateJobScreen: React.FC<{ navigation: any }> = ({ navigation }) =
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.jobBoardLink, { backgroundColor: colors.surfaceElevated, borderColor: colors.accent, borderWidth: 1 }]}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('JobBoardScreen')}
-          >
-            <Briefcase size={18} color={colors.accent} style={{ marginRight: 10 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.jobBoardLinkTitle, { color: colors.textPrimary }]}>Looking to accept jobs instead?</Text>
-              <Text style={[styles.jobBoardLinkSub, { color: colors.textSecondary }]}>Browse open shoot leads on the Job Board</Text>
-            </View>
-            <ArrowRight size={16} color={colors.accent} />
-          </TouchableOpacity>
+          {user?.role === 'professional' && (
+            <TouchableOpacity
+              style={[styles.jobBoardLink, { backgroundColor: colors.surfaceElevated, borderColor: colors.accent, borderWidth: 1 }]}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('JobBoardScreen')}
+            >
+              <Briefcase size={18} color={colors.accent} style={{ marginRight: 10 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.jobBoardLinkTitle, { color: colors.textPrimary }]}>Looking to accept jobs instead?</Text>
+                <Text style={[styles.jobBoardLinkSub, { color: colors.textSecondary }]}>Browse open shoot leads on the Job Board</Text>
+              </View>
+              <ArrowRight size={16} color={colors.accent} />
+            </TouchableOpacity>
+          )}
 
           <Input
             label="Job Title"
