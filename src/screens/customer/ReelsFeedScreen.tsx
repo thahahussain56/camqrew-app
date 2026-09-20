@@ -335,22 +335,14 @@ export const ReelsFeedScreen: React.FC = () => {
             />
           )}
 
-          {/* Top & Bottom Cinematic Linear Gradient Vignettes adapted to theme */}
+          {/* Top & Bottom Cinematic Linear Gradient Vignettes (Black gradient for both light and dark theme) */}
           <LinearGradient
-            colors={
-              isDark
-                ? ['rgba(6,8,10,0.88)', 'rgba(6,8,10,0.3)', 'transparent']
-                : ['rgba(249,250,251,0.92)', 'rgba(249,250,251,0.45)', 'transparent']
-            }
+            colors={['rgba(0,0,0,0.85)', 'rgba(0,0,0,0.3)', 'transparent']}
             style={styles.topVignette}
             pointerEvents="none"
           />
           <LinearGradient
-            colors={
-              isDark
-                ? ['transparent', 'rgba(6,8,10,0.45)', 'rgba(6,8,10,0.96)']
-                : ['transparent', 'rgba(249,250,251,0.55)', 'rgba(249,250,251,0.98)']
-            }
+            colors={['transparent', 'rgba(0,0,0,0.45)', 'rgba(0,0,0,0.96)']}
             style={styles.bottomVignette}
             pointerEvents="none"
           />
@@ -384,15 +376,15 @@ export const ReelsFeedScreen: React.FC = () => {
               style={[
                 styles.playPauseIconCircle,
                 {
-                  backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.88)',
-                  borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
+                  backgroundColor: 'rgba(0,0,0,0.6)',
+                  borderColor: 'rgba(255,255,255,0.2)',
                 },
               ]}
             >
               {isPaused ? (
-                <Pause size={38} color={isDark ? '#ffffff' : colors.textPrimary} />
+                <Pause size={38} color="#ffffff" />
               ) : (
-                <Play size={38} color={isDark ? '#ffffff' : colors.textPrimary} style={{ marginLeft: 4 }} />
+                <Play size={38} color="#ffffff" style={{ marginLeft: 4 }} />
               )}
             </View>
           </Animated.View>
@@ -434,17 +426,17 @@ export const ReelsFeedScreen: React.FC = () => {
                 styles.actionIconCircle,
                 {
                   backgroundColor: isLiked
-                    ? (isDark ? 'rgba(255, 51, 75, 0.25)' : 'rgba(255, 51, 75, 0.15)')
-                    : (isDark ? 'rgba(20, 25, 30, 0.75)' : 'rgba(255, 255, 255, 0.88)'),
+                    ? 'rgba(255, 51, 75, 0.25)'
+                    : 'rgba(20, 25, 30, 0.75)',
                   borderColor: isLiked
-                    ? (isDark ? 'rgba(255, 51, 75, 0.6)' : '#FF334B')
-                    : (isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)'),
+                    ? 'rgba(255, 51, 75, 0.6)'
+                    : 'rgba(255, 255, 255, 0.15)',
                 },
               ]}
             >
               <Heart
                 size={22}
-                color={isLiked ? '#FF334B' : (isDark ? '#ffffff' : colors.textPrimary)}
+                color={isLiked ? '#FF334B' : '#ffffff'}
                 fill={isLiked ? '#FF334B' : 'transparent'}
               />
             </View>
@@ -452,8 +444,8 @@ export const ReelsFeedScreen: React.FC = () => {
               style={[
                 styles.actionLabel,
                 {
-                  color: isDark ? '#ffffff' : colors.textPrimary,
-                  textShadowColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.8)',
+                  color: '#ffffff',
+                  textShadowColor: 'rgba(0,0,0,0.85)',
                 },
               ]}
             >
@@ -474,19 +466,19 @@ export const ReelsFeedScreen: React.FC = () => {
               style={[
                 styles.actionIconCircle,
                 {
-                  backgroundColor: isDark ? 'rgba(20, 25, 30, 0.75)' : 'rgba(255, 255, 255, 0.88)',
-                  borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                  backgroundColor: 'rgba(20, 25, 30, 0.75)',
+                  borderColor: 'rgba(255, 255, 255, 0.15)',
                 },
               ]}
             >
-              <Briefcase size={20} color={isDark ? '#ffffff' : colors.textPrimary} />
+              <Briefcase size={20} color="#ffffff" />
             </View>
             <Text
               style={[
                 styles.actionLabel,
                 {
-                  color: isDark ? '#ffffff' : colors.textPrimary,
-                  textShadowColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.8)',
+                  color: '#ffffff',
+                  textShadowColor: 'rgba(0,0,0,0.85)',
                 },
               ]}
             >
@@ -507,19 +499,19 @@ export const ReelsFeedScreen: React.FC = () => {
               style={[
                 styles.actionIconCircle,
                 {
-                  backgroundColor: isDark ? 'rgba(20, 25, 30, 0.75)' : 'rgba(255, 255, 255, 0.88)',
-                  borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                  backgroundColor: 'rgba(20, 25, 30, 0.75)',
+                  borderColor: 'rgba(255, 255, 255, 0.15)',
                 },
               ]}
             >
-              <MessageSquare size={20} color={isDark ? '#ffffff' : colors.textPrimary} />
+              <MessageSquare size={20} color="#ffffff" />
             </View>
             <Text
               style={[
                 styles.actionLabel,
                 {
-                  color: isDark ? '#ffffff' : colors.textPrimary,
-                  textShadowColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.8)',
+                  color: '#ffffff',
+                  textShadowColor: 'rgba(0,0,0,0.85)',
                 },
               ]}
             >
@@ -537,19 +529,19 @@ export const ReelsFeedScreen: React.FC = () => {
               style={[
                 styles.actionIconCircle,
                 {
-                  backgroundColor: isDark ? 'rgba(20, 25, 30, 0.75)' : 'rgba(255, 255, 255, 0.88)',
-                  borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                  backgroundColor: 'rgba(20, 25, 30, 0.75)',
+                  borderColor: 'rgba(255, 255, 255, 0.15)',
                 },
               ]}
             >
-              <Share2 size={20} color={isDark ? '#ffffff' : colors.textPrimary} />
+              <Share2 size={20} color="#ffffff" />
             </View>
             <Text
               style={[
                 styles.actionLabel,
                 {
-                  color: isDark ? '#ffffff' : colors.textPrimary,
-                  textShadowColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.8)',
+                  color: '#ffffff',
+                  textShadowColor: 'rgba(0,0,0,0.85)',
                 },
               ]}
             >
@@ -567,13 +559,13 @@ export const ReelsFeedScreen: React.FC = () => {
               style={[
                 styles.actionIconCircle,
                 {
-                  backgroundColor: isDark ? 'rgba(20, 25, 30, 0.75)' : 'rgba(255, 255, 255, 0.88)',
-                  borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                  backgroundColor: 'rgba(20, 25, 30, 0.75)',
+                  borderColor: 'rgba(255, 255, 255, 0.15)',
                 },
               ]}
             >
               {isMuted ? (
-                <VolumeX size={20} color={isDark ? '#ffffff' : colors.textPrimary} />
+                <VolumeX size={20} color="#ffffff" />
               ) : (
                 <Volume2 size={20} color={colors.accent} />
               )}
@@ -582,8 +574,8 @@ export const ReelsFeedScreen: React.FC = () => {
               style={[
                 styles.actionLabel,
                 {
-                  color: isDark ? '#ffffff' : colors.textPrimary,
-                  textShadowColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.8)',
+                  color: '#ffffff',
+                  textShadowColor: 'rgba(0,0,0,0.85)',
                 },
               ]}
             >
@@ -600,12 +592,12 @@ export const ReelsFeedScreen: React.FC = () => {
               style={[
                 styles.categoryBadge,
                 {
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)',
-                  borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                  backgroundColor: 'rgba(255,255,255,0.15)',
+                  borderColor: 'rgba(255,255,255,0.12)',
                 },
               ]}
             >
-              <Text style={[styles.categoryBadgeText, { color: colors.textPrimary }]}>
+              <Text style={[styles.categoryBadgeText, { color: '#ffffff' }]}>
                 {item.category || 'Cinematography'}
               </Text>
             </View>
@@ -615,8 +607,8 @@ export const ReelsFeedScreen: React.FC = () => {
                   styles.categoryBadge,
                   styles.shortBadge,
                   {
-                    backgroundColor: isDark ? 'rgba(63, 182, 104, 0.2)' : 'rgba(63, 182, 104, 0.15)',
-                    borderColor: isDark ? 'rgba(63, 182, 104, 0.4)' : 'rgba(63, 182, 104, 0.3)',
+                    backgroundColor: 'rgba(63, 182, 104, 0.2)',
+                    borderColor: 'rgba(63, 182, 104, 0.4)',
                   },
                 ]}
               >
@@ -627,13 +619,13 @@ export const ReelsFeedScreen: React.FC = () => {
               style={[
                 styles.locationBadge,
                 {
-                  backgroundColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.05)',
-                  borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                  backgroundColor: 'rgba(0,0,0,0.45)',
+                  borderColor: 'rgba(255,255,255,0.1)',
                 },
               ]}
             >
-              <MapPin size={11} color={colors.textSecondary} style={{ marginRight: 3 }} />
-              <Text style={[styles.locationBadgeText, { color: colors.textSecondary }]}>
+              <MapPin size={11} color="rgba(255,255,255,0.85)" style={{ marginRight: 3 }} />
+              <Text style={[styles.locationBadgeText, { color: 'rgba(255,255,255,0.85)' }]}>
                 {item.creatorCity || 'India'}
               </Text>
             </View>
@@ -651,12 +643,12 @@ export const ReelsFeedScreen: React.FC = () => {
             onPress={() => setSelectedCreator(item)}
             style={styles.creatorIdentityRow}
           >
-            <Text style={[styles.creatorNameText, { color: colors.textPrimary }]}>{item.creatorName}</Text>
+            <Text style={[styles.creatorNameText, { color: '#ffffff' }]}>{item.creatorName}</Text>
             {item.creatorVerified && (
               <CheckCircle size={15} color={colors.accent} fill={colors.accent} style={{ marginLeft: 5 }} />
             )}
-            <Text style={[styles.creatorDividerDot, { color: colors.textFaint }]}>•</Text>
-            <Text style={[styles.creatorTitleText, { color: colors.textSecondary }]} numberOfLines={1}>
+            <Text style={[styles.creatorDividerDot, { color: 'rgba(255,255,255,0.4)' }]}>•</Text>
+            <Text style={[styles.creatorTitleText, { color: 'rgba(255,255,255,0.8)' }]} numberOfLines={1}>
               {item.creatorTitle || 'Specialist'}
             </Text>
           </TouchableOpacity>
@@ -667,8 +659,8 @@ export const ReelsFeedScreen: React.FC = () => {
               style={[
                 styles.captionText,
                 {
-                  color: colors.textPrimary,
-                  textShadowColor: isDark ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.8)',
+                  color: '#ffffff',
+                  textShadowColor: 'rgba(0,0,0,0.9)',
                 },
               ]}
               numberOfLines={isCaptionExpanded ? undefined : 2}
@@ -680,7 +672,7 @@ export const ReelsFeedScreen: React.FC = () => {
                 onPress={() => toggleCaption(item.id)}
                 style={styles.expandCaptionBtn}
               >
-                <Text style={[styles.expandCaptionText, { color: colors.textSecondary }]}>
+                <Text style={[styles.expandCaptionText, { color: 'rgba(255,255,255,0.7)' }]}>
                   {isCaptionExpanded ? 'less' : 'more'}
                 </Text>
               </TouchableOpacity>
@@ -689,8 +681,8 @@ export const ReelsFeedScreen: React.FC = () => {
 
           {/* Audio Ticker Indicator */}
           <View style={styles.audioTickerRow}>
-            <Music size={12} color={colors.textSecondary} style={{ marginRight: 5 }} />
-            <Text style={[styles.audioTickerText, { color: colors.textSecondary }]} numberOfLines={1}>
+            <Music size={12} color="rgba(255,255,255,0.75)" style={{ marginRight: 5 }} />
+            <Text style={[styles.audioTickerText, { color: 'rgba(255,255,255,0.75)' }]} numberOfLines={1}>
               Original Audio • {item.creatorName}
             </Text>
           </View>
@@ -739,7 +731,7 @@ export const ReelsFeedScreen: React.FC = () => {
         <View
           style={[
             styles.bottomProgressBarTrack,
-            { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' },
+            { backgroundColor: 'rgba(255,255,255,0.15)' },
           ]}
         >
           <View style={[styles.bottomProgressBarFill, { backgroundColor: colors.accent }]} />
@@ -749,9 +741,9 @@ export const ReelsFeedScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+    <View style={[styles.screen, { backgroundColor: '#06080A' }]}>
       <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
+        barStyle="light-content"
         translucent
         backgroundColor="transparent"
       />
@@ -782,15 +774,15 @@ export const ReelsFeedScreen: React.FC = () => {
                 styles.headerCounterBadge,
                 styles.headerCounterBadgeAbsolute,
                 {
-                  backgroundColor: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.85)',
-                  borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)',
+                  backgroundColor: 'rgba(0,0,0,0.55)',
+                  borderColor: 'rgba(255,255,255,0.15)',
                 },
               ]}
             >
               <Text
                 style={[
                   styles.headerCounterText,
-                  { color: isDark ? 'rgba(255,255,255,0.85)' : colors.textSecondary },
+                  { color: 'rgba(255,255,255,0.85)' },
                 ]}
               >
                 {activeIndex + 1}/{reels.length}
