@@ -235,7 +235,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
             onPress={() => navigation.navigate('Booking', { proId: profile.id, type: bookingType })}
             activeOpacity={0.8}
           >
-            <Text style={styles.bookBtnText}>{proArchetype.bookingCtaPrefix} • ₹{(profile.ratePerDay || 15000).toLocaleString('en-IN')}/{proArchetype.rateUnitDefault.toLowerCase()}</Text>
+            <Text style={styles.bookBtnText}>{proArchetype.bookingCtaPrefix} • Starting from ₹{(profile.ratePerDay || 15000).toLocaleString('en-IN')}/{proArchetype.rateUnitDefault.toLowerCase()}</Text>
           </TouchableOpacity>
         </View>
 

@@ -47,10 +47,12 @@ import { useAuthStore } from '../../store/authStore';
 const CREATOR_BUBBLES = [
   { id: 'cat_1', name: 'Photographers', icon: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=200' },
   { id: 'cat_2', name: 'Videographers', icon: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=200' },
-  { id: 'cat_3', name: 'Designers', icon: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=200' },
-  { id: 'cat_4', name: 'Developers', icon: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=200' },
-  { id: 'cat_5', name: 'Organisers', icon: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=200' },
-  { id: 'cat_6', name: 'Caterers', icon: 'https://images.unsplash.com/photo-1555244162-803834f70033?q=80&w=200' },
+  { id: 'cat_3', name: 'Caterers', icon: 'https://images.unsplash.com/photo-1555244162-803834f70033?q=80&w=200' },
+  { id: 'cat_4', name: 'Organisers', icon: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=200' },
+  { id: 'cat_5', name: 'Makeup Artists', icon: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?q=80&w=200' },
+  { id: 'cat_6', name: 'Mehendi Artists', icon: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=200' },
+  { id: 'cat_7', name: 'Developers', icon: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=200' },
+  { id: 'cat_8', name: 'Designers', icon: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=200' },
 ];
 
 const STUDIO_BUBBLES = [

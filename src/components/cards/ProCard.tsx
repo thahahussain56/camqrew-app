@@ -4,6 +4,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { ProfessionalProfile } from '../../types/professional';
 import { Star, UserCheck } from 'lucide-react-native';
 import { Avatar } from '../ui/Avatar';
+import { getArchetype } from '../../constants/categories';
 
 interface ProCardProps {
   professional: ProfessionalProfile;
@@ -58,6 +59,13 @@ export const ProCard: React.FC<ProCardProps> = ({ professional, onPressProfile, 
           <Text style={[styles.specsText, { color: colors.textSecondary }]} numberOfLines={1}>
             {specsText}
           </Text>
+
+          {/* Starting from Rate */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 12 }}>
+            <Text style={{ fontSize: 12.5, color: colors.textSecondary }}>
+              Starting from <Text style={{ color: colors.accent, fontWeight: '800', fontSize: 14 }}>₹{(professional.ratePerDay || 0).toLocaleString('en-IN')}</Text>/{getArchetype(professional.categories).rateUnitDefault.toLowerCase()}
+            </Text>
+          </View>
 
           {/* Action Buttons Row: View Profile  +  Book Now */}
           <View style={styles.buttonsRow}>

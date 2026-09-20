@@ -31,7 +31,7 @@ export const ServicesScreen: React.FC<{ navigation: any; route: any }> = ({ navi
   const [district, setDistrict] = useState('');
   const [city, setCity] = useState('');
 
-  const proCategories = ['All', 'Photographers', 'Videographers', 'Designers', 'Developers', 'Organisers', 'Caterers'];
+  const proCategories = ['All', 'Photographers', 'Videographers', 'Caterers', 'Organisers', 'Makeup Artists', 'Mehendi Artists', 'Developers', 'Designers'];
 
   const fetchData = async () => {
     setLoading(true);
