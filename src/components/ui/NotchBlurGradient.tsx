@@ -43,10 +43,10 @@ export const NotchBlurGradient: React.FC<NotchBlurGradientProps> = ({
 
   // Instagram-style gradient: solid/opaque at the status bar top, softly feathering to transparent
   const defaultDarkGradient = [
-    'rgba(11, 15, 18, 0.96)',
-    'rgba(11, 15, 18, 0.78)',
-    'rgba(11, 15, 18, 0.35)',
-    'rgba(11, 15, 18, 0.0)',
+    'rgba(6, 8, 10, 0.96)',
+    'rgba(6, 8, 10, 0.78)',
+    'rgba(6, 8, 10, 0.35)',
+    'rgba(6, 8, 10, 0.0)',
   ];
 
   const defaultLightGradient = [

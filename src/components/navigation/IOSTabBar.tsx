@@ -210,7 +210,7 @@ export const IOSTabBar: React.FC<BottomTabBarProps> = ({
             StyleSheet.absoluteFill,
             {
               backgroundColor: isDark
-                ? "rgba(11,15,18,0.45)"
+                ? "rgba(6,8,10,0.55)"
                 : "rgba(255,255,255,0.45)",
               borderRadius: 26,
             },

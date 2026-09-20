@@ -34,7 +34,7 @@ export const TopNotchBlur: React.FC = () => {
   const totalHeight = topInset + 12;
 
   const gradientColors = isDark
-    ? (['rgba(11, 15, 18, 0.65)', 'rgba(11, 15, 18, 0.25)', 'rgba(11, 15, 18, 0.0)'] as const)
+    ? (['rgba(6, 8, 10, 0.72)', 'rgba(6, 8, 10, 0.28)', 'rgba(6, 8, 10, 0.0)'] as const)
     : (['rgba(255, 255, 255, 0.65)', 'rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.0)'] as const);
 
   return (

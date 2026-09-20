@@ -355,12 +355,12 @@ export const ReelsFeedScreen: React.FC = () => {
 
           {/* Top & Bottom Cinematic Linear Gradient Vignettes */}
           <LinearGradient
-            colors={['rgba(11,15,18,0.85)', 'rgba(11,15,18,0.3)', 'transparent']}
+            colors={['rgba(6,8,10,0.88)', 'rgba(6,8,10,0.3)', 'transparent']}
             style={styles.topVignette}
             pointerEvents="none"
           />
           <LinearGradient
-            colors={['transparent', 'rgba(11,15,18,0.45)', 'rgba(11,15,18,0.95)']}
+            colors={['transparent', 'rgba(6,8,10,0.45)', 'rgba(6,8,10,0.96)']}
             style={styles.bottomVignette}
             pointerEvents="none"
           />
@@ -899,7 +899,7 @@ export const ReelsFeedScreen: React.FC = () => {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#0B0F12',
+    backgroundColor: '#06080A',
   },
   reelContainer: {
     position: 'relative',

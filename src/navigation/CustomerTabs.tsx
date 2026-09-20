@@ -150,7 +150,7 @@ export const CustomerTabs: React.FC = () => {
     bottom: 20,
     left: 16,
     right: 16,
-    backgroundColor: isDark ? 'rgba(11, 15, 18, 0.65)' : 'rgba(255, 255, 255, 0.65)',
+    backgroundColor: isDark ? 'rgba(6, 8, 10, 0.72)' : 'rgba(255, 255, 255, 0.65)',
     borderTopWidth: 0,
     borderWidth: 1,
     borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
