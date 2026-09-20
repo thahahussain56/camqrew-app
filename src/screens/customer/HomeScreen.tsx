@@ -38,7 +38,6 @@ import {
   Film,
   Package,
   Briefcase,
-  Radio,
   Send,
 } from 'lucide-react-native';
 import { ALL_INDIAN_CITIES } from '../../constants/locations';
@@ -323,54 +322,6 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </TouchableOpacity>
         </ScrollView>
 
-        {/* Instant Locality Broadcast Banner Card */}
-        <View style={[styles.broadcastCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
-          <View style={styles.broadcastBadgeRow}>
-            <View style={[styles.broadcastBadge, { backgroundColor: colors.accentGlow }]}>
-              <Radio size={12} color={colors.accent} />
-              <Text style={[styles.broadcastBadgeText, { color: colors.accent }]}>INSTANT LOCALITY BROADCAST</Text>
-            </View>
-            <Text style={[styles.broadcastCityPill, { color: colors.textSecondary }]}>
-              📍 {selectedCity.city}
-            </Text>
-          </View>
-
-          <Text style={[styles.broadcastTitle, { color: colors.textPrimary }]}>
-            Need a Production Crew Urgently?
-          </Text>
-          <Text style={[styles.broadcastDesc, { color: colors.textSecondary }]}>
-            {user?.role === 'professional'
-              ? 'Post shoot requirements, or browse and pitch on active broadcasts from clients in your locality.'
-              : 'Post your shoot date, budget & requirements to get direct pitches from verified local creators.'}
-          </Text>
-
-          <View style={styles.broadcastActionsRow}>
-            <TouchableOpacity
-              style={[
-                styles.broadcastPrimaryBtn,
-                { backgroundColor: colors.accent },
-                user?.role !== 'professional' && { flex: 1 },
-              ]}
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate('CreateJob')}
-            >
-              <Send size={15} color="#ffffff" style={{ marginRight: 6 }} />
-              <Text style={styles.broadcastPrimaryBtnText}>Post Broadcast Job</Text>
-            </TouchableOpacity>
-
-            {user?.role === 'professional' && (
-              <TouchableOpacity
-                style={[styles.broadcastSecondaryBtn, { borderColor: colors.accent, backgroundColor: colors.accentGlow }]}
-                activeOpacity={0.85}
-                onPress={() => navigation.navigate('JobBoardScreen')}
-              >
-                <Briefcase size={15} color={colors.accent} style={{ marginRight: 6 }} />
-                <Text style={[styles.broadcastSecondaryBtnText, { color: colors.accent }]}>Job Board</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
         {/* 6. Main Feed Segment */}
         <View style={styles.sectionHeader}>
           <View>
@@ -588,84 +539,6 @@ const styles = StyleSheet.create({
   },
   filterChipText: { fontSize: 13, fontWeight: '700' },
   
-  // Broadcast Banner Card
-  broadcastCard: {
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 24,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  broadcastBadgeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  broadcastBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  broadcastBadgeText: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-  },
-  broadcastCityPill: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  broadcastTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    marginBottom: 6,
-  },
-  broadcastDesc: {
-    fontSize: 13,
-    lineHeight: 19,
-    marginBottom: 16,
-  },
-  broadcastActionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  broadcastPrimaryBtn: {
-    flex: 1.2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-  },
-  broadcastPrimaryBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  broadcastSecondaryBtn: {
-    flex: 0.9,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  broadcastSecondaryBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
-
   // Hub Modal Cards
   hubOptionCard: {
     flexDirection: 'row',
