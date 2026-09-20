@@ -777,16 +777,28 @@ export const ReelsFeedScreen: React.FC = () => {
       {/* Floating Top Frosted Header Bar */}
       <View style={[styles.topHeaderBar, { top: insets.top + 8 }]}>
         <View style={styles.headerBrandRow}>
-          <View style={styles.brandTitleWrap}>
-            <Film size={18} color={colors.accent} style={{ marginRight: 6 }} />
-            <Text style={[styles.headerBrandTitle, { color: colors.textPrimary }]}>Camqrew</Text>
-            <Text style={[styles.headerSubTitle, { color: colors.accent }]}>Reels</Text>
+          {/* Centered Reels with Gradient Background */}
+          <View style={styles.reelsCenterWrap}>
+            <LinearGradient
+              colors={['#3fb668', '#10b981']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[
+                styles.reelsBadgeGradient,
+                {
+                  shadowOpacity: isDark ? 0.35 : 0.2,
+                },
+              ]}
+            >
+              <Text style={styles.reelsBadgeText}>Reels</Text>
+            </LinearGradient>
           </View>
 
           {filteredReels.length > 0 && (
             <View
               style={[
                 styles.headerCounterBadge,
+                styles.headerCounterBadgeAbsolute,
                 {
                   backgroundColor: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.85)',
                   borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)',
@@ -1128,29 +1140,41 @@ const styles = StyleSheet.create({
   headerBrandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: 16,
     marginBottom: 10,
+    position: 'relative',
   },
-  brandTitleWrap: {
-    flexDirection: 'row',
+  reelsCenterWrap: {
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  headerBrandTitle: {
-    fontSize: 19,
-    fontWeight: '900',
-    letterSpacing: 0.5,
+  reelsBadgeGradient: {
+    paddingHorizontal: 22,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#3fb668',
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 3,
   },
-  headerSubTitle: {
-    fontSize: 19,
+  reelsBadgeText: {
+    color: '#ffffff',
+    fontSize: 16,
     fontWeight: '900',
-    marginLeft: 5,
+    letterSpacing: 0.8,
   },
   headerCounterBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
+  },
+  headerCounterBadgeAbsolute: {
+    position: 'absolute',
+    right: 16,
   },
   headerCounterText: {
     fontSize: 11,
