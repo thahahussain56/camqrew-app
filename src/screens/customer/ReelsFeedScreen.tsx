@@ -68,7 +68,7 @@ export const ReelsFeedScreen: React.FC = () => {
       setReels(data);
       const initialLikes: { [id: string]: number } = {};
       data.forEach((r) => {
-        initialLikes[r.id] = r.likesCount || 120;
+        initialLikes[r.id] = r.likesCount || 0;
       });
       setLikeCounts(initialLikes);
     } catch (err) {
@@ -484,14 +484,22 @@ export const ReelsFeedScreen: React.FC = () => {
       ) : filteredReels.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Film size={48} color="rgba(255,255,255,0.4)" />
-          <Text style={styles.emptyTitle}>No Reels in this Category</Text>
-          <Text style={styles.emptySubtitle}>Switch to "All" to view all cinematic creator showcases.</Text>
-          <TouchableOpacity
-            style={styles.emptyResetBtn}
-            onPress={() => setActiveCategory('All')}
-          >
-            <Text style={styles.emptyResetText}>View All Reels</Text>
-          </TouchableOpacity>
+          <Text style={styles.emptyTitle}>
+            {reels.length === 0 ? 'No Showreels Uploaded Yet' : 'No Reels in this Category'}
+          </Text>
+          <Text style={styles.emptySubtitle}>
+            {reels.length === 0
+              ? 'Creator video showreels will appear here once professionals upload them.'
+              : 'Switch to "All" to view all cinematic creator showcases.'}
+          </Text>
+          {activeCategory !== 'All' && (
+            <TouchableOpacity
+              style={styles.emptyResetBtn}
+              onPress={() => setActiveCategory('All')}
+            >
+              <Text style={styles.emptyResetText}>View All Reels</Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <FlatList
