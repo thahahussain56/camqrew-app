@@ -144,6 +144,7 @@ function ProfileStack() {
   );
 }
 
+
 const HIDDEN_SCREENS = new Set([
   'ProductDetail',
   'Cart',
@@ -161,7 +162,7 @@ const HIDDEN_SCREENS = new Set([
   'JobBoard',
 ]);
 
-const CustomBottomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
+const CustomBottomTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
   const insets = useSafeAreaInsets();
   const currentRoute = state.routes[state.index];
   const focusedScreenName = getFocusedRouteNameFromRoute(currentRoute) ?? '';
@@ -174,16 +175,16 @@ const CustomBottomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, n
 
   return (
     <View style={[styles.tabBarWrapper, { bottom: bottomInset }]} pointerEvents="box-none">
-      {/* Outer Floating Island Capsule */}
+      {/* Outer Floating Frosted Glass Capsule */}
       <View style={styles.tabBarCapsule}>
-        {/* Frosted Dark Acrylic Blur (clipped to capsule border) */}
+        {/* Frosted Dark Glass Acrylic Blur */}
         <View style={styles.blurClip}>
-          <BlurView tint="dark" intensity={95} style={StyleSheet.absoluteFill} />
+          <BlurView tint="dark" intensity={85} style={StyleSheet.absoluteFill} />
         </View>
 
-        {/* Top Rim Luminous Hairline Accent */}
+        {/* Top Rim Luminous Hairline Highlight */}
         <LinearGradient
-          colors={['rgba(255, 255, 255, 0.28)', 'rgba(255, 255, 255, 0.06)', 'transparent']}
+          colors={['rgba(255, 255, 255, 0.35)', 'rgba(255, 255, 255, 0.10)', 'transparent']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.topRimHighlight}
@@ -193,7 +194,6 @@ const CustomBottomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, n
         <View style={styles.tabItemsRow}>
           {state.routes.map((route, index) => {
             const isFocused = state.index === index;
-            const isCenterReels = route.name === 'ReelsTab';
 
             const onPress = () => {
               const event = navigation.emit({
@@ -217,58 +217,30 @@ const CustomBottomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, n
               });
             };
 
-            if (isCenterReels) {
-              return (
-                <TouchableOpacity
-                  key={route.key}
-                  activeOpacity={0.85}
-                  onPress={onPress}
-                  onLongPress={onLongPress}
-                  style={styles.centerHeroTabItem}
-                >
-                  <LinearGradient
-                    colors={isFocused ? ['#3fb668', '#10b981'] : ['#18231c', '#0f1611']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={[
-                      styles.centerHeroButton,
-                      isFocused && styles.centerHeroButtonFocused,
-                    ]}
-                  >
-                    <Film
-                      size={22}
-                      color={isFocused ? '#ffffff' : '#3fb668'}
-                      strokeWidth={2.4}
-                    />
-                  </LinearGradient>
-                  <Text
-                    style={[
-                      styles.centerHeroLabel,
-                      { color: isFocused ? '#3fb668' : 'rgba(255, 255, 255, 0.6)' },
-                    ]}
-                  >
-                    Reels
-                  </Text>
-                </TouchableOpacity>
-              );
-            }
-
-            // Standard Side Tabs
-            let label = 'Tab';
+            let accessibilityLabel = 'Tab';
             let IconComponent = Home;
+            let fillActive = false;
 
             if (route.name === 'HomeTab') {
-              label = 'Creators';
+              accessibilityLabel = 'Creators';
               IconComponent = Home;
+              fillActive = true;
             } else if (route.name === 'ExploreTab') {
-              label = 'Categories';
+              accessibilityLabel = 'Categories';
               IconComponent = LayoutGrid;
+              fillActive = false;
+            } else if (route.name === 'ReelsTab') {
+              accessibilityLabel = 'Reels';
+              IconComponent = Film;
+              fillActive = false;
             } else if (route.name === 'MarketplaceTab') {
-              label = 'Gear Store';
+              accessibilityLabel = 'Gear Store';
               IconComponent = ShoppingBag;
+              fillActive = true;
             } else if (route.name === 'ProfileTab') {
-              label = 'Account';
+              accessibilityLabel = 'Account';
               IconComponent = User;
+              fillActive = true;
             }
 
             return (
@@ -277,30 +249,19 @@ const CustomBottomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, n
                 activeOpacity={0.7}
                 onPress={onPress}
                 onLongPress={onLongPress}
-                style={styles.standardTabItem}
+                accessibilityRole="tab"
+                accessibilityLabel={accessibilityLabel}
+                accessibilityState={{ selected: isFocused }}
+                style={[
+                  styles.tabItem,
+                  isFocused && styles.tabItemActive,
+                ]}
               >
-                <View style={[styles.iconContainer, isFocused && styles.iconContainerFocused]}>
-                  <IconComponent
-                    size={20}
-                    color={isFocused ? '#ffffff' : 'rgba(255, 255, 255, 0.45)'}
-                    fill={isFocused ? '#ffffff' : 'transparent'}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.tabLabel,
-                    isFocused ? styles.tabLabelFocused : styles.tabLabelUnfocused,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {label}
-                </Text>
-                {/* Active Micro-Indicator Dot */}
-                <View
-                  style={[
-                    styles.activeIndicatorDot,
-                    { backgroundColor: isFocused ? '#3fb668' : 'transparent' },
-                  ]}
+                <IconComponent
+                  size={22}
+                  color={isFocused ? '#ffffff' : 'rgba(255, 255, 255, 0.55)'}
+                  fill={isFocused && fillActive ? '#ffffff' : 'transparent'}
+                  strokeWidth={isFocused ? 2.4 : 1.8}
                 />
               </TouchableOpacity>
             );
@@ -331,21 +292,21 @@ export const CustomerTabs: React.FC = () => {
 const styles = StyleSheet.create({
   tabBarWrapper: {
     position: 'absolute',
-    left: 14,
-    right: 14,
+    left: 20,
+    right: 20,
     zIndex: 9999,
   },
   tabBarCapsule: {
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: 'rgba(7, 9, 12, 0.94)',
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(14, 20, 26, 0.65)',
     borderWidth: 1.2,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: 'rgba(255, 255, 255, 0.16)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 14,
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 12,
   },
   blurClip: {
     position: 'absolute',
@@ -353,14 +314,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 34,
+    borderRadius: 32,
     overflow: 'hidden',
   },
   topRimHighlight: {
     position: 'absolute',
     top: 0,
-    left: 28,
-    right: 28,
+    left: 24,
+    right: 24,
     height: 1.2,
     borderRadius: 1,
   },
@@ -368,77 +329,23 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingHorizontal: 4,
+    justifyContent: 'space-between',
+    padding: 6,
   },
-  standardTabItem: {
+  tabItem: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 4,
-  },
-  iconContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 14,
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconContainerFocused: {
-    backgroundColor: 'rgba(255, 255, 255, 0.09)',
-  },
-  tabLabel: {
-    fontSize: 9.5,
-    letterSpacing: 0.2,
-    marginTop: 1,
-  },
-  tabLabelFocused: {
-    color: '#ffffff',
-    fontWeight: '800',
-  },
-  tabLabelUnfocused: {
-    color: 'rgba(255, 255, 255, 0.45)',
-    fontWeight: '600',
-  },
-  activeIndicatorDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    marginTop: 2,
-  },
-  centerHeroTabItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-    marginTop: -18,
-  },
-  centerHeroButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(63, 182, 104, 0.4)',
+  tabItemActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-  centerHeroButtonFocused: {
-    borderColor: '#6ee7b7',
-    borderWidth: 2,
-    shadowColor: '#3fb668',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.7,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  centerHeroLabel: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    marginTop: 3,
-    letterSpacing: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
 });
