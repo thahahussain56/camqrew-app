@@ -353,14 +353,22 @@ export const ReelsFeedScreen: React.FC = () => {
             />
           )}
 
-          {/* Top & Bottom Cinematic Linear Gradient Vignettes */}
+          {/* Top & Bottom Cinematic Linear Gradient Vignettes adapted to theme */}
           <LinearGradient
-            colors={['rgba(6,8,10,0.88)', 'rgba(6,8,10,0.3)', 'transparent']}
+            colors={
+              isDark
+                ? ['rgba(6,8,10,0.88)', 'rgba(6,8,10,0.3)', 'transparent']
+                : ['rgba(249,250,251,0.92)', 'rgba(249,250,251,0.45)', 'transparent']
+            }
             style={styles.topVignette}
             pointerEvents="none"
           />
           <LinearGradient
-            colors={['transparent', 'rgba(6,8,10,0.45)', 'rgba(6,8,10,0.96)']}
+            colors={
+              isDark
+                ? ['transparent', 'rgba(6,8,10,0.45)', 'rgba(6,8,10,0.96)']
+                : ['transparent', 'rgba(249,250,251,0.55)', 'rgba(249,250,251,0.98)']
+            }
             style={styles.bottomVignette}
             pointerEvents="none"
           />
@@ -390,11 +398,19 @@ export const ReelsFeedScreen: React.FC = () => {
               { opacity: playPauseOpacity },
             ]}
           >
-            <View style={styles.playPauseIconCircle}>
+            <View
+              style={[
+                styles.playPauseIconCircle,
+                {
+                  backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.88)',
+                  borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
+                },
+              ]}
+            >
               {isPaused ? (
-                <Pause size={38} color="#ffffff" />
+                <Pause size={38} color={isDark ? '#ffffff' : colors.textPrimary} />
               ) : (
-                <Play size={38} color="#ffffff" style={{ marginLeft: 4 }} />
+                <Play size={38} color={isDark ? '#ffffff' : colors.textPrimary} style={{ marginLeft: 4 }} />
               )}
             </View>
           </Animated.View>
@@ -415,12 +431,12 @@ export const ReelsFeedScreen: React.FC = () => {
               {isCustomAvatar(item.creatorAvatar) ? (
                 <Image source={{ uri: item.creatorAvatar! }} style={styles.actionAvatarImg} />
               ) : (
-                <View style={[styles.actionAvatarImg, { backgroundColor: colors.surfaceCard, alignItems: 'center', justifyContent: 'center' }]}>
+                <View style={[styles.actionAvatarImg, { backgroundColor: isDark ? colors.surfaceCard : colors.surfaceElevated, alignItems: 'center', justifyContent: 'center' }]}>
                   <User size={20} color={colors.textSecondary} />
                 </View>
               )}
             </View>
-            <View style={[styles.avatarHirePlusBadge, { backgroundColor: colors.accent }]}>
+            <View style={[styles.avatarHirePlusBadge, { backgroundColor: colors.accent, borderColor: isDark ? '#000000' : '#ffffff' }]}>
               <Briefcase size={9} color="#ffffff" />
             </View>
           </TouchableOpacity>
@@ -431,14 +447,36 @@ export const ReelsFeedScreen: React.FC = () => {
             onPress={() => toggleLike(item.id)}
             style={styles.actionBtn}
           >
-            <View style={[styles.actionIconCircle, isLiked && styles.actionIconCircleLiked]}>
+            <View
+              style={[
+                styles.actionIconCircle,
+                {
+                  backgroundColor: isLiked
+                    ? (isDark ? 'rgba(255, 51, 75, 0.25)' : 'rgba(255, 51, 75, 0.15)')
+                    : (isDark ? 'rgba(20, 25, 30, 0.75)' : 'rgba(255, 255, 255, 0.88)'),
+                  borderColor: isLiked
+                    ? (isDark ? 'rgba(255, 51, 75, 0.6)' : '#FF334B')
+                    : (isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)'),
+                },
+              ]}
+            >
               <Heart
                 size={22}
-                color={isLiked ? '#FF334B' : '#ffffff'}
+                color={isLiked ? '#FF334B' : (isDark ? '#ffffff' : colors.textPrimary)}
                 fill={isLiked ? '#FF334B' : 'transparent'}
               />
             </View>
-            <Text style={styles.actionLabel}>{likes}</Text>
+            <Text
+              style={[
+                styles.actionLabel,
+                {
+                  color: isDark ? '#ffffff' : colors.textPrimary,
+                  textShadowColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.8)',
+                },
+              ]}
+            >
+              {likes}
+            </Text>
           </TouchableOpacity>
 
           {/* Creator Quick Details / Pro Info Button */}
@@ -450,10 +488,28 @@ export const ReelsFeedScreen: React.FC = () => {
             }}
             style={styles.actionBtn}
           >
-            <View style={styles.actionIconCircle}>
-              <Briefcase size={20} color="#ffffff" />
+            <View
+              style={[
+                styles.actionIconCircle,
+                {
+                  backgroundColor: isDark ? 'rgba(20, 25, 30, 0.75)' : 'rgba(255, 255, 255, 0.88)',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                },
+              ]}
+            >
+              <Briefcase size={20} color={isDark ? '#ffffff' : colors.textPrimary} />
             </View>
-            <Text style={styles.actionLabel}>Pro Info</Text>
+            <Text
+              style={[
+                styles.actionLabel,
+                {
+                  color: isDark ? '#ffffff' : colors.textPrimary,
+                  textShadowColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.8)',
+                },
+              ]}
+            >
+              Pro Info
+            </Text>
           </TouchableOpacity>
 
           {/* Chat with Creator Button */}
@@ -465,10 +521,28 @@ export const ReelsFeedScreen: React.FC = () => {
             }}
             style={styles.actionBtn}
           >
-            <View style={styles.actionIconCircle}>
-              <MessageSquare size={20} color="#ffffff" />
+            <View
+              style={[
+                styles.actionIconCircle,
+                {
+                  backgroundColor: isDark ? 'rgba(20, 25, 30, 0.75)' : 'rgba(255, 255, 255, 0.88)',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                },
+              ]}
+            >
+              <MessageSquare size={20} color={isDark ? '#ffffff' : colors.textPrimary} />
             </View>
-            <Text style={styles.actionLabel}>Chat</Text>
+            <Text
+              style={[
+                styles.actionLabel,
+                {
+                  color: isDark ? '#ffffff' : colors.textPrimary,
+                  textShadowColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.8)',
+                },
+              ]}
+            >
+              Chat
+            </Text>
           </TouchableOpacity>
 
           {/* Share Button */}
@@ -477,10 +551,28 @@ export const ReelsFeedScreen: React.FC = () => {
             onPress={() => handleShare(item)}
             style={styles.actionBtn}
           >
-            <View style={styles.actionIconCircle}>
-              <Share2 size={20} color="#ffffff" />
+            <View
+              style={[
+                styles.actionIconCircle,
+                {
+                  backgroundColor: isDark ? 'rgba(20, 25, 30, 0.75)' : 'rgba(255, 255, 255, 0.88)',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                },
+              ]}
+            >
+              <Share2 size={20} color={isDark ? '#ffffff' : colors.textPrimary} />
             </View>
-            <Text style={styles.actionLabel}>Share</Text>
+            <Text
+              style={[
+                styles.actionLabel,
+                {
+                  color: isDark ? '#ffffff' : colors.textPrimary,
+                  textShadowColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.8)',
+                },
+              ]}
+            >
+              Share
+            </Text>
           </TouchableOpacity>
 
           {/* Sound / Mute Toggle Button */}
@@ -489,14 +581,32 @@ export const ReelsFeedScreen: React.FC = () => {
             onPress={toggleMute}
             style={styles.actionBtn}
           >
-            <View style={styles.actionIconCircle}>
+            <View
+              style={[
+                styles.actionIconCircle,
+                {
+                  backgroundColor: isDark ? 'rgba(20, 25, 30, 0.75)' : 'rgba(255, 255, 255, 0.88)',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                },
+              ]}
+            >
               {isMuted ? (
-                <VolumeX size={20} color="#ffffff" />
+                <VolumeX size={20} color={isDark ? '#ffffff' : colors.textPrimary} />
               ) : (
                 <Volume2 size={20} color={colors.accent} />
               )}
             </View>
-            <Text style={styles.actionLabel}>{isMuted ? 'Muted' : 'Sound'}</Text>
+            <Text
+              style={[
+                styles.actionLabel,
+                {
+                  color: isDark ? '#ffffff' : colors.textPrimary,
+                  textShadowColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.8)',
+                },
+              ]}
+            >
+              {isMuted ? 'Muted' : 'Sound'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -504,17 +614,46 @@ export const ReelsFeedScreen: React.FC = () => {
         <View style={[styles.bottomInfoContainer, { bottom: insets.bottom + 94 }]}>
           {/* Metadata Badges Row */}
           <View style={styles.badgeRow}>
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryBadgeText}>{item.category || 'Cinematography'}</Text>
+            <View
+              style={[
+                styles.categoryBadge,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)',
+                  borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                },
+              ]}
+            >
+              <Text style={[styles.categoryBadgeText, { color: colors.textPrimary }]}>
+                {item.category || 'Cinematography'}
+              </Text>
             </View>
             {item.isShort && (
-              <View style={[styles.categoryBadge, styles.shortBadge]}>
-                <Text style={styles.shortBadgeText}>9:16 Short</Text>
+              <View
+                style={[
+                  styles.categoryBadge,
+                  styles.shortBadge,
+                  {
+                    backgroundColor: isDark ? 'rgba(63, 182, 104, 0.2)' : 'rgba(63, 182, 104, 0.15)',
+                    borderColor: isDark ? 'rgba(63, 182, 104, 0.4)' : 'rgba(63, 182, 104, 0.3)',
+                  },
+                ]}
+              >
+                <Text style={[styles.shortBadgeText, { color: colors.accent }]}>9:16 Short</Text>
               </View>
             )}
-            <View style={styles.locationBadge}>
-              <MapPin size={11} color="rgba(255,255,255,0.75)" style={{ marginRight: 3 }} />
-              <Text style={styles.locationBadgeText}>{item.creatorCity || 'India'}</Text>
+            <View
+              style={[
+                styles.locationBadge,
+                {
+                  backgroundColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.05)',
+                  borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                },
+              ]}
+            >
+              <MapPin size={11} color={colors.textSecondary} style={{ marginRight: 3 }} />
+              <Text style={[styles.locationBadgeText, { color: colors.textSecondary }]}>
+                {item.creatorCity || 'India'}
+              </Text>
             </View>
             {item.creatorRating && item.creatorRating > 0 ? (
               <View style={styles.ratingBadge}>
@@ -530,12 +669,12 @@ export const ReelsFeedScreen: React.FC = () => {
             onPress={() => setSelectedCreator(item)}
             style={styles.creatorIdentityRow}
           >
-            <Text style={styles.creatorNameText}>{item.creatorName}</Text>
+            <Text style={[styles.creatorNameText, { color: colors.textPrimary }]}>{item.creatorName}</Text>
             {item.creatorVerified && (
               <CheckCircle size={15} color={colors.accent} fill={colors.accent} style={{ marginLeft: 5 }} />
             )}
-            <Text style={styles.creatorDividerDot}>•</Text>
-            <Text style={styles.creatorTitleText} numberOfLines={1}>
+            <Text style={[styles.creatorDividerDot, { color: colors.textFaint }]}>•</Text>
+            <Text style={[styles.creatorTitleText, { color: colors.textSecondary }]} numberOfLines={1}>
               {item.creatorTitle || 'Specialist'}
             </Text>
           </TouchableOpacity>
@@ -543,7 +682,13 @@ export const ReelsFeedScreen: React.FC = () => {
           {/* Reel Caption / Description with Expand/Collapse */}
           <View style={styles.captionContainer}>
             <Text
-              style={styles.captionText}
+              style={[
+                styles.captionText,
+                {
+                  color: colors.textPrimary,
+                  textShadowColor: isDark ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.8)',
+                },
+              ]}
               numberOfLines={isCaptionExpanded ? undefined : 2}
             >
               {item.title}
@@ -553,7 +698,7 @@ export const ReelsFeedScreen: React.FC = () => {
                 onPress={() => toggleCaption(item.id)}
                 style={styles.expandCaptionBtn}
               >
-                <Text style={styles.expandCaptionText}>
+                <Text style={[styles.expandCaptionText, { color: colors.textSecondary }]}>
                   {isCaptionExpanded ? 'less' : 'more'}
                 </Text>
               </TouchableOpacity>
@@ -562,8 +707,8 @@ export const ReelsFeedScreen: React.FC = () => {
 
           {/* Audio Ticker Indicator */}
           <View style={styles.audioTickerRow}>
-            <Music size={12} color="rgba(255,255,255,0.75)" style={{ marginRight: 5 }} />
-            <Text style={styles.audioTickerText} numberOfLines={1}>
+            <Music size={12} color={colors.textSecondary} style={{ marginRight: 5 }} />
+            <Text style={[styles.audioTickerText, { color: colors.textSecondary }]} numberOfLines={1}>
               Original Audio • {item.creatorName}
             </Text>
           </View>
@@ -572,7 +717,13 @@ export const ReelsFeedScreen: React.FC = () => {
           <TouchableOpacity
             activeOpacity={0.88}
             onPress={() => handleBook(item)}
-            style={[styles.quickHireBar, { borderColor: 'rgba(63, 182, 104, 0.4)' }]}
+            style={[
+              styles.quickHireBar,
+              {
+                backgroundColor: isDark ? 'rgba(18, 22, 26, 0.92)' : 'rgba(255, 255, 255, 0.95)',
+                borderColor: isDark ? 'rgba(63, 182, 104, 0.4)' : 'rgba(63, 182, 104, 0.35)',
+              },
+            ]}
           >
             <View style={styles.quickHireLeft}>
               <View style={[styles.quickHireIconCircle, { backgroundColor: colors.accentGlow }]}>
@@ -580,13 +731,15 @@ export const ReelsFeedScreen: React.FC = () => {
               </View>
               <View style={{ marginLeft: 10 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={styles.quickHireTitle}>Book {item.creatorName.split(' ')[0]}</Text>
-                  <View style={styles.escrowBadgeMini}>
+                  <Text style={[styles.quickHireTitle, { color: colors.textPrimary }]}>
+                    Book {item.creatorName.split(' ')[0]}
+                  </Text>
+                  <View style={[styles.escrowBadgeMini, { backgroundColor: colors.accentGlow }]}>
                     <ShieldCheck size={10} color={colors.accent} />
                     <Text style={[styles.escrowBadgeMiniText, { color: colors.accent }]}>Escrow</Text>
                   </View>
                 </View>
-                <Text style={styles.quickHireRate}>
+                <Text style={[styles.quickHireRate, { color: colors.textSecondary }]}>
                   {item.creatorRatePerDay
                     ? `₹${item.creatorRatePerDay.toLocaleString('en-IN')}/day • Verified Rate`
                     : 'Standard Day Rate • Protected'}
@@ -601,7 +754,12 @@ export const ReelsFeedScreen: React.FC = () => {
         </View>
 
         {/* Video Bottom Progress Bar Line */}
-        <View style={styles.bottomProgressBarTrack}>
+        <View
+          style={[
+            styles.bottomProgressBarTrack,
+            { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' },
+          ]}
+        >
           <View style={[styles.bottomProgressBarFill, { backgroundColor: colors.accent }]} />
         </View>
       </View>
@@ -610,20 +768,37 @@ export const ReelsFeedScreen: React.FC = () => {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        translucent
+        backgroundColor="transparent"
+      />
 
       {/* Floating Top Frosted Header Bar */}
       <View style={[styles.topHeaderBar, { top: insets.top + 8 }]}>
         <View style={styles.headerBrandRow}>
           <View style={styles.brandTitleWrap}>
             <Film size={18} color={colors.accent} style={{ marginRight: 6 }} />
-            <Text style={styles.headerBrandTitle}>Camqrew</Text>
+            <Text style={[styles.headerBrandTitle, { color: colors.textPrimary }]}>Camqrew</Text>
             <Text style={[styles.headerSubTitle, { color: colors.accent }]}>Reels</Text>
           </View>
 
           {filteredReels.length > 0 && (
-            <View style={styles.headerCounterBadge}>
-              <Text style={styles.headerCounterText}>
+            <View
+              style={[
+                styles.headerCounterBadge,
+                {
+                  backgroundColor: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.85)',
+                  borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)',
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.headerCounterText,
+                  { color: isDark ? 'rgba(255,255,255,0.85)' : colors.textSecondary },
+                ]}
+              >
                 {activeIndex + 1}/{filteredReels.length}
               </Text>
             </View>
@@ -648,12 +823,31 @@ export const ReelsFeedScreen: React.FC = () => {
                 }}
                 style={[
                   styles.categoryFilterChip,
-                  isSelected && [styles.categoryFilterChipActive, { backgroundColor: colors.accent, borderColor: colors.accent }],
+                  {
+                    backgroundColor: isSelected
+                      ? colors.accent
+                      : isDark
+                      ? 'rgba(20, 25, 30, 0.75)'
+                      : 'rgba(255, 255, 255, 0.88)',
+                    borderColor: isSelected
+                      ? colors.accent
+                      : isDark
+                      ? 'rgba(255, 255, 255, 0.12)'
+                      : 'rgba(0, 0, 0, 0.08)',
+                  },
+                  isSelected && styles.categoryFilterChipActive,
                 ]}
               >
                 <Text
                   style={[
                     styles.categoryFilterText,
+                    {
+                      color: isSelected
+                        ? '#ffffff'
+                        : isDark
+                        ? 'rgba(255, 255, 255, 0.85)'
+                        : colors.textSecondary,
+                    },
                     isSelected && styles.categoryFilterTextActive,
                   ]}
                 >
@@ -759,7 +953,7 @@ export const ReelsFeedScreen: React.FC = () => {
         transparent
         onRequestClose={() => setSelectedCreator(null)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.5)' }]}>
           <TouchableOpacity
             style={StyleSheet.absoluteFill}
             activeOpacity={1}
@@ -899,7 +1093,6 @@ export const ReelsFeedScreen: React.FC = () => {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#06080A',
   },
   reelContainer: {
     position: 'relative',
@@ -944,7 +1137,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerBrandTitle: {
-    color: '#ffffff',
     fontSize: 19,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -958,12 +1150,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
   },
   headerCounterText: {
-    color: 'rgba(255,255,255,0.85)',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -977,24 +1166,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: 'rgba(20, 25, 30, 0.7)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   categoryFilterChipActive: {
     shadowColor: '#3fb668',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.35,
     shadowRadius: 5,
     elevation: 3,
   },
   categoryFilterText: {
-    color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 12,
     fontWeight: '700',
   },
   categoryFilterTextActive: {
-    color: '#ffffff',
     fontWeight: '800',
   },
 
@@ -1027,11 +1212,9 @@ const styles = StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 38,
-    backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.2)',
   },
 
   // Right Floating Actions
@@ -1067,7 +1250,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: '#000000',
   },
   actionBtn: {
     alignItems: 'center',
@@ -1076,22 +1258,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(20, 25, 30, 0.75)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionIconCircleLiked: {
-    backgroundColor: 'rgba(255, 51, 75, 0.25)',
-    borderColor: 'rgba(255, 51, 75, 0.6)',
-  },
   actionLabel: {
-    color: '#ffffff',
     fontSize: 10.5,
     fontWeight: '700',
     marginTop: 4,
-    textShadowColor: 'rgba(0,0,0,0.85)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
@@ -1111,52 +1285,45 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   categoryBadge: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 9,
     paddingVertical: 3.5,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
   },
   categoryBadgeText: {
-    color: '#ffffff',
     fontSize: 10.5,
     fontWeight: '800',
     letterSpacing: 0.2,
   },
   shortBadge: {
-    backgroundColor: 'rgba(63, 182, 104, 0.2)',
-    borderColor: 'rgba(63, 182, 104, 0.4)',
+    borderRadius: 8,
+    borderWidth: 1,
   },
   shortBadgeText: {
-    color: '#3fb668',
     fontSize: 10.5,
     fontWeight: '800',
   },
   locationBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.45)',
     paddingHorizontal: 8,
     paddingVertical: 3.5,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   locationBadgeText: {
-    color: 'rgba(255,255,255,0.85)',
     fontSize: 10.5,
     fontWeight: '600',
   },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    backgroundColor: 'rgba(245, 158, 11, 0.18)',
     paddingHorizontal: 7,
     paddingVertical: 3.5,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.4)',
+    borderColor: 'rgba(245, 158, 11, 0.35)',
   },
   ratingBadgeText: {
     color: '#f59e0b',
@@ -1170,18 +1337,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   creatorNameText: {
-    color: '#ffffff',
     fontSize: 16.5,
     fontWeight: '900',
     letterSpacing: 0.2,
   },
   creatorDividerDot: {
-    color: 'rgba(255,255,255,0.4)',
     marginHorizontal: 6,
     fontSize: 12,
   },
   creatorTitleText: {
-    color: 'rgba(255,255,255,0.8)',
     fontSize: 12.5,
     fontWeight: '600',
     flex: 1,
@@ -1191,11 +1355,9 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   captionText: {
-    color: '#ffffff',
     fontSize: 13.5,
     lineHeight: 18.5,
     fontWeight: '600',
-    textShadowColor: 'rgba(0,0,0,0.9)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
@@ -1204,7 +1366,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   expandCaptionText: {
-    color: 'rgba(255,255,255,0.7)',
     fontSize: 12,
     fontWeight: '700',
     textDecorationLine: 'underline',
@@ -1216,7 +1377,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   audioTickerText: {
-    color: 'rgba(255,255,255,0.75)',
     fontSize: 11.5,
     fontWeight: '600',
     flex: 1,
@@ -1227,14 +1387,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(19, 23, 26, 0.88)',
     borderWidth: 1,
     borderRadius: 16,
     paddingVertical: 9,
     paddingHorizontal: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 3,
   },
@@ -1251,7 +1409,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   quickHireTitle: {
-    color: '#ffffff',
     fontSize: 13,
     fontWeight: '800',
   },
@@ -1260,7 +1417,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 3,
     marginLeft: 6,
-    backgroundColor: 'rgba(63, 182, 104, 0.15)',
     paddingHorizontal: 5,
     paddingVertical: 1.5,
     borderRadius: 6,
@@ -1270,7 +1426,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   quickHireRate: {
-    color: 'rgba(255,255,255,0.75)',
     fontSize: 11,
     fontWeight: '500',
     marginTop: 1,
@@ -1296,7 +1451,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 2,
-    backgroundColor: 'rgba(255,255,255,0.15)',
   },
   bottomProgressBarFill: {
     width: '100%',
@@ -1339,7 +1493,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.12,
     shadowRadius: 16,
     elevation: 4,
   },
@@ -1407,7 +1561,6 @@ const styles = StyleSheet.create({
   // Creator Quick View Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
     justifyContent: 'flex-end',
   },
   creatorSheetCard: {
