@@ -150,15 +150,19 @@ export const CustomerTabs: React.FC = () => {
     bottom: 20,
     left: 16,
     right: 16,
-    backgroundColor: isDark ? 'rgba(6, 8, 10, 0.72)' : 'rgba(255, 255, 255, 0.65)',
+    backgroundColor: 'rgba(6, 8, 10, 0.90)',
     borderTopWidth: 0,
     borderWidth: 1,
-    borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.10)',
     borderRadius: 28,
     height: 64,
     paddingBottom: 8,
     paddingTop: 8,
-    elevation: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
   };
 
   const getDynamicTabStyle = (route: any) => {
@@ -182,14 +186,14 @@ export const CustomerTabs: React.FC = () => {
         tabBarBackground: () => (
           <View style={{ flex: 1, borderRadius: 28, overflow: 'hidden' }}>
             <BlurView
-              tint={isDark ? 'dark' : 'light'}
-              intensity={80}
+              tint="dark"
+              intensity={85}
               style={StyleSheet.absoluteFill}
             />
           </View>
         ),
-        tabBarActiveTintColor: colors.textPrimary,
-        tabBarInactiveTintColor: colors.textFaint,
+        tabBarActiveTintColor: '#ffffff',
+        tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.45)',
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '700',

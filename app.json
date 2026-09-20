@@ -26,6 +26,10 @@
       },
       "package": "in.camcrew.app"
     },
+    "androidNavigationBar": {
+      "backgroundColor": "#06080a",
+      "barStyle": "light-content"
+    },
     "web": {
       "favicon": "./assets/favicon.png"
     },
