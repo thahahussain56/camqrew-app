@@ -15,6 +15,7 @@ import { Button } from '../../components/ui/Button';
 import { ProductCard } from '../../components/cards/ProductCard';
 import { useCartStore } from '../../store/cartStore';
 import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink } from 'lucide-react-native';
+import { getArchetype } from '../../constants/categories';
 
 const { width } = Dimensions.get('window');
 
@@ -139,16 +140,18 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
     );
   }
 
+  const proArchetype = getArchetype(profile.categories);
+
   const safeServices = profile.services && profile.services.length > 0 ? profile.services : [
     {
       id: 'srv_default',
-      title: isStudio ? 'Full Day Studio Access' : 'Full Day Shoot Package',
-      category: profile.categories[0] || 'Creative Service',
-      rate: profile.ratePerDay || 15000,
-      unit: 'per day',
+      title: isStudio ? 'Full Day Studio Access' : `${proArchetype.serviceTitlePlaceholder.replace('e.g. ', '')}`,
+      category: profile.categories[0] || proArchetype.label,
+      rate: profile.ratePerDay || Number(proArchetype.ratePlaceholder),
+      unit: `per ${proArchetype.rateUnitDefault.toLowerCase()}`,
       description: isStudio 
         ? 'Includes full access to the studio bay, basic grip equipment, and green room.'
-        : 'Includes full day coverage with high resolution deliverables.',
+        : `Includes complete ${proArchetype.roleNoun.toLowerCase()} service coverage and deliverables.`,
     }
   ];
 
@@ -232,13 +235,13 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
             onPress={() => navigation.navigate('Booking', { proId: profile.id, type: bookingType })}
             activeOpacity={0.8}
           >
-            <Text style={styles.bookBtnText}>Book Now • ₹{(profile.ratePerDay || 15000).toLocaleString('en-IN')}</Text>
+            <Text style={styles.bookBtnText}>{proArchetype.bookingCtaPrefix} • ₹{(profile.ratePerDay || 15000).toLocaleString('en-IN')}/{proArchetype.rateUnitDefault.toLowerCase()}</Text>
           </TouchableOpacity>
         </View>
 
         {/* ── About Section ── */}
         <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>About {isStudio ? 'the Studio' : 'the Creator'}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>About {isStudio ? 'the Studio' : `the ${proArchetype.roleNoun}`}</Text>
           <Text style={[styles.bioText, { color: colors.textSecondary }]}>{profile.bio}</Text>
         </Card>
 
@@ -359,13 +362,25 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
           </ScrollView>
         </Card>
 
-        {/* ── Equipment / Amenities ── */}
+        {/* ── Capabilities / Specialties ── */}
         {profile.equipment && profile.equipment.length > 0 && (
           <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{isStudio ? 'Studio Amenities' : 'Equipment Roster'}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{isStudio ? 'Studio Amenities' : proArchetype.equipmentSectionTitle}</Text>
             <View style={styles.chipsWrap}>
               {profile.equipment.map((eq, i) => (
                 <Badge key={i} label={eq} variant="info" />
+              ))}
+            </View>
+          </Card>
+        )}
+
+        {/* ── Certifications & Industry Badges ── */}
+        {profile.certifications && profile.certifications.length > 0 && (
+          <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{proArchetype.skillsSectionTitle}</Text>
+            <View style={styles.chipsWrap}>
+              {profile.certifications.map((cert, i) => (
+                <Badge key={i} label={cert} variant="success" />
               ))}
             </View>
           </Card>

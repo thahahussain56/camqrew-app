@@ -12,7 +12,7 @@ import { Chip } from '../../components/ui/Chip';
 import { ChipInput } from '../../components/forms/ChipInput';
 import { LocationCascader } from '../../components/forms/LocationCascader';
 import { Toast } from '../../components/ui/Toast';
-import { PROFESSIONAL_CATEGORIES } from '../../constants/categories';
+import { PROFESSIONAL_CATEGORIES, getArchetype } from '../../constants/categories';
 import { ChevronDown, ChevronUp, Plus, Trash2, Save, Camera, Image as ImageIcon, Film, Play } from 'lucide-react-native';
 
 export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
@@ -49,6 +49,7 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
   const [gstin, setGstin] = useState('');
   const [experienceYears, setExperienceYears] = useState('5');
   const [categories, setCategories] = useState<string[]>(['Photographers']);
+  const activeArchetype = getArchetype(categories);
   const [state, setState] = useState('Maharashtra');
   const [district, setDistrict] = useState('Mumbai');
   const [city, setCity] = useState('Mumbai');
@@ -491,19 +492,32 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                 ))}
               </ScrollView>
 
-              <Input label="Service Title (e.g. Wedding Shoot)" value={newService.title} onChangeText={t => setNewService({...newService, title: t})} />
+              <Input 
+                label={`Service Title (${activeArchetype.serviceTitlePlaceholder})`} 
+                value={newService.title} 
+                onChangeText={t => setNewService({...newService, title: t})} 
+              />
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
-                  <Input label={newService.type === 'package' ? "Package Price (₹)" : "Rate (₹)"} value={newService.rate} onChangeText={t => setNewService({...newService, rate: t})} keyboardType="numeric" />
+                  <Input 
+                    label={newService.type === 'package' ? "Package Price (₹)" : `Rate (₹ / ${newService.unit || activeArchetype.rateUnitDefault})`} 
+                    value={newService.rate} 
+                    onChangeText={t => setNewService({...newService, rate: t})} 
+                    keyboardType="numeric" 
+                  />
                 </View>
                 {newService.type === 'standard' && (
                   <View style={{ flex: 1 }}>
-                    <Input label="Unit (e.g. Day)" value={newService.unit} onChangeText={t => setNewService({...newService, unit: t})} />
+                    <Input 
+                      label={`Unit (e.g. ${activeArchetype.rateUnitDefault})`} 
+                      value={newService.unit || activeArchetype.rateUnitDefault} 
+                      onChangeText={t => setNewService({...newService, unit: t})} 
+                    />
                   </View>
                 )}
               </View>
               <Input 
-                label="Deliverables (e.g. 50 Edited Photos, 1 Highlight Reel)" 
+                label={`Deliverables (${activeArchetype.serviceDeliverablesPlaceholder})`} 
                 value={newService.deliverables} 
                 onChangeText={t => setNewService({...newService, deliverables: t})} 
               />
@@ -518,12 +532,12 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                       type: newService.type,
                       title: newService.title, 
                       rate: Number(newService.rate), 
-                      unit: newService.type === 'package' ? 'Flat Rate' : newService.unit, 
+                      unit: newService.type === 'package' ? 'Flat Rate' : (newService.unit || activeArchetype.rateUnitDefault), 
                       category: newService.category, 
                       description: '',
                       deliverables: newService.deliverables
                     }]);
-                    setNewService({ title: '', rate: '', unit: 'Day', category: newService.category, deliverables: '', type: 'standard' });
+                    setNewService({ title: '', rate: '', unit: activeArchetype.rateUnitDefault, category: newService.category, deliverables: '', type: 'standard' });
                   }
                 }}
                 style={{ marginTop: 8 }}
@@ -533,10 +547,10 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
         )}
       </Card>
 
-      {/* 4. Indian Location System Accordion */}
+      {/* 4. Location & Base Rate Accordion */}
       <Card style={styles.accordionCard}>
         <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('locations')}>
-          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>4. Primary Location & Rate</Text>
+          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>4. Primary Location & Base Rate</Text>
           {openSections.locations ? <ChevronUp size={20} color="#3fb668" /> : <ChevronDown size={20} color={colors.textSecondary} />}
         </TouchableOpacity>
 
@@ -552,26 +566,66 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                 setCity(c);
               }}
             />
-            <Input label="Starting Day Rate (₹)" value={ratePerDay} onChangeText={setRatePerDay} keyboardType="numeric" />
+            <Input 
+              label={activeArchetype.rateLabel} 
+              placeholder={activeArchetype.ratePlaceholder}
+              value={ratePerDay} 
+              onChangeText={setRatePerDay} 
+              keyboardType="numeric" 
+            />
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+              <Text style={{ fontSize: 11.5, color: colors.textSecondary, fontWeight: '600' }}>
+                Default pricing unit: <Text style={{ color: colors.accent, fontWeight: '800' }}>per {activeArchetype.rateUnitDefault.toLowerCase()}</Text>
+              </Text>
+            </View>
           </View>
         )}
       </Card>
 
-      {/* 5. Equipment Roster Accordion */}
+      {/* 5. Dynamic Capabilities / Equipment Accordion */}
       <Card style={styles.accordionCard}>
         <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('equipment')}>
-          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>5. Equipment Roster</Text>
+          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>5. {activeArchetype.equipmentSectionTitle}</Text>
           {openSections.equipment ? <ChevronUp size={20} color="#3fb668" /> : <ChevronDown size={20} color={colors.textSecondary} />}
         </TouchableOpacity>
 
         {openSections.equipment && (
           <View style={styles.accordionBody}>
             <ChipInput
-              label="Add Gear / Lenses"
+              label={activeArchetype.equipmentInputLabel}
               items={equipment}
               onAdd={item => setEquipment([...equipment, item])}
               onRemove={index => setEquipment(equipment.filter((_, i) => i !== index))}
             />
+
+            {activeArchetype.equipmentPresets && (
+              <View style={{ marginTop: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 8 }}>
+                  Quick Suggestions ({activeArchetype.roleNoun}):
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {activeArchetype.equipmentPresets
+                    .filter(preset => !equipment.includes(preset))
+                    .slice(0, 8)
+                    .map(preset => (
+                      <TouchableOpacity
+                        key={preset}
+                        onPress={() => setEquipment([...equipment, preset])}
+                        style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 5,
+                          borderRadius: 14,
+                          backgroundColor: colors.surfaceElevated,
+                          borderWidth: 1,
+                          borderColor: colors.borderLight,
+                        }}
+                      >
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: colors.accent }}>+ {preset}</Text>
+                      </TouchableOpacity>
+                    ))}
+                </View>
+              </View>
+            )}
           </View>
         )}
       </Card>
@@ -579,21 +633,50 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
       {/* 6. Skills & Certifications Accordion */}
       <Card style={styles.accordionCard}>
         <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('skills')}>
-          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>6. Skills & Industry Badges</Text>
+          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>6. {activeArchetype.skillsSectionTitle}</Text>
           {openSections.skills ? <ChevronUp size={20} color="#3fb668" /> : <ChevronDown size={20} color={colors.textSecondary} />}
         </TouchableOpacity>
 
         {openSections.skills && (
           <View style={styles.accordionBody}>
             <ChipInput
-              label="Add Certifications (e.g., DGCA Drone Pilot, RED Operator)"
+              label={activeArchetype.skillsInputLabel}
               items={certifications}
               onAdd={item => setCertifications([...certifications, item])}
               onRemove={index => setCertifications(certifications.filter((_, i) => i !== index))}
             />
 
+            {activeArchetype.skillsPresets && (
+              <View style={{ marginTop: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 8 }}>
+                  Suggested Badges & Compliance:
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {activeArchetype.skillsPresets
+                    .filter(preset => !certifications.includes(preset))
+                    .slice(0, 5)
+                    .map(preset => (
+                      <TouchableOpacity
+                        key={preset}
+                        onPress={() => setCertifications([...certifications, preset])}
+                        style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 5,
+                          borderRadius: 14,
+                          backgroundColor: colors.surfaceElevated,
+                          borderWidth: 1,
+                          borderColor: colors.borderLight,
+                        }}
+                      >
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: colors.accent }}>+ {preset}</Text>
+                      </TouchableOpacity>
+                    ))}
+                </View>
+              </View>
+            )}
+
             <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', marginTop: 14 }}
+              style={{ flexDirection: 'row', alignItems: 'center', marginTop: 16 }}
               onPress={() => setInternationalTravel(!internationalTravel)}
               activeOpacity={0.8}
             >
@@ -612,8 +695,8 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
               >
                 {internationalTravel && <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 12 }}>✓</Text>}
               </View>
-              <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '700' }}>
-                Willing to travel internationally for shoots
+              <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '700', flex: 1 }}>
+                {activeArchetype.travelCheckboxLabel}
               </Text>
             </TouchableOpacity>
           </View>

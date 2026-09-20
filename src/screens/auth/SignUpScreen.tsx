@@ -18,6 +18,7 @@ import { authApi } from '../../api/authApi';
 import { Button } from '../../components/ui/Button';
 import { Toast } from '../../components/ui/Toast';
 import { LocationCascader } from '../../components/forms/LocationCascader';
+import { PROFESSIONAL_CATEGORIES, getArchetype } from '../../constants/categories';
 
 const { width } = Dimensions.get('window');
 
@@ -406,6 +407,8 @@ export const ProfessionalSignUpScreen: React.FC<{ navigation: any }> = ({ naviga
   const [confirm, setConfirm] = useState('');
 
   // Step 1 — professional_profiles
+  const [selectedCategory, setSelectedCategory] = useState('Photographers');
+  const regArchetype = getArchetype(selectedCategory);
   const [title, setTitle] = useState('');
   const [bio, setBio] = useState('');
   const [experienceYears, setExperienceYears] = useState('');
@@ -434,7 +437,7 @@ export const ProfessionalSignUpScreen: React.FC<{ navigation: any }> = ({ naviga
     }
     if (step === 2) {
       if (!city.trim() || !district.trim() || !state.trim()) { err('State, District, and City are required.'); return false; }
-      if (!ratePerDay || isNaN(Number(ratePerDay)) || Number(ratePerDay) < 500) { err('Enter a valid day rate (min ₹500).'); return false; }
+      if (!ratePerDay || isNaN(Number(ratePerDay)) || Number(ratePerDay) < 500) { err(`Enter a valid rate (min ₹500 per ${regArchetype.rateUnitDefault.toLowerCase()}).`); return false; }
     }
     return true;
   };
@@ -455,6 +458,7 @@ export const ProfessionalSignUpScreen: React.FC<{ navigation: any }> = ({ naviga
         experienceYears: Number(experienceYears) || 0,
         skills: skills.split(',').map(s => s.trim()).filter(Boolean),
         equipment: equipment.split(',').map(s => s.trim()).filter(Boolean),
+        categories: [selectedCategory],
         state: state.trim(),
         district: district.trim(),
         city: city.trim(),
@@ -468,9 +472,10 @@ export const ProfessionalSignUpScreen: React.FC<{ navigation: any }> = ({ naviga
 
   const reviewRows = [
     ['Name', name], ['Email', email], ['Phone', phone],
+    ['Category', selectedCategory],
     ['Title', title], ['Experience', `${experienceYears || 0} years`],
     ['Locality', `${city}, ${district}`], ['State', state],
-    ['Day Rate', `₹${Number(ratePerDay || 0).toLocaleString('en-IN')}`],
+    [`Base Rate (${regArchetype.rateUnitDefault})`, `₹${Number(ratePerDay || 0).toLocaleString('en-IN')}`],
   ];
 
   return (
@@ -537,12 +542,59 @@ export const ProfessionalSignUpScreen: React.FC<{ navigation: any }> = ({ naviga
 
           {step === 1 && (
             <>
-              <Text style={[proStyles.stepTitle, { color: colors.textPrimary }]}>Professional Profile</Text>
-              <Field label="Professional Title *" placeholder="e.g. Senior Wedding Photographer" value={title} onChangeText={setTitle} />
-              <Field label="Bio / About You * (min 20 chars)" placeholder="Tell clients about your style and experience..." value={bio} onChangeText={setBio} multiline numberOfLines={4} />
+              <Text style={[proStyles.stepTitle, { color: colors.textPrimary }]}>Professional Category & Profile</Text>
+              
+              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 8 }}>
+                PRIMARY INDUSTRY / CATEGORY *
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+                {PROFESSIONAL_CATEGORIES.map(cat => {
+                  const isSelected = selectedCategory === cat.name;
+                  return (
+                    <TouchableOpacity
+                      key={cat.id}
+                      onPress={() => setSelectedCategory(cat.name)}
+                      style={{
+                        paddingHorizontal: 13,
+                        paddingVertical: 7,
+                        borderRadius: 16,
+                        backgroundColor: isSelected ? colors.accent : colors.inputBackground,
+                        borderWidth: 1,
+                        borderColor: isSelected ? colors.accent : colors.borderLight,
+                      }}
+                    >
+                      <Text style={{
+                        fontSize: 12,
+                        fontWeight: '800',
+                        color: isSelected ? '#ffffff' : colors.textPrimary,
+                      }}>
+                        {cat.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Field 
+                label="Professional Title *" 
+                placeholder={selectedCategory === 'Caterers' ? 'e.g. Executive Banquet Caterer' : selectedCategory === 'Organisers' ? 'e.g. Luxury Wedding & Event Planner' : selectedCategory === 'Developers' ? 'e.g. Full-Stack Web & Mobile Developer' : 'e.g. Senior Wedding Photographer'} 
+                value={title} 
+                onChangeText={setTitle} 
+              />
+              <Field label="Bio / About You * (min 20 chars)" placeholder="Tell clients about your style, capabilities, and past projects..." value={bio} onChangeText={setBio} multiline numberOfLines={4} />
               <Field label="Years of Experience" placeholder="e.g. 5" value={experienceYears} onChangeText={setExperienceYears} keyboardType="number-pad" autoCapitalize="none" />
-              <Field label="Skills (comma separated)" placeholder="Photography, Video Editing, Drone" value={skills} onChangeText={setSkills} />
-              <Field label="Equipment (comma separated)" placeholder="Sony A7S III, DJI Mavic 3" value={equipment} onChangeText={setEquipment} />
+              <Field 
+                label={`${regArchetype.skillsSectionTitle} (comma separated)`} 
+                placeholder={selectedCategory === 'Caterers' ? 'FSSAI Certified, Mughlai, Live Chaat, Mocktail Bar' : selectedCategory === 'Organisers' ? 'Turnkey Planning, Stage Fabrication, Artist Booking' : selectedCategory === 'Developers' ? 'React, Next.js, Node.js, Supabase, AWS' : 'Photography, Cinematography, DGCA Drone Pilot'} 
+                value={skills} 
+                onChangeText={setSkills} 
+              />
+              <Field 
+                label={`${regArchetype.equipmentSectionTitle} (comma separated)`} 
+                placeholder={selectedCategory === 'Caterers' ? 'Buffet Warmers, Live Counters, Crockery Included' : selectedCategory === 'Organisers' ? 'Line Array Sound, Light Trussing, LED Wall' : selectedCategory === 'Developers' ? 'TypeScript, PostgreSQL, Tailwind, Docker' : 'Sony A7S III, Canon R5, DJI Mavic 3'} 
+                value={equipment} 
+                onChangeText={setEquipment} 
+              />
             </>
           )}
 
@@ -562,8 +614,14 @@ export const ProfessionalSignUpScreen: React.FC<{ navigation: any }> = ({ naviga
                   }}
                 />
               </View>
-              <Field label="Base Day Rate (₹) *" placeholder="e.g. 25000" value={ratePerDay} onChangeText={setRatePerDay}
-                keyboardType="number-pad" autoCapitalize="none" />
+              <Field 
+                label={`Base Rate (₹ / ${regArchetype.rateUnitDefault}) *`} 
+                placeholder={`e.g. ${regArchetype.ratePlaceholder}`} 
+                value={ratePerDay} 
+                onChangeText={setRatePerDay}
+                keyboardType="number-pad" 
+                autoCapitalize="none" 
+              />
             </>
           )}
 
