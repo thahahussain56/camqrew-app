@@ -43,19 +43,8 @@ import {
   Music,
   ShieldCheck,
   Briefcase,
-  Compass,
 } from 'lucide-react-native';
 import { isCustomAvatar } from '../../utils/avatarUtils';
-
-const CATEGORIES = [
-  'All',
-  'Commercial',
-  'Wedding Film',
-  'Drone & Aerial',
-  'Fashion Reel',
-  'Cinematography',
-  'Music Video',
-];
 
 export const ReelsFeedScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -68,7 +57,6 @@ export const ReelsFeedScreen: React.FC = () => {
 
   const [reels, setReels] = useState<FeedReelItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('All');
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [likedReels, setLikedReels] = useState<{ [id: string]: boolean }>({});
@@ -113,12 +101,6 @@ export const ReelsFeedScreen: React.FC = () => {
   useEffect(() => {
     loadReels();
   }, [loadReels]);
-
-  // Filter reels
-  const filteredReels = reels.filter((r) => {
-    if (activeCategory === 'All') return true;
-    return (r.category || '').toLowerCase().includes(activeCategory.toLowerCase());
-  });
 
   // Track active index
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -794,7 +776,7 @@ export const ReelsFeedScreen: React.FC = () => {
             </LinearGradient>
           </View>
 
-          {filteredReels.length > 0 && (
+          {reels.length > 0 && (
             <View
               style={[
                 styles.headerCounterBadge,
@@ -811,64 +793,11 @@ export const ReelsFeedScreen: React.FC = () => {
                   { color: isDark ? 'rgba(255,255,255,0.85)' : colors.textSecondary },
                 ]}
               >
-                {activeIndex + 1}/{filteredReels.length}
+                {activeIndex + 1}/{reels.length}
               </Text>
             </View>
           )}
         </View>
-
-        {/* Category Pills Scroll */}
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={CATEGORIES}
-          keyExtractor={(item) => item}
-          contentContainerStyle={styles.categoryScrollContent}
-          renderItem={({ item }) => {
-            const isSelected = activeCategory === item;
-            return (
-              <TouchableOpacity
-                activeOpacity={0.75}
-                onPress={() => {
-                  triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
-                  setActiveCategory(item);
-                }}
-                style={[
-                  styles.categoryFilterChip,
-                  {
-                    backgroundColor: isSelected
-                      ? colors.accent
-                      : isDark
-                      ? 'rgba(20, 25, 30, 0.75)'
-                      : 'rgba(255, 255, 255, 0.88)',
-                    borderColor: isSelected
-                      ? colors.accent
-                      : isDark
-                      ? 'rgba(255, 255, 255, 0.12)'
-                      : 'rgba(0, 0, 0, 0.08)',
-                  },
-                  isSelected && styles.categoryFilterChipActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.categoryFilterText,
-                    {
-                      color: isSelected
-                        ? '#ffffff'
-                        : isDark
-                        ? 'rgba(255, 255, 255, 0.85)'
-                        : colors.textSecondary,
-                    },
-                    isSelected && styles.categoryFilterTextActive,
-                  ]}
-                >
-                  {item}
-                </Text>
-              </TouchableOpacity>
-            );
-          }}
-        />
       </View>
 
       {/* Main Reels Vertical Pager */}
@@ -881,36 +810,20 @@ export const ReelsFeedScreen: React.FC = () => {
             </Text>
           </View>
         </View>
-      ) : filteredReels.length === 0 ? (
+      ) : reels.length === 0 ? (
         <View style={[styles.emptyScreenContainer, { backgroundColor: colors.background }]}>
           <View style={[styles.emptyCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
             <View style={[styles.emptyIconCircle, { backgroundColor: colors.accentGlow }]}>
               <Film size={34} color={colors.accent} />
             </View>
             <Text style={[styles.emptyCardTitle, { color: colors.textPrimary }]}>
-              {reels.length === 0 ? 'Creator Showreels' : `No ${activeCategory} Reels`}
+              Creator Showreels
             </Text>
             <Text style={[styles.emptyCardDesc, { color: colors.textSecondary }]}>
-              {reels.length === 0
-                ? 'Verified cinematographers and filmmakers showcase their 9:16 vertical portfolio showreels here. Once creators upload showreels, they will appear in this feed.'
-                : `There are currently no showreels in the "${activeCategory}" category. Explore all categories or browse verified creators.`}
+              Verified cinematographers and filmmakers showcase their 9:16 vertical portfolio showreels here. Once creators upload showreels, they will appear in this feed.
             </Text>
 
             <View style={styles.emptyActionsRow}>
-              {activeCategory !== 'All' && (
-                <TouchableOpacity
-                  style={[styles.emptyPrimaryBtn, { backgroundColor: colors.accent }]}
-                  activeOpacity={0.85}
-                  onPress={() => {
-                    triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
-                    setActiveCategory('All');
-                  }}
-                >
-                  <Compass size={16} color="#ffffff" style={{ marginRight: 6 }} />
-                  <Text style={styles.emptyPrimaryBtnText}>View All Reels</Text>
-                </TouchableOpacity>
-              )}
-
               <TouchableOpacity
                 style={[styles.emptySecondaryBtn, { borderColor: colors.accent, backgroundColor: colors.accentGlow }]}
                 activeOpacity={0.85}
@@ -941,7 +854,7 @@ export const ReelsFeedScreen: React.FC = () => {
         </View>
       ) : (
         <FlatList
-          data={filteredReels}
+          data={reels}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           pagingEnabled={true}
@@ -1142,7 +1055,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
-    marginBottom: 10,
     position: 'relative',
   },
   reelsCenterWrap: {
@@ -1179,32 +1091,6 @@ const styles = StyleSheet.create({
   headerCounterText: {
     fontSize: 11,
     fontWeight: '700',
-  },
-
-  // Category Filter Pills
-  categoryScrollContent: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  categoryFilterChip: {
-    paddingHorizontal: 15,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  categoryFilterChipActive: {
-    shadowColor: '#3fb668',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  categoryFilterText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  categoryFilterTextActive: {
-    fontWeight: '800',
   },
 
   // Center Animations
