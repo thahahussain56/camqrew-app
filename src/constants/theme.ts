@@ -53,3 +53,10 @@ export const LightTheme = {
 };
 
 export type ThemeTokens = typeof DarkTheme;
+
+export const Fonts = {
+  regular: 'GoogleSans-Regular',
+  medium: 'GoogleSans-Medium',
+  semiBold: 'GoogleSans-SemiBold',
+  bold: 'GoogleSans-Bold',
+};

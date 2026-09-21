@@ -1,10 +1,18 @@
 import 'react-native-gesture-handler';
+import './src/theme/initFonts';
 import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StripeProvider } from '@stripe/stripe-react-native';
+import { useFonts } from 'expo-font';
+import {
+  GoogleSans_400Regular,
+  GoogleSans_500Medium,
+  GoogleSans_600SemiBold,
+  GoogleSans_700Bold,
+} from '@expo-google-fonts/google-sans';
 
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { useThemeStore } from './src/store/themeStore';
@@ -29,6 +37,20 @@ Notifications.setNotificationHandler({
 const STRIPE_PUBLISHABLE_KEY = "pk_test_TYooMQauvdEDq54NiTphI7jx";
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    'GoogleSans-Regular': GoogleSans_400Regular,
+    'GoogleSans-Medium': GoogleSans_500Medium,
+    'GoogleSans-SemiBold': GoogleSans_600SemiBold,
+    'GoogleSans-Bold': GoogleSans_700Bold,
+    'GoogleSans_400Regular': GoogleSans_400Regular,
+    'GoogleSans_500Medium': GoogleSans_500Medium,
+    'GoogleSans_600SemiBold': GoogleSans_600SemiBold,
+    'GoogleSans_700Bold': GoogleSans_700Bold,
+    'Google Sans': GoogleSans_400Regular,
+    'GoogleSans': GoogleSans_400Regular,
+    'Product Sans': GoogleSans_400Regular,
+  });
+
   const { loadTheme, mode } = useThemeStore();
   const { loadAuth, user } = useAuthStore();
 
@@ -36,6 +58,10 @@ export default function App() {
     loadTheme();
     loadAuth();
   }, []);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   // Handle push notification registration & realtime notifications stream
   useEffect(() => {
