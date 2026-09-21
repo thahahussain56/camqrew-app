@@ -28,8 +28,9 @@ import {
   Calendar, ShoppingBag, CreditCard, Gift, LogOut, ChevronRight,
   Camera, Pencil, Star, Briefcase, Eye, Plus, PlusCircle, Film,
   Play, Trash2, X, ChevronLeft, ChevronRight as ChevronRightIcon,
-  Image as ImageIcon, CheckCircle, User,
+  Image as ImageIcon, CheckCircle, User, UploadCloud,
 } from 'lucide-react-native';
+import { WebView } from 'react-native-webview';
 import { supabase } from '../../api/supabaseClient';
 import { cloudStorageApi } from '../../api/cloudStorageApi';
 import { isCustomAvatar } from '../../utils/avatarUtils';
@@ -66,10 +67,14 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
   // In-Profile Instagram-Style Creator Posting State
   const [showCreateSheet, setShowCreateSheet] = useState(false);
   const [showReelModal, setShowReelModal] = useState(false);
+  const [selectedVideoUri, setSelectedVideoUri] = useState<string | null>(null);
+  const [selectedVideoName, setSelectedVideoName] = useState('');
+  const [selectedVideoSize, setSelectedVideoSize] = useState('');
+  const [selectedVideoReel, setSelectedVideoReel] = useState<VideoReelItem | null>(null);
   const [newReelUrl, setNewReelUrl] = useState('');
   const [newReelTitle, setNewReelTitle] = useState('');
   const [newReelCategory, setNewReelCategory] = useState('Showreel');
-  const [newReelIsShort, setNewReelIsShort] = useState(false);
+  const [newReelIsShort, setNewReelIsShort] = useState(true);
   const [submittingReel, setSubmittingReel] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [selectedImgIndex, setSelectedImgIndex] = useState<number | null>(null);
@@ -195,23 +200,69 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
     }
   };
 
+  const handlePickVideoForReel = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Gallery access is required to select a video.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: false,
+        quality: 1,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setSelectedVideoUri(asset.uri);
+        const name = asset.fileName || asset.uri.split('/').pop() || 'Video Reel';
+        setSelectedVideoName(name);
+        if (asset.fileSize) {
+          setSelectedVideoSize(`${(asset.fileSize / (1024 * 1024)).toFixed(1)} MB`);
+        } else {
+          setSelectedVideoSize('Video File');
+        }
+        if (!newReelTitle) {
+          setNewReelTitle(name.replace(/\.[^/.]+$/, ''));
+        }
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to select video');
+    }
+  };
+
   const handlePostReel = async () => {
-    if (!newReelUrl.trim()) {
-      Alert.alert('Missing URL', 'Please enter a valid YouTube or Vimeo URL.');
+    if (!selectedVideoUri && !newReelUrl.trim()) {
+      Alert.alert('Missing Video', 'Please pick a video file from your gallery.');
       return;
     }
     setSubmittingReel(true);
     try {
-      const parsed = parseVideoUrl(newReelUrl.trim());
+      let finalUrl = '';
+      let finalType: 'direct' | 'youtube' | 'vimeo' = 'direct';
+      let finalEmbedUrl = '';
+
+      if (selectedVideoUri) {
+        const uploadRes = await cloudStorageApi.uploadVideo(selectedVideoUri, 'reels');
+        finalUrl = uploadRes.url;
+        finalEmbedUrl = uploadRes.url;
+        finalType = 'direct';
+      } else if (newReelUrl.trim()) {
+        const parsed = parseVideoUrl(newReelUrl.trim());
+        finalUrl = newReelUrl.trim();
+        finalType = parsed.type;
+        finalEmbedUrl = parsed.embedUrl;
+      }
+
       const newReel: VideoReelItem = {
         id: 'reel_' + Date.now(),
-        title: newReelTitle.trim() || (parsed.isShort ? 'Video Reel' : 'Featured Showreel'),
-        url: newReelUrl.trim(),
-        type: parsed.type,
-        embedUrl: parsed.embedUrl,
-        thumbnailUrl: parsed.thumbnailUrl,
+        title: newReelTitle.trim() || (selectedVideoName ? selectedVideoName.replace(/\.[^/.]+$/, '') : (newReelIsShort ? 'Video Reel' : 'Featured Showreel')),
+        url: finalUrl,
+        type: finalType,
+        embedUrl: finalEmbedUrl,
+        thumbnailUrl: '',
         category: newReelCategory,
-        isShort: newReelIsShort || parsed.isShort,
+        isShort: newReelIsShort,
       };
 
       const currentReels = proProfile?.videoReels || [];
@@ -222,14 +273,17 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
       await professionalApi.updateProfile({ videoReels: updatedReels });
 
       setShowReelModal(false);
+      setSelectedVideoUri(null);
+      setSelectedVideoName('');
+      setSelectedVideoSize('');
       setNewReelUrl('');
       setNewReelTitle('');
-      setNewReelIsShort(false);
+      setNewReelIsShort(true);
       setToastType('success');
       setToast('🎬 Video reel posted to your profile!');
     } catch (err: any) {
       console.error('Failed to post reel:', err);
-      Alert.alert('Error', err.message || 'Failed to post reel.');
+      Alert.alert('Error', err.message || 'Failed to upload video reel.');
     } finally {
       setSubmittingReel(false);
     }
@@ -507,7 +561,7 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
                     <Film size={22} color={colors.accent} />
                   </View>
                   <Text style={[styles.addPhotoCardText, { color: colors.textPrimary }]}>+ Post Reel</Text>
-                  <Text style={[styles.addPhotoCardSub, { color: colors.textSecondary }]}>YouTube / Shorts</Text>
+                  <Text style={[styles.addPhotoCardSub, { color: colors.textSecondary }]}>Upload Video</Text>
                 </TouchableOpacity>
 
                 {(proProfile?.videoReels || []).map((reel) => {
@@ -517,10 +571,8 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
                       <TouchableOpacity
                         activeOpacity={0.88}
                         onPress={() => {
-                          if (reel.url) {
-                            Linking.openURL(reel.url).catch(() => {
-                              Alert.alert('Unable to open video', 'Please verify your internet connection or URL.');
-                            });
+                          if (reel.url || reel.embedUrl) {
+                            setSelectedVideoReel(reel);
                           }
                         }}
                         style={[
@@ -545,7 +597,7 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
                         <View style={styles.reelTopBadges}>
                           <View style={[styles.reelBadgePill, { backgroundColor: 'rgba(0,0,0,0.65)' }]}>
                             <Text style={styles.reelBadgeText}>
-                              {reel.type === 'youtube' ? (isShort ? '⚡ Short' : 'YouTube') : reel.type === 'vimeo' ? 'Vimeo' : 'Video'}
+                              {isShort ? '9:16 REEL' : 'VIDEO'}
                             </Text>
                           </View>
                         </View>
@@ -915,6 +967,109 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
         </View>
       </Modal>
 
+      {/* ── Fullscreen Video Reel Player Modal ── */}
+      <Modal 
+        visible={selectedVideoReel !== null} 
+        transparent 
+        animationType="slide" 
+        onRequestClose={() => setSelectedVideoReel(null)}
+      >
+        <View style={styles.videoModalBg}>
+          <SafeAreaView edges={['top', 'bottom']} style={styles.videoModalSafe}>
+            <View style={styles.videoModalTopBar}>
+              <View style={{ flex: 1, marginRight: 12 }}>
+                <Text style={styles.videoModalTitle} numberOfLines={1}>
+                  {selectedVideoReel?.title || 'Video Reel'}
+                </Text>
+                {selectedVideoReel?.category ? (
+                  <Text style={styles.videoModalCategory}>
+                    {selectedVideoReel.category.toUpperCase()} • {selectedVideoReel.isShort ? '9:16 Reel' : 'Cinema Video'}
+                  </Text>
+                ) : null}
+              </View>
+              <TouchableOpacity 
+                style={styles.videoModalCloseBtn} 
+                onPress={() => setSelectedVideoReel(null)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <X size={22} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={[
+              styles.videoPlayerBox,
+              selectedVideoReel?.isShort ? styles.videoPlayerBoxVertical : styles.videoPlayerBoxCinema
+            ]}>
+              {selectedVideoReel && (() => {
+                const isDirect = selectedVideoReel.type === 'direct' || 
+                  selectedVideoReel.url?.includes('.mp4') || 
+                  selectedVideoReel.embedUrl?.includes('.mp4') ||
+                  selectedVideoReel.url?.includes('.mov') ||
+                  selectedVideoReel.url?.includes('.webm');
+                const videoSrc = selectedVideoReel.url || selectedVideoReel.embedUrl;
+
+                const html = isDirect
+                  ? `
+                  <!DOCTYPE html>
+                  <html>
+                    <head>
+                      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                      <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; background: #000; }
+                        html, body { width: 100%; height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #000; }
+                        video { width: 100%; height: 100%; object-fit: contain; }
+                      </style>
+                    </head>
+                    <body>
+                      <video 
+                        src="${videoSrc}" 
+                        autoplay 
+                        controls 
+                        playsinline 
+                        webkit-playsinline
+                      ></video>
+                    </body>
+                  </html>
+                  `
+                  : `
+                  <!DOCTYPE html>
+                  <html>
+                    <head>
+                      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                      <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; background: #000; }
+                        html, body { width: 100%; height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #000; }
+                        iframe { width: 100%; height: 100%; border: none; }
+                      </style>
+                    </head>
+                    <body>
+                      <iframe 
+                        src="${selectedVideoReel.embedUrl || selectedVideoReel.url}" 
+                        allow="autoplay; fullscreen; encrypted-media" 
+                        allowfullscreen
+                      ></iframe>
+                    </body>
+                  </html>
+                  `;
+
+                return (
+                  <WebView
+                    key={selectedVideoReel.id}
+                    originWhitelist={['*']}
+                    source={{ html }}
+                    style={{ flex: 1, backgroundColor: '#000000' }}
+                    allowsInlineMediaPlayback
+                    mediaPlaybackRequiresUserAction={false}
+                    javaScriptEnabled
+                    domStorageEnabled
+                  />
+                );
+              })()}
+            </View>
+          </SafeAreaView>
+        </View>
+      </Modal>
+
       {/* ── Instagram-Style In-Profile Create Post Action Sheet ── */}
       <Modal visible={showCreateSheet} transparent animationType="slide" onRequestClose={() => setShowCreateSheet(false)}>
         <TouchableOpacity 
@@ -960,9 +1115,9 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
                 <Film size={24} color={colors.accent} />
               </View>
               <View style={{ flex: 1, marginLeft: 14 }}>
-                <Text style={[styles.createOptionTitle, { color: colors.textPrimary }]}>Post Video Reel / Showreel</Text>
+                <Text style={[styles.createOptionTitle, { color: colors.textPrimary }]}>Upload Video Reel / Showreel</Text>
                 <Text style={[styles.createOptionDesc, { color: colors.textSecondary }]}>
-                  Embed YouTube, 9:16 Shorts, or Vimeo reels directly to your profile
+                  Upload video clips, 9:16 vertical reels, and showreels from your gallery
                 </Text>
               </View>
             </TouchableOpacity>
@@ -998,36 +1153,76 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
 
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: Dimensions.get('window').height * 0.7 }}>
               <Text style={[styles.reelModalSub, { color: colors.textSecondary }]}>
-                Embed YouTube videos, 9:16 vertical Shorts, or Vimeo showreels directly to your profile.
+                Upload video clips, 9:16 vertical reels, or showreels directly from your device.
               </Text>
 
-              <Input
-                label="Video URL (YouTube, Shorts, or Vimeo)"
-                placeholder="https://youtube.com/shorts/... or https://vimeo.com/..."
-                value={newReelUrl}
-                onChangeText={setNewReelUrl}
-              />
-
-              {/* Detected format feedback */}
-              {newReelUrl.trim().length > 0 && (() => {
-                const p = parseVideoUrl(newReelUrl.trim());
-                return (
-                  <View style={[styles.detectedFormatBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <CheckCircle size={14} color="#3fb668" />
-                      <Text style={{ color: '#3fb668', fontSize: 12, fontWeight: '800' }}>
-                        Detected: {p.type === 'youtube' ? (p.isShort ? '9:16 YouTube Short' : 'YouTube Video') : p.type === 'vimeo' ? 'Vimeo Video' : 'Direct Video'}
+              {/* Native Video File Picker */}
+              {!selectedVideoUri ? (
+                <TouchableOpacity
+                  style={{
+                    borderWidth: 2,
+                    borderStyle: 'dashed',
+                    borderColor: colors.border,
+                    borderRadius: 14,
+                    padding: 24,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: colors.surfaceElevated,
+                    marginBottom: 16,
+                  }}
+                  onPress={handlePickVideoForReel}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(63,182,104,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                    <UploadCloud size={24} color="#3fb668" />
+                  </View>
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: colors.textPrimary, marginBottom: 4 }}>
+                    Choose Video from Gallery
+                  </Text>
+                  <Text style={{ fontSize: 11.5, color: colors.textSecondary }}>
+                    Supports MP4, MOV, WebM, and all video formats
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={{
+                  backgroundColor: colors.surfaceElevated,
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: '#3fb668',
+                  padding: 14,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 16,
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 }}>
+                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(63,182,104,0.15)', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                      <Film size={20} color="#3fb668" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '800', color: colors.textPrimary }} numberOfLines={1}>
+                        {selectedVideoName}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#3fb668', fontWeight: '700', marginTop: 2 }}>
+                        ✓ {selectedVideoSize} • Ready to upload
                       </Text>
                     </View>
-                    {p.thumbnailUrl && (
-                      <Image source={{ uri: p.thumbnailUrl }} style={styles.previewThumb} />
-                    )}
                   </View>
-                );
-              })()}
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedVideoUri(null);
+                      setSelectedVideoName('');
+                      setSelectedVideoSize('');
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <X size={18} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+              )}
 
               <Input
-                label="Reel Title (Optional)"
+                label="Reel Title"
                 placeholder="e.g. 2026 Commercial Highlights"
                 value={newReelTitle}
                 onChangeText={setNewReelTitle}
@@ -1071,10 +1266,10 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
               </TouchableOpacity>
 
               <Button
-                title={submittingReel ? 'Posting Reel...' : 'Post Reel to Profile'}
+                title={submittingReel ? 'Uploading Reel...' : 'Post Reel to Profile'}
                 variant="primary"
                 size="md"
-                disabled={submittingReel || !newReelUrl.trim()}
+                disabled={submittingReel || (!selectedVideoUri && !newReelUrl.trim())}
                 icon={submittingReel ? <ActivityIndicator size="small" color="#ffffff" /> : <Film size={16} color="#ffffff" />}
                 onPress={handlePostReel}
               />
@@ -1494,5 +1689,55 @@ const styles = StyleSheet.create({
     width: 52,
     height: 38,
     borderRadius: 6,
+  },
+  videoModalBg: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+  },
+  videoModalSafe: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  videoModalTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  videoModalTitle: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  videoModalCategory: {
+    color: '#3fb668',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  videoModalCloseBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoPlayerBox: {
+    width: '100%',
+    backgroundColor: '#000000',
+    alignSelf: 'center',
+    overflow: 'hidden',
+  },
+  videoPlayerBoxVertical: {
+    flex: 1,
+    maxHeight: Dimensions.get('window').height * 0.82,
+    borderRadius: 16,
+    marginHorizontal: 16,
+  },
+  videoPlayerBoxCinema: {
+    width: '100%',
+    aspectRatio: 16 / 9,
   },
 });

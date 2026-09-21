@@ -66,10 +66,18 @@ export const cloudStorageApi = {
       const ext = videoUri.split('.').pop()?.split('?')[0]?.toLowerCase() || 'mp4';
       const filename = `reel_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
 
-      let mimeType = 'video/mp4';
+      let mimeType = `video/${ext}`;
       if (ext === 'mov') mimeType = 'video/quicktime';
       else if (ext === 'webm') mimeType = 'video/webm';
       else if (ext === 'mkv') mimeType = 'video/x-matroska';
+      else if (ext === 'avi') mimeType = 'video/x-msvideo';
+      else if (ext === 'wmv') mimeType = 'video/x-ms-wmv';
+      else if (ext === 'flv') mimeType = 'video/x-flv';
+      else if (ext === '3gp') mimeType = 'video/3gpp';
+      else if (ext === 'm4v') mimeType = 'video/x-m4v';
+      else if (ext === 'ts') mimeType = 'video/mp2t';
+      else if (ext === 'ogv') mimeType = 'video/ogg';
+      else if (ext === 'mp4') mimeType = 'video/mp4';
 
       const formData = new FormData();
       formData.append('file', {

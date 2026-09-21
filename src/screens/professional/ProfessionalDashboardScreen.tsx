@@ -316,7 +316,7 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
               <View style={styles.manageIcon}><Film size={20} color={colors.accent} /></View>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 15 }}>Video Reels & Showreels</Text>
-                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>Add YouTube, Shorts & Vimeo showreels</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>Upload video reels & showreels directly</Text>
               </View>
               <Edit3 size={16} color={colors.textFaint} />
             </TouchableOpacity>

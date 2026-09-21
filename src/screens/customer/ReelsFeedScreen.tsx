@@ -851,6 +851,19 @@ export const ReelsFeedScreen: React.FC = () => {
       {/* Floating Top Frosted Header Bar */}
       <View style={[styles.topHeaderBar, { top: insets.top + 8 }]}>
         <View style={styles.headerBrandRow}>
+          {/* Top Left Corner Plus Icon in White Color */}
+          <TouchableOpacity
+            style={styles.topLeftPlusBtn}
+            activeOpacity={0.7}
+            hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+            onPress={() => {
+              triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
+              setShowUploadModal(true);
+            }}
+          >
+            <Plus size={26} color="#ffffff" strokeWidth={2.4} />
+          </TouchableOpacity>
+
           {/* Centered Reels with Gradient Background */}
           <View style={styles.reelsCenterWrap}>
             <LinearGradient
@@ -868,22 +881,8 @@ export const ReelsFeedScreen: React.FC = () => {
             </LinearGradient>
           </View>
 
-          {/* Right Header Action Group: Creator Upload Button + Counter */}
+          {/* Right Header: Counter Badge */}
           <View style={styles.headerRightGroup}>
-            {user?.role === 'professional' && (
-              <TouchableOpacity
-                style={styles.headerUploadBtn}
-                activeOpacity={0.8}
-                onPress={() => {
-                  triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
-                  setShowUploadModal(true);
-                }}
-              >
-                <Plus size={13} color="#ffffff" style={{ marginRight: 3 }} />
-                <Text style={styles.headerUploadText}>Upload</Text>
-              </TouchableOpacity>
-            )}
-
             {reels.length > 0 && (
               <View
                 style={[
@@ -1856,30 +1855,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
+  topLeftPlusBtn: {
+    position: 'absolute',
+    left: 18,
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 110,
+  },
   headerRightGroup: {
     position: 'absolute',
     right: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  headerUploadBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#3fb668',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
-    shadowColor: '#3fb668',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  headerUploadText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '800',
   },
 
   // Creator Reel Upload Modal Styles
