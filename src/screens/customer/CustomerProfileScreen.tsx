@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, Alert, ActivityIndicator, Dimensions, Modal, KeyboardAvoidingView, Platform, Linking,
+  Image, Alert, ActivityIndicator, Dimensions, Modal, KeyboardAvoidingView, Platform, Linking, TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -29,7 +29,6 @@ import {
   Camera, Pencil, Star, Briefcase, Eye, Plus, PlusCircle, Film,
   Play, Trash2, X, ChevronLeft, ChevronRight as ChevronRightIcon,
   Image as ImageIcon, CheckCircle, User, UploadCloud, Video,
-  Smartphone, RefreshCw,
 } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import { supabase } from '../../api/supabaseClient';
@@ -74,7 +73,7 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
   const [selectedVideoReel, setSelectedVideoReel] = useState<VideoReelItem | null>(null);
   const [newReelUrl, setNewReelUrl] = useState('');
   const [newReelTitle, setNewReelTitle] = useState('');
-  const [newReelCategory, setNewReelCategory] = useState('Showreel');
+  const [newReelCategory, setNewReelCategory] = useState('Cinematography');
   const [newReelIsShort, setNewReelIsShort] = useState(true);
   const [submittingReel, setSubmittingReel] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -257,13 +256,13 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
 
       const newReel: VideoReelItem = {
         id: 'reel_' + Date.now(),
-        title: newReelTitle.trim() || (selectedVideoName ? selectedVideoName.replace(/\.[^/.]+$/, '') : (newReelIsShort ? 'Video Reel' : 'Featured Showreel')),
+        title: newReelTitle.trim() || (selectedVideoName ? selectedVideoName.replace(/\.[^/.]+$/, '') : 'Video Reel'),
         url: finalUrl,
         type: finalType,
         embedUrl: finalEmbedUrl,
         thumbnailUrl: '',
         category: newReelCategory,
-        isShort: newReelIsShort,
+        isShort: true,
       };
 
       const currentReels = proProfile?.videoReels || [];
@@ -279,6 +278,7 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
       setSelectedVideoSize('');
       setNewReelUrl('');
       setNewReelTitle('');
+      setNewReelCategory('Cinematography');
       setNewReelIsShort(true);
       setToastType('success');
       setToast('🎬 Video reel posted to your profile!');
@@ -1166,95 +1166,63 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
         </TouchableOpacity>
       </Modal>
 
-      {/* ── In-Profile Video Reel Composer Modal ── */}
-      <Modal visible={showReelModal} transparent animationType="slide" onRequestClose={() => !submittingReel && setShowReelModal(false)}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
-          style={styles.sheetOverlay}
+      {/* ── Minimal Creator Reel Upload Modal (Home-Page Design System) ── */}
+      <Modal
+        visible={showReelModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => !submittingReel && setShowReelModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}
         >
-          <View style={[styles.reelModalCard, { backgroundColor: colors.surfaceCard }]}>
-            {/* Sheet Handle */}
-            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+          <View style={[styles.uploadModalCard, { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }]}>
+            {/* Minimal Drag Handle */}
+            <View style={[styles.modalSheetHandle, { backgroundColor: colors.borderLight }]} />
 
-            {/* Modal Header */}
-            <View style={styles.reelModalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={[styles.modalHeaderIconWrap, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
-                  <Film size={20} color={colors.accent} />
-                </View>
-                <View>
-                  <Text style={[styles.reelModalTitle, { color: colors.textPrimary }]}>Upload Video Reel</Text>
-                  <Text style={[styles.reelModalSub, { color: colors.textSecondary }]}>
-                    All video formats supported (MP4, MOV, WebM, etc.)
-                  </Text>
-                </View>
+            {/* Header: Clean & Minimal */}
+            <View style={styles.uploadModalHeader}>
+              <View style={{ flex: 1, marginRight: 12 }}>
+                <Text style={[styles.uploadModalTitle, { color: colors.textPrimary }]}>Upload Reel</Text>
+                <Text style={[styles.uploadModalSub, { color: colors.textSecondary }]}>
+                  Share 9:16 vertical video to feed & profile
+                </Text>
               </View>
-              <TouchableOpacity 
-                onPress={() => !submittingReel && setShowReelModal(false)} 
+              <TouchableOpacity
+                onPress={() => !submittingReel && setShowReelModal(false)}
+                disabled={submittingReel}
                 style={[styles.modalCloseBtn, { backgroundColor: colors.surfaceElevated }]}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <X size={18} color={colors.textSecondary} />
+                <X size={16} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: Dimensions.get('window').height * 0.72 }}>
-              {/* Native Video File Picker */}
-              {!selectedVideoUri ? (
-                <TouchableOpacity
-                  style={[
-                    styles.modalDropzone,
-                    {
-                      backgroundColor: isDark ? 'rgba(63,182,104,0.06)' : 'rgba(63,182,104,0.04)',
-                      borderColor: colors.accent,
-                    },
-                  ]}
-                  onPress={handlePickVideoForReel}
-                  activeOpacity={0.75}
-                >
-                  <View style={[styles.dropzoneIconRing, { backgroundColor: 'rgba(63,182,104,0.15)', borderColor: 'rgba(63,182,104,0.3)' }]}>
-                    <UploadCloud size={30} color={colors.accent} />
-                  </View>
-                  <Text style={[styles.dropzoneMainText, { color: colors.textPrimary }]}>
-                    Choose Video File
-                  </Text>
-                  <Text style={[styles.dropzoneSubText, { color: colors.textSecondary }]}>
-                    Tap to browse videos from your device
-                  </Text>
-                  <View style={styles.dropzonePillRow}>
-                    <View style={[styles.dropzoneFormatBadge, { backgroundColor: 'rgba(63,182,104,0.18)' }]}>
-                      <Text style={{ color: colors.accent, fontSize: 10.5, fontWeight: '800' }}>✓ ALL FORMATS ACCEPTED</Text>
-                    </View>
-                  </View>
-                  <Text style={{ fontSize: 10.5, color: colors.textSecondary, marginTop: 5 }}>
-                    MP4 • MOV • WebM • AVI • MKV • FLV • WMV • 3GP
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                <View style={[styles.modalSelectedCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.accent }]}>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 460 }}>
+              {/* Minimal Video Picker Area */}
+              {selectedVideoUri ? (
+                <View style={[styles.selectedVideoCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.accent }]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 }}>
-                    <View style={[styles.modalSelectedIconCircle, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
-                      <Film size={22} color={colors.accent} />
+                    <View style={[styles.videoFileIconCircle, { backgroundColor: colors.accentGlow }]}>
+                      <Film size={18} color={colors.accent} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 13.5, fontWeight: '800', color: colors.textPrimary }} numberOfLines={1}>
+                      <Text style={[styles.selectedVideoFileName, { color: colors.textPrimary }]} numberOfLines={1}>
                         {selectedVideoName}
                       </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3 }}>
-                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent, marginRight: 6 }} />
-                        <Text style={{ fontSize: 11.5, color: colors.accent, fontWeight: '700' }}>
-                          Ready to upload {selectedVideoSize ? `• ${selectedVideoSize}` : ''}
-                        </Text>
-                      </View>
+                      <Text style={[styles.selectedVideoFileMeta, { color: colors.accent }]}>
+                        ✓ Ready to upload {selectedVideoSize ? `• ${selectedVideoSize}` : ''}
+                      </Text>
                     </View>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <TouchableOpacity
                       onPress={handlePickVideoForReel}
                       disabled={submittingReel}
-                      style={[styles.modalChangeBtn, { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }]}
+                      style={[styles.changeVideoBtn, { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }]}
                     >
-                      <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textSecondary }}>Change</Text>
+                      <Text style={[styles.changeVideoBtnText, { color: colors.textSecondary }]}>Change</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => {
@@ -1266,105 +1234,85 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
                       style={[styles.modalRemoveBtn, { backgroundColor: 'rgba(255,77,79,0.12)' }]}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <X size={15} color="#ff4d4f" />
+                      <X size={14} color="#ff4d4f" />
                     </TouchableOpacity>
                   </View>
                 </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.minimalDropzone, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}
+                  onPress={handlePickVideoForReel}
+                  activeOpacity={0.75}
+                >
+                  <View style={[styles.minimalDropzoneIcon, { backgroundColor: colors.accentGlow }]}>
+                    <UploadCloud size={22} color={colors.accent} />
+                  </View>
+                  <Text style={[styles.minimalDropzoneTitle, { color: colors.textPrimary }]}>Choose Video File</Text>
+                  <Text style={[styles.minimalDropzoneSub, { color: colors.textSecondary }]}>
+                    Supports all video formats (up to 100MB)
+                  </Text>
+                </TouchableOpacity>
               )}
 
-              <Input
-                label="Reel Title"
-                placeholder="e.g. 2026 Commercial Highlights, Drone Reel"
-                value={newReelTitle}
-                onChangeText={setNewReelTitle}
-              />
+              {/* Reel Title Input */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Reel Title</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight, color: colors.textPrimary }]}
+                  placeholder="e.g. Wedding Highlight 2026, Fashion Editorial Reel"
+                  placeholderTextColor={colors.textFaint}
+                  value={newReelTitle}
+                  onChangeText={setNewReelTitle}
+                  editable={!submittingReel}
+                />
+              </View>
 
-              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 6 }}>Category</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-                {['Showreel', 'Wedding', 'Commercial', 'Fashion', 'Music Video', 'Short Film', 'Drone Reel', 'Event'].map(cat => (
-                  <Chip
-                    key={cat}
-                    label={cat}
-                    active={newReelCategory === cat}
-                    onPress={() => setNewReelCategory(cat)}
-                  />
-                ))}
-              </ScrollView>
+              {/* Category Chips */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Category</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  {['Cinematography', 'Wedding', 'Commercial', 'Fashion', 'Music Video', 'Short Film', 'Drone Reel'].map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[
+                        styles.uploadCategoryChip,
+                        {
+                          backgroundColor: newReelCategory === cat ? colors.accent : colors.surfaceElevated,
+                          borderColor: newReelCategory === cat ? colors.accent : colors.borderLight,
+                        }
+                      ]}
+                      onPress={() => setNewReelCategory(cat)}
+                    >
+                      <Text style={[styles.uploadCategoryChipText, { color: newReelCategory === cat ? '#ffffff' : colors.textSecondary, fontWeight: newReelCategory === cat ? '800' : '600' }]}>
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
 
-              {/* Vertical 9:16 Format Toggle Card */}
+              {/* Upload Action Button */}
               <TouchableOpacity
                 style={[
-                  styles.modalFormatCard,
-                  {
-                    backgroundColor: newReelIsShort ? (isDark ? 'rgba(63,182,104,0.1)' : 'rgba(63,182,104,0.06)') : colors.surfaceElevated,
-                    borderColor: newReelIsShort ? colors.accent : colors.borderLight,
-                  },
+                  styles.submitUploadBtn,
+                  { backgroundColor: colors.accent, opacity: !selectedVideoUri || submittingReel ? 0.6 : 1 }
                 ]}
-                onPress={() => setNewReelIsShort(!newReelIsShort)}
-                activeOpacity={0.8}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 12 }}>
-                  <View style={[styles.modalFormatIconWrap, { backgroundColor: newReelIsShort ? 'rgba(63,182,104,0.2)' : 'rgba(0,0,0,0.05)' }]}>
-                    <Smartphone size={18} color={newReelIsShort ? colors.accent : colors.textSecondary} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '800' }}>
-                      Vertical 9:16 Reel Format
-                    </Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: 11, marginTop: 2 }}>
-                      Optimized for full-screen immersive playback in Reels feed
-                    </Text>
-                  </View>
-                </View>
-                <View
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: 7,
-                    borderWidth: 2,
-                    borderColor: newReelIsShort ? colors.accent : colors.textFaint,
-                    backgroundColor: newReelIsShort ? colors.accent : 'transparent',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {newReelIsShort && <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 12 }}>✓</Text>}
-                </View>
-              </TouchableOpacity>
-
-              {/* Uploading Progress Indicator Banner */}
-              {submittingReel && (
-                <View style={[styles.modalProgressBanner, { backgroundColor: 'rgba(63,182,104,0.12)', borderColor: 'rgba(63,182,104,0.3)' }]}>
-                  <ActivityIndicator size="small" color={colors.accent} style={{ marginRight: 10 }} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 12.5, fontWeight: '800', color: colors.accent }}>
-                      Uploading Video to Cloud Storage...
-                    </Text>
-                    <Text style={{ fontSize: 10.5, color: colors.textSecondary, marginTop: 1 }}>
-                      Please wait while your video is uploaded and linked
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              <Button
-                title={submittingReel ? 'Uploading Reel...' : 'Post Reel to Profile'}
-                variant="primary"
-                size="md"
-                disabled={submittingReel || (!selectedVideoUri && !newReelUrl.trim())}
-                icon={submittingReel ? <ActivityIndicator size="small" color="#ffffff" /> : <UploadCloud size={16} color="#ffffff" />}
+                disabled={!selectedVideoUri || submittingReel}
                 onPress={handlePostReel}
-                style={{ marginTop: 6 }}
-              />
-
-              <Button
-                title="Cancel"
-                variant="outline"
-                size="md"
-                disabled={submittingReel}
-                onPress={() => setShowReelModal(false)}
-                style={{ marginTop: 8, marginBottom: 12 }}
-              />
+                activeOpacity={0.88}
+              >
+                {submittingReel ? (
+                  <>
+                    <ActivityIndicator size="small" color="#ffffff" style={{ marginRight: 8 }} />
+                    <Text style={styles.submitUploadBtnText}>Uploading Video...</Text>
+                  </>
+                ) : (
+                  <>
+                    <UploadCloud size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                    <Text style={styles.submitUploadBtnText}>Publish Reel</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -1747,104 +1695,88 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-  reelModalCard: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 22,
-    paddingBottom: 36,
+  // Creator Reel Upload Modal Styles (Minimal Home-Page System)
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
   },
-  reelModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  modalSheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
     marginBottom: 16,
   },
-  modalHeaderIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+  uploadModalCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  uploadModalHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
+    justifyContent: 'space-between',
+    marginBottom: 18,
   },
-  reelModalTitle: {
-    fontSize: 18,
-    fontWeight: '900',
+  uploadModalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
   },
-  reelModalSub: {
+  uploadModalSub: {
     fontSize: 12,
     marginTop: 2,
   },
   modalCloseBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // Modal Dropzone
-  modalDropzone: {
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderRadius: 20,
-    paddingVertical: 24,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  dropzoneIconRing: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  dropzoneMainText: {
-    fontSize: 15,
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  dropzoneSubText: {
-    fontSize: 12,
-    marginBottom: 10,
-  },
-  dropzonePillRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dropzoneFormatBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-
-  // Selected Video Card
-  modalSelectedCard: {
-    borderRadius: 18,
-    borderWidth: 1.5,
-    padding: 14,
+  selectedVideoCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
     marginBottom: 16,
   },
-  modalSelectedIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  videoFileIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
   },
-  modalChangeBtn: {
+  selectedVideoFileName: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  selectedVideoFileMeta: {
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  changeVideoBtn: {
+    borderWidth: 1,
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
+    marginLeft: 8,
+  },
+  changeVideoBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   modalRemoveBtn: {
     width: 28,
@@ -1853,48 +1785,68 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // Format Toggle Card
-  modalFormatCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 14,
+  minimalDropzone: {
+    borderWidth: 1,
     borderRadius: 16,
-    borderWidth: 1.5,
-    marginBottom: 16,
-  },
-  modalFormatIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    padding: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginBottom: 16,
   },
-
-  // Progress Banner
-  modalProgressBanner: {
-    flexDirection: 'row',
+  minimalDropzoneIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 14,
-    borderWidth: 1,
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  minimalDropzoneTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  minimalDropzoneSub: {
+    fontSize: 11.5,
+    textAlign: 'center',
+  },
+  inputGroup: {
     marginBottom: 14,
   },
-  detectedFormatBox: {
-    padding: 10,
-    borderRadius: 10,
+  inputLabel: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  textInput: {
     borderWidth: 1,
-    marginBottom: 12,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  uploadCategoryChip: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  uploadCategoryChipText: {
+    fontSize: 11.5,
+  },
+  submitUploadBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginTop: 10,
+    marginBottom: 10,
   },
-  previewThumb: {
-    width: 52,
-    height: 38,
-    borderRadius: 6,
+  submitUploadBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
   },
   videoModalBg: {
     flex: 1,
