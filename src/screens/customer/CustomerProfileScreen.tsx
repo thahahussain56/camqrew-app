@@ -535,76 +535,48 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
         {/* ── Creator Showcase: Video Reels & Showreels ── */}
         {user?.role === 'professional' && (
           <>
-            {/* ── Creator Showcase: Video Reels & Showreels ── */}
-            <View style={[styles.showcaseSectionCard, { backgroundColor: colors.surfaceCard }]}>
-              <View style={styles.showcaseHeaderRow}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={[styles.sectionIconBadge, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
-                    <Film size={18} color={colors.accent} />
-                  </View>
-                  <View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Text style={[styles.showcaseTitle, { color: colors.textPrimary }]}>Showreels & Video Reels</Text>
-                      <View style={[styles.countBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
-                        <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>
-                          {(proProfile?.videoReels || []).length}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={[styles.showcaseSubheader, { color: colors.textSecondary }]}>
-                      Upload vertical 9:16 reels & cinematic clips • All formats
-                    </Text>
-                  </View>
+            <View style={styles.profileSection}>
+              <View style={styles.homeSectionHeader}>
+                <View style={{ flex: 1, marginRight: 12 }}>
+                  <Text style={[styles.homeSectionTitle, { color: colors.textPrimary }]}>
+                    Showreels & Reels
+                  </Text>
+                  <Text style={[styles.homeSectionSub, { color: colors.textSecondary }]}>
+                    9:16 vertical clips & cinema showreels
+                  </Text>
                 </View>
                 <TouchableOpacity
-                  style={[styles.headerActionPill, { backgroundColor: 'rgba(63,182,104,0.15)', borderColor: 'rgba(63,182,104,0.3)' }]}
                   onPress={() => setShowReelModal(true)}
-                  activeOpacity={0.8}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={styles.homeSectionAction}
                 >
-                  <Plus size={13} color={colors.accent} style={{ marginRight: 4 }} />
-                  <Text style={{ color: colors.accent, fontSize: 11.5, fontWeight: '800' }}>Add Reel</Text>
+                  <Text style={[styles.homeSectionActionText, { color: colors.accent }]}>+ Add Reel</Text>
                 </TouchableOpacity>
               </View>
 
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18, marginTop: 14 }}>
-                <View style={{ width: 18 }} />
-                {/* Unified Upload Card: Post Reel */}
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                contentContainerStyle={styles.horizontalCarouselContent}
+              >
+                {/* Minimal Upload Card: Post Reel */}
                 <TouchableOpacity 
-                  activeOpacity={0.85} 
+                  activeOpacity={0.8} 
                   onPress={() => setShowReelModal(true)} 
                   style={[
-                    styles.uploadCardUnified, 
+                    styles.minimalUploadCard, 
                     { 
-                      backgroundColor: isDark ? 'rgba(63,182,104,0.06)' : 'rgba(63,182,104,0.04)', 
-                      borderColor: colors.accent 
+                      backgroundColor: colors.surfaceCard, 
+                      borderColor: colors.borderLight,
                     }
                   ]}
                 >
-                  <View style={[styles.uploadCardIconRing, { backgroundColor: 'rgba(63,182,104,0.15)', borderColor: 'rgba(63,182,104,0.3)' }]}>
-                    <Film size={22} color={colors.accent} />
-                    <View style={[styles.uploadCardPlusBadge, { backgroundColor: colors.accent, borderColor: colors.surfaceCard }]}>
-                      <Plus size={10} color="#ffffff" strokeWidth={3} />
-                    </View>
+                  <View style={[styles.minimalUploadIconCircle, { backgroundColor: colors.accentGlow }]}>
+                    <Film size={20} color={colors.accent} />
                   </View>
-                  <Text style={[styles.uploadCardTitle, { color: colors.textPrimary }]}>+ Post Reel</Text>
-                  <Text style={[styles.uploadCardSub, { color: colors.textSecondary }]}>All Formats</Text>
-                  <View style={[styles.uploadCardPill, { backgroundColor: 'rgba(63,182,104,0.14)' }]}>
-                    <Text style={[styles.uploadCardPillText, { color: colors.accent }]}>UPLOAD</Text>
-                  </View>
+                  <Text style={[styles.minimalUploadTitle, { color: colors.textPrimary }]}>Add Reel</Text>
+                  <Text style={[styles.minimalUploadSub, { color: colors.textSecondary }]}>Video Clip</Text>
                 </TouchableOpacity>
-
-                {/* Empty State Hint if creator has no reels */}
-                {(proProfile?.videoReels || []).length === 0 && (
-                  <View style={[styles.reelEmptyCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
-                    <View style={[styles.reelEmptyIconWrap, { backgroundColor: 'rgba(63,182,104,0.12)' }]}>
-                      <Video size={20} color={colors.accent} />
-                    </View>
-                    <Text style={[styles.reelEmptyTitle, { color: colors.textPrimary }]}>Publish Your First Reel</Text>
-                    <Text style={[styles.reelEmptySub, { color: colors.textSecondary }]}>
-                      Videos uploaded here appear on your profile and in the public Reels Feed for client discovery.
-                    </Text>
-                  </View>
-                )}
 
                 {(proProfile?.videoReels || []).map((reel) => {
                   const isShort = reel.isShort;
@@ -620,48 +592,42 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
                         style={[
                           styles.reelCard,
                           isShort ? styles.reelCardVertical : styles.reelCardCinema,
-                          { backgroundColor: '#090d16', borderColor: colors.borderLight }
+                          { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }
                         ]}
                       >
                         {reel.thumbnailUrl ? (
                           <Image source={{ uri: reel.thumbnailUrl }} style={styles.reelThumbnail} resizeMode="cover" />
                         ) : (
-                          <View style={[styles.reelPlaceholder, { backgroundColor: '#090d16' }]}>
-                            <Film size={34} color="rgba(63,182,104,0.45)" />
-                            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: '700', marginTop: 6, letterSpacing: 0.5 }}>VIDEO REEL</Text>
+                          <View style={[styles.reelPlaceholder, { backgroundColor: isDark ? '#10141d' : '#f1f5f9' }]}>
+                            <Film size={26} color={colors.accent} />
                           </View>
                         )}
                         <LinearGradient
-                          colors={['rgba(0,0,0,0.5)', 'transparent', 'rgba(0,0,0,0.88)']}
+                          colors={['rgba(0,0,0,0.25)', 'transparent', 'rgba(0,0,0,0.85)']}
                           locations={[0, 0.45, 1]}
                           style={StyleSheet.absoluteFill}
                         />
 
-                        {/* Centered Glassmorphic Play Button */}
+                        {/* Centered Minimal Play Button */}
                         <View style={styles.reelPlayBtn}>
-                          <Play size={16} color="#ffffff" fill="#ffffff" style={{ marginLeft: 2 }} />
+                          <Play size={13} color="#ffffff" fill="#ffffff" style={{ marginLeft: 2 }} />
                         </View>
 
-                        {/* Top Badges */}
+                        {/* Top Badge */}
                         <View style={styles.reelTopBadges}>
-                          <View style={[styles.reelBadgePill, { backgroundColor: 'rgba(0,0,0,0.7)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }]}>
-                            <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.accent, marginRight: 5 }} />
-                            <Text style={styles.reelBadgeText}>
-                              {isShort ? '9:16 REEL' : 'CINEMA'}
-                            </Text>
+                          <View style={[styles.reelBadgePill, { backgroundColor: 'rgba(0,0,0,0.65)' }]}>
+                            <Text style={styles.reelBadgeText}>{isShort ? '9:16' : 'Cinema'}</Text>
                           </View>
                         </View>
 
                         {/* Bottom Metadata */}
                         <View style={styles.reelInfo}>
                           {reel.category ? (
-                            <View style={[styles.reelCategoryTag, { backgroundColor: 'rgba(63,182,104,0.25)' }]}>
-                              <Text style={[styles.reelCategory, { color: '#4ade80' }]} numberOfLines={1}>
-                                {reel.category.toUpperCase()}
-                              </Text>
-                            </View>
+                            <Text style={[styles.reelCategory, { color: colors.accent }]} numberOfLines={1}>
+                              {reel.category.toUpperCase()}
+                            </Text>
                           ) : null}
-                          <Text style={styles.reelTitle} numberOfLines={2}>
+                          <Text style={styles.reelTitle} numberOfLines={1}>
                             {reel.title}
                           </Text>
                         </View>
@@ -672,78 +638,63 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
                         onPress={() => handleDeleteReel(reel.id, reel.title)}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
-                        <Trash2 size={13} color="#ffffff" />
+                        <Trash2 size={12} color="#ffffff" />
                       </TouchableOpacity>
                     </View>
                   );
                 })}
-                <View style={{ width: 18 }} />
               </ScrollView>
             </View>
 
             {/* ── Creator Showcase: Portfolio Highlights ── */}
-            <View style={[styles.showcaseSectionCard, { backgroundColor: colors.surfaceCard }]}>
-              <View style={styles.showcaseHeaderRow}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={[styles.sectionIconBadge, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
-                    <ImageIcon size={18} color={colors.accent} />
-                  </View>
-                  <View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Text style={[styles.showcaseTitle, { color: colors.textPrimary }]}>Portfolio Highlights</Text>
-                      <View style={[styles.countBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
-                        <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>
-                          {(proProfile?.portfolio || []).length}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={[styles.showcaseSubheader, { color: colors.textSecondary }]}>
-                      High-resolution photography & stills
-                    </Text>
-                  </View>
+            <View style={styles.profileSection}>
+              <View style={styles.homeSectionHeader}>
+                <View style={{ flex: 1, marginRight: 12 }}>
+                  <Text style={[styles.homeSectionTitle, { color: colors.textPrimary }]}>
+                    Portfolio Highlights
+                  </Text>
+                  <Text style={[styles.homeSectionSub, { color: colors.textSecondary }]}>
+                    High-resolution photography & stills
+                  </Text>
                 </View>
                 <TouchableOpacity
-                  style={[styles.headerActionPill, { backgroundColor: 'rgba(63,182,104,0.15)', borderColor: 'rgba(63,182,104,0.3)' }]}
                   onPress={handlePostPhoto}
-                  activeOpacity={0.8}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={styles.homeSectionAction}
                 >
-                  <Plus size={13} color={colors.accent} style={{ marginRight: 4 }} />
-                  <Text style={{ color: colors.accent, fontSize: 11.5, fontWeight: '800' }}>Add Photo</Text>
+                  <Text style={[styles.homeSectionActionText, { color: colors.accent }]}>+ Add Photo</Text>
                 </TouchableOpacity>
               </View>
 
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18, marginTop: 14 }}>
-                <View style={{ width: 18 }} />
-                {/* Unified Upload Card: Post Photo */}
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                contentContainerStyle={styles.horizontalCarouselContent}
+              >
+                {/* Minimal Upload Card: Post Photo (Identical to Reel Card) */}
                 <TouchableOpacity 
-                  activeOpacity={0.85} 
+                  activeOpacity={0.8} 
                   onPress={handlePostPhoto} 
                   style={[
-                    styles.uploadCardUnified, 
+                    styles.minimalUploadCard, 
                     { 
-                      backgroundColor: isDark ? 'rgba(63,182,104,0.06)' : 'rgba(63,182,104,0.04)', 
-                      borderColor: colors.accent 
+                      backgroundColor: colors.surfaceCard, 
+                      borderColor: colors.borderLight,
                     }
                   ]}
                 >
                   {uploadingPhoto ? (
                     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
                       <ActivityIndicator size="small" color={colors.accent} />
-                      <Text style={{ fontSize: 11, fontWeight: '700', color: colors.accent, marginTop: 8 }}>Uploading...</Text>
+                      <Text style={{ fontSize: 10.5, fontWeight: '700', color: colors.accent, marginTop: 6 }}>Uploading</Text>
                     </View>
                   ) : (
                     <>
-                      <View style={[styles.uploadCardIconRing, { backgroundColor: 'rgba(63,182,104,0.15)', borderColor: 'rgba(63,182,104,0.3)' }]}>
-                        <Camera size={22} color={colors.accent} />
-                        <View style={[styles.uploadCardPlusBadge, { backgroundColor: colors.accent, borderColor: colors.surfaceCard }]}>
-                          <Plus size={10} color="#ffffff" strokeWidth={3} />
-                        </View>
+                      <View style={[styles.minimalUploadIconCircle, { backgroundColor: colors.accentGlow }]}>
+                        <Camera size={20} color={colors.accent} />
                       </View>
-                      <Text style={[styles.uploadCardTitle, { color: colors.textPrimary }]}>+ Post Photo</Text>
-                      <Text style={[styles.uploadCardSub, { color: colors.textSecondary }]}>From Gallery</Text>
-                      <View style={[styles.uploadCardPill, { backgroundColor: 'rgba(63,182,104,0.14)' }]}>
-                        <Text style={[styles.uploadCardPillText, { color: colors.accent }]}>UPLOAD</Text>
-                      </View>
+                      <Text style={[styles.minimalUploadTitle, { color: colors.textPrimary }]}>Add Photo</Text>
+                      <Text style={[styles.minimalUploadSub, { color: colors.textSecondary }]}>From Gallery</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -753,12 +704,11 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
                     key={idx} 
                     activeOpacity={0.88} 
                     onPress={() => setSelectedImgIndex(idx)} 
-                    style={[styles.portfolioItem, { borderColor: colors.borderLight }]}
+                    style={[styles.portfolioItem, { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }]}
                   >
                     <Image source={{ uri: img }} style={styles.portfolioImage} />
                   </TouchableOpacity>
                 ))}
-                <View style={{ width: 18 }} />
               </ScrollView>
             </View>
           </>
@@ -1567,213 +1517,85 @@ const styles = StyleSheet.create({
   },
 
   // ── Creator Showcase & In-Profile Posting Styles ──
-  showcaseSectionCard: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 24,
-    padding: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 3,
+  // ── Creator Showcase (Minimal Home-Page Design System) ──
+  profileSection: {
+    marginTop: 24,
   },
-  showcaseHeaderRow: {
+  homeSectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  showcaseTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  showcaseSubheader: {
-    fontSize: 11.5,
-    marginTop: 2,
-  },
-  sectionIconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  countBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginLeft: 8,
-  },
-  countBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  headerActionPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-
-  // ── Unified Modern Upload Cards (Identical Design for Reel & Photo) ──
-  uploadCardUnified: {
-    width: 140,
-    height: 210,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-    padding: 14,
-  },
-  uploadCardIconRing: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'flex-end',
+    marginHorizontal: 16,
     marginBottom: 12,
-    position: 'relative',
   },
-  uploadCardPlusBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-  },
-  uploadCardTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    textAlign: 'center',
+  homeSectionTitle: {
+    fontSize: 18,
+    fontWeight: '900',
     letterSpacing: -0.2,
   },
-  uploadCardSub: {
-    fontSize: 11,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 4,
+  homeSectionSub: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
   },
-  uploadCardPill: {
-    marginTop: 12,
-    paddingHorizontal: 12,
+  homeSectionAction: {
     paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 4,
   },
-  uploadCardPillText: {
-    fontSize: 10,
+  homeSectionActionText: {
+    fontSize: 13,
     fontWeight: '800',
-    letterSpacing: 0.6,
+  },
+  horizontalCarouselContent: {
+    paddingHorizontal: 16,
+    gap: 12,
   },
 
-  // Backward-compatibility aliases
-  addPhotoCard: {
-    width: 140,
-    height: 210,
-    borderRadius: 20,
-    borderWidth: 1.5,
+  // Minimal Upload Card (Identical for Reel & Photo)
+  minimalUploadCard: {
+    width: 122,
+    height: 175,
+    borderRadius: 18,
+    borderWidth: 1,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
-    padding: 14,
+    padding: 10,
   },
-  addReelCard: {
-    width: 140,
-    height: 210,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
+  minimalUploadIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
-    padding: 14,
+    marginBottom: 8,
   },
-  addPhotoIconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  addPhotoCardText: {
-    fontSize: 14,
+  minimalUploadTitle: {
+    fontSize: 13,
     fontWeight: '800',
     textAlign: 'center',
   },
-  addPhotoCardSub: {
+  minimalUploadSub: {
     fontSize: 11,
+    fontWeight: '500',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 2,
   },
 
-  // Reel Empty State Hint Card
-  reelEmptyCard: {
-    width: 220,
-    height: 210,
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 16,
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  reelEmptyIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  reelEmptyTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  reelEmptySub: {
-    fontSize: 11,
-    lineHeight: 16,
-  },
-
-  // Portfolio Item
-  portfolioItem: {
-    width: 210,
-    height: 210,
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginRight: 14,
-    borderWidth: 1,
-  },
-  portfolioImage: {
-    width: '100%',
-    height: '100%',
-  },
-
-  // Reel Cards
+  // Reel Card
   reelCard: {
-    borderRadius: 20,
+    borderRadius: 18,
     overflow: 'hidden',
-    marginRight: 14,
     position: 'relative',
     borderWidth: 1,
   },
   reelCardVertical: {
-    width: 135,
-    height: 210,
+    width: 122,
+    height: 175,
   },
   reelCardCinema: {
-    width: 260,
-    height: 210,
+    width: 235,
+    height: 175,
   },
   reelThumbnail: {
     width: '100%',
@@ -1785,87 +1607,82 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reelVignette: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
   reelPlayBtn: {
     position: 'absolute',
-    top: '42%',
+    top: '40%',
     left: '50%',
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    marginLeft: -21,
-    marginTop: -21,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.35)',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    marginLeft: -17,
+    marginTop: -17,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 5,
   },
   reelTopBadges: {
     position: 'absolute',
-    top: 10,
-    left: 10,
+    top: 7,
+    left: 7,
     flexDirection: 'row',
   },
   reelBadgePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 3.5,
-    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   reelBadgeText: {
     color: '#ffffff',
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: '800',
-    letterSpacing: 0.5,
   },
   reelInfo: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 10,
-  },
-  reelCategoryTag: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginBottom: 4,
+    padding: 8,
   },
   reelCategory: {
-    fontSize: 8.5,
+    fontSize: 8,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
+    marginBottom: 1,
   },
   reelTitle: {
     color: '#ffffff',
-    fontSize: 11.5,
+    fontSize: 10.5,
     fontWeight: '700',
-    lineHeight: 15,
   },
   reelDeleteBtn: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    top: 7,
+    right: 7,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.65)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+
+  // Portfolio Item
+  portfolioItem: {
+    width: 135,
+    height: 175,
+    borderRadius: 18,
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+  portfolioImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
 
   // Lightbox
