@@ -851,18 +851,22 @@ export const ReelsFeedScreen: React.FC = () => {
       {/* Floating Top Frosted Header Bar */}
       <View style={[styles.topHeaderBar, { top: insets.top + 8 }]}>
         <View style={styles.headerBrandRow}>
-          {/* Top Left Corner Plus Icon in White Color */}
-          <TouchableOpacity
-            style={styles.topLeftPlusBtn}
-            activeOpacity={0.7}
-            hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
-            onPress={() => {
-              triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
-              setShowUploadModal(true);
-            }}
-          >
-            <Plus size={26} color="#ffffff" strokeWidth={2.4} />
-          </TouchableOpacity>
+          {/* Top Left Corner Plus Icon — Only visible to professionals */}
+          {user?.role === 'professional' ? (
+            <TouchableOpacity
+              style={styles.topLeftPlusBtn}
+              activeOpacity={0.7}
+              hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+              onPress={() => {
+                triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
+                setShowUploadModal(true);
+              }}
+            >
+              <Plus size={26} color="#ffffff" strokeWidth={2.4} />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.topLeftPlusBtn} />
+          )}
 
           {/* Centered Reels with Gradient Background */}
           <View style={styles.reelsCenterWrap}>
