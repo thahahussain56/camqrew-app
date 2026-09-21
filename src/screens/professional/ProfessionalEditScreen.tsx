@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Key
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
-import { professionalApi, parseVideoUrl } from '../../api/professionalApi';
+import { professionalApi } from '../../api/professionalApi';
+import { cloudStorageApi } from '../../api/cloudStorageApi';
 import { ProfessionalProfile, ServiceItem, VideoReelItem } from '../../types/professional';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
@@ -13,7 +14,7 @@ import { ChipInput } from '../../components/forms/ChipInput';
 import { LocationCascader } from '../../components/forms/LocationCascader';
 import { Toast } from '../../components/ui/Toast';
 import { PROFESSIONAL_CATEGORIES, getArchetype } from '../../constants/categories';
-import { ChevronDown, ChevronUp, Plus, Trash2, Save, Camera, Image as ImageIcon, Film, Play } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Plus, Trash2, Save, Camera, Image as ImageIcon, Film, Play, UploadCloud, CheckCircle, Video } from 'lucide-react-native';
 
 export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors } = useTheme();
@@ -35,12 +36,15 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
     setOpenSections(prev => ({ ...prev, [sectionKey]: !prev[sectionKey] }));
   };
 
-  // Video Reels State
+  // Video Reels State (Direct Video Upload)
   const [videoReels, setVideoReels] = useState<VideoReelItem[]>([]);
-  const [newReelUrl, setNewReelUrl] = useState('');
+  const [selectedVideoUri, setSelectedVideoUri] = useState<string | null>(null);
+  const [selectedVideoName, setSelectedVideoName] = useState<string>('');
+  const [selectedVideoSize, setSelectedVideoSize] = useState<string>('');
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [newReelTitle, setNewReelTitle] = useState('');
   const [newReelCategory, setNewReelCategory] = useState('Showreel');
-  const [newReelIsShort, setNewReelIsShort] = useState(false);
+  const [newReelIsShort, setNewReelIsShort] = useState(true);
 
   // Form State
   const [name, setName] = useState('');
@@ -127,27 +131,72 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
     setPortfolio(portfolio.filter((_, i) => i !== index));
   };
 
-  const handleAddReel = () => {
-    if (!newReelUrl.trim()) {
-      Alert.alert('Missing URL', 'Please enter a valid YouTube or Vimeo URL.');
+  const pickVideoForReel = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (perm.status !== 'granted') {
+        Alert.alert('Permission Required', 'Permission to access your video gallery is required!');
+        return;
+      }
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: false,
+        quality: 1,
+      });
+
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        const asset = res.assets[0];
+        setSelectedVideoUri(asset.uri);
+        const filename = asset.fileName || asset.uri.split('/').pop() || 'reel_video.mp4';
+        setSelectedVideoName(filename);
+        if (asset.fileSize) {
+          const mb = (asset.fileSize / (1024 * 1024)).toFixed(1);
+          setSelectedVideoSize(`${mb} MB`);
+        } else {
+          setSelectedVideoSize('');
+        }
+        if (asset.width && asset.height) {
+          setNewReelIsShort(asset.height >= asset.width);
+        }
+        setToastMessage('Video file selected!');
+      }
+    } catch (e: any) {
+      Alert.alert('Error', 'Failed to select video: ' + (e?.message || 'Unknown error'));
+    }
+  };
+
+  const handleUploadReel = async () => {
+    if (!selectedVideoUri) {
+      Alert.alert('No Video Selected', 'Please select a video file from your device first.');
       return;
     }
-    const parsed = parseVideoUrl(newReelUrl.trim());
-    const newReel: VideoReelItem = {
-      id: 'reel_' + Date.now(),
-      title: newReelTitle.trim() || (parsed.isShort ? 'Video Reel' : 'Featured Showreel'),
-      url: newReelUrl.trim(),
-      type: parsed.type,
-      embedUrl: parsed.embedUrl,
-      thumbnailUrl: parsed.thumbnailUrl,
-      category: newReelCategory,
-      isShort: newReelIsShort || parsed.isShort,
-    };
-    setVideoReels(prev => [...prev, newReel]);
-    setNewReelUrl('');
-    setNewReelTitle('');
-    setNewReelIsShort(false);
-    setToastMessage('Video reel added!');
+
+    setUploadingVideo(true);
+    try {
+      const uploadRes = await cloudStorageApi.uploadVideo(selectedVideoUri, 'reels');
+      const newReel: VideoReelItem = {
+        id: 'reel_' + Date.now(),
+        title: newReelTitle.trim() || (newReelIsShort ? 'Vertical Reel' : 'Featured Showreel'),
+        url: uploadRes.url,
+        type: 'direct',
+        embedUrl: uploadRes.url,
+        thumbnailUrl: 'https://images.unsplash.com/photo-1518173946687-a4c8a383392e?q=80&w=800',
+        category: newReelCategory,
+        isShort: newReelIsShort,
+      };
+
+      setVideoReels(prev => [newReel, ...prev]);
+      setSelectedVideoUri(null);
+      setSelectedVideoName('');
+      setSelectedVideoSize('');
+      setNewReelTitle('');
+      setNewReelIsShort(true);
+      setToastMessage('🎬 Video reel uploaded successfully!');
+    } catch (err: any) {
+      Alert.alert('Upload Failed', err.message || 'Could not upload video. Please try again.');
+    } finally {
+      setUploadingVideo(false);
+    }
   };
 
   const handleRemoveReel = (id: string) => {
@@ -273,11 +322,11 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
         )}
       </Card>
 
-      {/* 2. Showreels & Video Reels (YouTube / Vimeo / Shorts) */}
+      {/* 2. Showreels & Video Reels (Direct Video Upload) */}
       <Card style={styles.accordionCard}>
         <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('reels')}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>2. Video Reels & Showreels</Text>
+            <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>2. Video Reels (Upload Videos)</Text>
             {videoReels.length > 0 && (
               <View style={{ marginLeft: 8, backgroundColor: '#3fb668', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
                 <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{videoReels.length}</Text>
@@ -290,7 +339,7 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
         {openSections.reels && (
           <View style={styles.accordionBody}>
             <Text style={[styles.subHeading, { color: colors.textSecondary, marginBottom: 12 }]}>
-              Embed YouTube videos, vertical YouTube Shorts (9:16), or Vimeo showreels to play directly on your profile.
+              Upload 9:16 vertical reels and showreels directly from your device. Videos stream seamlessly in the Reels feed and profile.
             </Text>
 
             {/* Current Reels List */}
@@ -307,7 +356,7 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                     <View style={{ backgroundColor: 'rgba(63,182,104,0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
                       <Text style={{ color: '#3fb668', fontSize: 10, fontWeight: '800' }}>
-                        {reel.type === 'youtube' ? (reel.isShort ? '9:16 SHORT' : 'YOUTUBE') : reel.type.toUpperCase()}
+                        {reel.isShort ? '9:16 REEL' : 'VIDEO'}
                       </Text>
                     </View>
                     {reel.category ? (
@@ -325,16 +374,57 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
 
             {/* Add Reel Form */}
             <View style={[styles.addBox, { borderColor: colors.borderLight, marginTop: 10 }]}>
-              <Text style={[styles.addTitle, { color: colors.textPrimary }]}>Add Video Reel</Text>
+              <Text style={[styles.addTitle, { color: colors.textPrimary }]}>Upload Video Reel</Text>
+              
+              {/* Video File Picker Button / Card */}
+              {selectedVideoUri ? (
+                <View style={{ backgroundColor: colors.surfaceElevated, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: colors.accent, marginBottom: 14 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 }}>
+                      <View style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: colors.accentGlow, alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                        <Video size={20} color={colors.accent} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 13 }} numberOfLines={1}>{selectedVideoName}</Text>
+                        <Text style={{ color: colors.accent, fontSize: 11, fontWeight: '600', marginTop: 2 }}>
+                          ✓ Video Selected {selectedVideoSize ? `• ${selectedVideoSize}` : ''}
+                        </Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      onPress={pickVideoForReel}
+                      disabled={uploadingVideo}
+                      style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.surfaceCard, borderWidth: 1, borderColor: colors.borderLight }}
+                    >
+                      <Text style={{ color: colors.textSecondary, fontSize: 11, fontWeight: '700' }}>Change</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={{
+                    borderWidth: 1.5,
+                    borderStyle: 'dashed',
+                    borderColor: colors.accent,
+                    backgroundColor: colors.accentGlow,
+                    borderRadius: 14,
+                    padding: 20,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 16,
+                  }}
+                  onPress={pickVideoForReel}
+                  activeOpacity={0.7}
+                >
+                  <UploadCloud size={30} color={colors.accent} style={{ marginBottom: 6 }} />
+                  <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 14 }}>Pick Video File</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 11, marginTop: 4 }}>Select MP4, MOV, or WebM from your device</Text>
+                </TouchableOpacity>
+              )}
+
               <Input
-                label="Video URL (YouTube, Shorts, or Vimeo)"
-                placeholder="https://youtube.com/shorts/... or https://vimeo.com/..."
-                value={newReelUrl}
-                onChangeText={setNewReelUrl}
-              />
-              <Input
-                label="Title (e.g. 2025 Cinematic Highlights)"
-                placeholder="Give your reel a title"
+                label="Reel Title"
+                placeholder="e.g. Wedding Cinematic Teaser 2026, Drone Reel"
                 value={newReelTitle}
                 onChangeText={setNewReelTitle}
               />
@@ -372,16 +462,19 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                   {newReelIsShort && <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 12 }}>✓</Text>}
                 </View>
                 <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '700' }}>
-                  Vertical Reel format (9:16 Portrait like YouTube Shorts / Reels)
+                  Vertical 9:16 Reel Format (Recommended for Reels Feed)
                 </Text>
               </TouchableOpacity>
 
               <Button
-                title="Add to My Showreels"
-                variant="secondary"
+                title={uploadingVideo ? "Uploading Video..." : "Upload & Save Reel"}
+                variant="primary"
                 size="md"
-                icon={<Film size={16} color={colors.accent} />}
-                onPress={handleAddReel}
+                disabled={!selectedVideoUri || uploadingVideo}
+                loading={uploadingVideo}
+                icon={<UploadCloud size={16} color="#ffffff" />}
+                onPress={handleUploadReel}
+                style={{ marginTop: 8 }}
               />
             </View>
           </View>

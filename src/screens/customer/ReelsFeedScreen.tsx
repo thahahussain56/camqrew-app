@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   FlatList,
+  ScrollView,
   TouchableOpacity,
   Image,
   Share,
@@ -14,8 +15,12 @@ import {
   ViewToken,
   Modal,
   useWindowDimensions,
+  TextInput,
+  Alert,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,7 +28,8 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { professionalApi } from '../../api/professionalApi';
-import { FeedReelItem } from '../../types/professional';
+import { cloudStorageApi } from '../../api/cloudStorageApi';
+import { FeedReelItem, VideoReelItem } from '../../types/professional';
 import {
   Heart,
   MessageSquare,
@@ -43,6 +49,9 @@ import {
   Music,
   ShieldCheck,
   Briefcase,
+  UploadCloud,
+  Plus,
+  Video,
 } from 'lucide-react-native';
 import { isCustomAvatar } from '../../utils/avatarUtils';
 
@@ -67,6 +76,15 @@ export const ReelsFeedScreen: React.FC = () => {
   const [selectedCreator, setSelectedCreator] = useState<FeedReelItem | null>(null);
   const [expandedCaptions, setExpandedCaptions] = useState<{ [id: string]: boolean }>({});
 
+  // Creator Video Reel Upload Modal State
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedVideoUri, setSelectedVideoUri] = useState<string | null>(null);
+  const [selectedVideoName, setSelectedVideoName] = useState('');
+  const [selectedVideoSize, setSelectedVideoSize] = useState('');
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadCategory, setUploadCategory] = useState('Cinematography');
+  const [uploading, setUploading] = useState(false);
+
   const heartScale = useRef(new Animated.Value(0)).current;
   const playPauseOpacity = useRef(new Animated.Value(0)).current;
   const lastTapRef = useRef<number>(0);
@@ -77,6 +95,88 @@ export const ReelsFeedScreen: React.FC = () => {
       Haptics.impactAsync(style);
     } catch {
       // Haptics unavailable on emulator
+    }
+  };
+
+  const pickVideo = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (perm.status !== 'granted') {
+        Alert.alert('Permission Required', 'Permission to access your video gallery is required to upload reels!');
+        return;
+      }
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: false,
+        quality: 1,
+      });
+
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        const asset = res.assets[0];
+        setSelectedVideoUri(asset.uri);
+        const filename = asset.fileName || asset.uri.split('/').pop() || 'reel_video.mp4';
+        setSelectedVideoName(filename);
+        if (asset.fileSize) {
+          const mb = (asset.fileSize / (1024 * 1024)).toFixed(1);
+          setSelectedVideoSize(`${mb} MB`);
+        } else {
+          setSelectedVideoSize('');
+        }
+        triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (e: any) {
+      Alert.alert('Error', 'Failed to pick video: ' + (e?.message || 'Unknown error'));
+    }
+  };
+
+  const handleUploadReel = async () => {
+    if (!selectedVideoUri) {
+      Alert.alert('No Video Selected', 'Please pick a video file from your device first.');
+      return;
+    }
+    if (!user?.id) {
+      Alert.alert('Authentication Required', 'Please sign in to your creator account to upload reels.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // 1. Upload video file to Supabase storage 'reels' bucket
+      const uploadRes = await cloudStorageApi.uploadVideo(selectedVideoUri, 'reels');
+
+      // 2. Fetch current profile reels and append new reel
+      const proProfile = await professionalApi.getProfileById(user.id);
+      const existingReels = proProfile?.videoReels || [];
+
+      const newReel: VideoReelItem = {
+        id: 'reel_' + Date.now(),
+        title: uploadTitle.trim() || 'Vertical Reel',
+        url: uploadRes.url,
+        type: 'direct',
+        embedUrl: uploadRes.url,
+        thumbnailUrl: 'https://images.unsplash.com/photo-1518173946687-a4c8a383392e?q=80&w=800',
+        category: uploadCategory,
+        isShort: true,
+      };
+
+      const updatedReels = [newReel, ...existingReels];
+      await professionalApi.updateProfile({ videoReels: updatedReels });
+
+      // 3. Reload feed to show new reel
+      await loadReels();
+
+      // Reset modal state
+      setSelectedVideoUri(null);
+      setSelectedVideoName('');
+      setSelectedVideoSize('');
+      setUploadTitle('');
+      setShowUploadModal(false);
+      triggerHaptic(Haptics.ImpactFeedbackStyle.Heavy);
+      Alert.alert('🎉 Reel Published!', 'Your video reel is now live in the Reels feed and on your creator profile.');
+    } catch (err: any) {
+      Alert.alert('Upload Failed', err.message || 'Failed to upload video reel.');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -768,27 +868,43 @@ export const ReelsFeedScreen: React.FC = () => {
             </LinearGradient>
           </View>
 
-          {reels.length > 0 && (
-            <View
-              style={[
-                styles.headerCounterBadge,
-                styles.headerCounterBadgeAbsolute,
-                {
-                  backgroundColor: 'rgba(0,0,0,0.55)',
-                  borderColor: 'rgba(255,255,255,0.15)',
-                },
-              ]}
-            >
-              <Text
+          {/* Right Header Action Group: Creator Upload Button + Counter */}
+          <View style={styles.headerRightGroup}>
+            {user?.role === 'professional' && (
+              <TouchableOpacity
+                style={styles.headerUploadBtn}
+                activeOpacity={0.8}
+                onPress={() => {
+                  triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
+                  setShowUploadModal(true);
+                }}
+              >
+                <Plus size={13} color="#ffffff" style={{ marginRight: 3 }} />
+                <Text style={styles.headerUploadText}>Upload</Text>
+              </TouchableOpacity>
+            )}
+
+            {reels.length > 0 && (
+              <View
                 style={[
-                  styles.headerCounterText,
-                  { color: 'rgba(255,255,255,0.85)' },
+                  styles.headerCounterBadge,
+                  {
+                    backgroundColor: 'rgba(0,0,0,0.55)',
+                    borderColor: 'rgba(255,255,255,0.15)',
+                  },
                 ]}
               >
-                {activeIndex + 1}/{reels.length}
-              </Text>
-            </View>
-          )}
+                <Text
+                  style={[
+                    styles.headerCounterText,
+                    { color: 'rgba(255,255,255,0.85)' },
+                  ]}
+                >
+                  {activeIndex + 1}/{reels.length}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
       </View>
 
@@ -830,15 +946,15 @@ export const ReelsFeedScreen: React.FC = () => {
 
               {user?.role === 'professional' && (
                 <TouchableOpacity
-                  style={[styles.emptyGhostBtn, { borderColor: colors.border }]}
+                  style={[styles.emptyGhostBtn, { borderColor: colors.accent, backgroundColor: 'rgba(63, 182, 104, 0.15)' }]}
                   activeOpacity={0.85}
                   onPress={() => {
                     triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
-                    navigation.navigate('ProfessionalEdit');
+                    setShowUploadModal(true);
                   }}
                 >
-                  <Briefcase size={16} color={colors.textPrimary} style={{ marginRight: 6 }} />
-                  <Text style={[styles.emptyGhostBtnText, { color: colors.textPrimary }]}>Add Showreel to Profile</Text>
+                  <UploadCloud size={16} color={colors.accent} style={{ marginRight: 6 }} />
+                  <Text style={[styles.emptyGhostBtnText, { color: colors.accent }]}>Upload Video Reel</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -1002,6 +1118,141 @@ export const ReelsFeedScreen: React.FC = () => {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Creator Reel Upload Modal */}
+      <Modal
+        visible={showUploadModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => !uploading && setShowUploadModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.75)' }]}
+        >
+          <View style={[styles.uploadModalCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+            {/* Header */}
+            <View style={styles.uploadModalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={[styles.uploadIconBadge, { backgroundColor: colors.accentGlow }]}>
+                  <Film size={20} color={colors.accent} />
+                </View>
+                <View>
+                  <Text style={[styles.uploadModalTitle, { color: colors.textPrimary }]}>Upload Video Reel</Text>
+                  <Text style={[styles.uploadModalSub, { color: colors.textSecondary }]}>Add 9:16 vertical reel to feed & profile</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => !uploading && setShowUploadModal(false)}
+                disabled={uploading}
+                style={[styles.sheetCloseBtn, { backgroundColor: colors.surfaceElevated }]}
+              >
+                <X size={18} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 450 }}>
+              {/* Video Picker Area */}
+              {selectedVideoUri ? (
+                <View style={[styles.selectedVideoCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.accent }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <View style={[styles.videoFileIconCircle, { backgroundColor: colors.accentGlow }]}>
+                      <Video size={22} color={colors.accent} />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={[styles.selectedVideoFileName, { color: colors.textPrimary }]} numberOfLines={1}>
+                        {selectedVideoName}
+                      </Text>
+                      <Text style={[styles.selectedVideoFileMeta, { color: colors.accent }]}>
+                        ✓ Video Selected {selectedVideoSize ? `• ${selectedVideoSize}` : ''}
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    onPress={pickVideo}
+                    disabled={uploading}
+                    style={[styles.changeVideoBtn, { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }]}
+                  >
+                    <Text style={[styles.changeVideoBtnText, { color: colors.textSecondary }]}>Change</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.uploadDottedBox, { borderColor: colors.accent, backgroundColor: colors.accentGlow }]}
+                  onPress={pickVideo}
+                  activeOpacity={0.7}
+                >
+                  <UploadCloud size={36} color={colors.accent} style={{ marginBottom: 8 }} />
+                  <Text style={[styles.uploadDottedTitle, { color: colors.textPrimary }]}>Choose Video File</Text>
+                  <Text style={[styles.uploadDottedSub, { color: colors.textSecondary }]}>
+                    Upload MP4, MOV, or WebM video (up to 100MB)
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Reel Title Input */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Reel Title</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.textPrimary }]}
+                  placeholder="e.g. Wedding Highlight 2026, Fashion Editorial Reel"
+                  placeholderTextColor={colors.textFaint}
+                  value={uploadTitle}
+                  onChangeText={setUploadTitle}
+                  editable={!uploading}
+                />
+              </View>
+
+              {/* Category Chips */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Category</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  {['Cinematography', 'Wedding', 'Commercial', 'Fashion', 'Music Video', 'Short Film', 'Drone Reel'].map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[
+                        styles.uploadCategoryChip,
+                        {
+                          backgroundColor: uploadCategory === cat ? colors.accent : colors.surfaceElevated,
+                          borderColor: uploadCategory === cat ? colors.accent : colors.border,
+                        }
+                      ]}
+                      onPress={() => setUploadCategory(cat)}
+                    >
+                      <Text style={[styles.uploadCategoryChipText, { color: uploadCategory === cat ? '#fff' : colors.textSecondary, fontWeight: uploadCategory === cat ? '700' : '500' }]}>
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Upload Action Button */}
+              <TouchableOpacity
+                style={[
+                  styles.submitUploadBtn,
+                  { backgroundColor: colors.accent, opacity: !selectedVideoUri || uploading ? 0.6 : 1 }
+                ]}
+                disabled={!selectedVideoUri || uploading}
+                onPress={handleUploadReel}
+                activeOpacity={0.88}
+              >
+                {uploading ? (
+                  <>
+                    <ActivityIndicator size="small" color="#ffffff" style={{ marginRight: 8 }} />
+                    <Text style={styles.submitUploadBtnText}>Uploading Video...</Text>
+                  </>
+                ) : (
+                  <>
+                    <UploadCloud size={18} color="#ffffff" style={{ marginRight: 8 }} />
+                    <Text style={styles.submitUploadBtnText}>Publish Reel to Feed</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -1603,5 +1854,159 @@ const styles = StyleSheet.create({
   sheetSecondaryBtnText: {
     fontSize: 13,
     fontWeight: '700',
+  },
+
+  headerRightGroup: {
+    position: 'absolute',
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerUploadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3fb668',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    shadowColor: '#3fb668',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  headerUploadText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+
+  // Creator Reel Upload Modal Styles
+  uploadModalCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  uploadModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+  },
+  uploadIconBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadModalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  uploadModalSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  selectedVideoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 16,
+  },
+  videoFileIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedVideoFileName: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  selectedVideoFileMeta: {
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  changeVideoBtn: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginLeft: 8,
+  },
+  changeVideoBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  uploadDottedBox: {
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderRadius: 16,
+    padding: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  uploadDottedTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  uploadDottedSub: {
+    fontSize: 11.5,
+    textAlign: 'center',
+  },
+  inputGroup: {
+    marginBottom: 14,
+  },
+  inputLabel: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  uploadCategoryChip: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  uploadCategoryChipText: {
+    fontSize: 11.5,
+  },
+  submitUploadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  submitUploadBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });

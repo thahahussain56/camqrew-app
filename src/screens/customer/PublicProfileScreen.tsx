@@ -6,7 +6,7 @@ import { useAuthStore } from '../../store/authStore';
 import { professionalApi } from '../../api/professionalApi';
 import { studioApi } from '../../api/studioApi';
 import { productApi } from '../../api/productApi';
-import { ProfessionalProfile, ReviewItem } from '../../types/professional';
+import { ProfessionalProfile, ReviewItem, VideoReelItem } from '../../types/professional';
 import { Product } from '../../types/product';
 import { Avatar } from '../../components/ui/Avatar';
 import { Card } from '../../components/ui/Card';
@@ -15,9 +15,10 @@ import { Button } from '../../components/ui/Button';
 import { ProductCard } from '../../components/cards/ProductCard';
 import { useCartStore } from '../../store/cartStore';
 import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, ThumbsUp, Check, Award } from 'lucide-react-native';
+import { WebView } from 'react-native-webview';
 import { getArchetype } from '../../constants/categories';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
   const { colors } = useTheme();
@@ -30,6 +31,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedImgIndex, setSelectedImgIndex] = useState<number | null>(null);
+  const [selectedVideoReel, setSelectedVideoReel] = useState<VideoReelItem | null>(null);
   const { addItem } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
 
@@ -355,10 +357,8 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                     key={reel.id}
                     activeOpacity={0.88}
                     onPress={() => {
-                      if (reel.url) {
-                        Linking.openURL(reel.url).catch(() => {
-                          Alert.alert('Unable to open video', 'Please verify your internet connection or URL.');
-                        });
+                      if (reel.url || reel.embedUrl) {
+                        setSelectedVideoReel(reel);
                       }
                     }}
                     style={[
@@ -385,7 +385,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                     <View style={styles.reelTopBadges}>
                       <View style={[styles.reelBadgePill, { backgroundColor: 'rgba(0,0,0,0.65)' }]}>
                         <Text style={styles.reelBadgeText}>
-                          {reel.type === 'youtube' ? (isShort ? '⚡ Short' : 'YouTube') : reel.type === 'vimeo' ? 'Vimeo' : 'Video'}
+                          {isShort ? '9:16 REEL' : 'VIDEO'}
                         </Text>
                       </View>
                     </View>
@@ -747,6 +747,111 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
               </View>
             </View>
           )}
+        </View>
+      </Modal>
+
+      {/* Video Reel Player Modal */}
+      <Modal 
+        visible={selectedVideoReel !== null} 
+        transparent 
+        animationType="slide" 
+        onRequestClose={() => setSelectedVideoReel(null)}
+      >
+        <View style={styles.videoModalBg}>
+          <SafeAreaView edges={['top', 'bottom']} style={styles.videoModalSafe}>
+            {/* Top Bar */}
+            <View style={styles.videoModalTopBar}>
+              <View style={{ flex: 1, marginRight: 12 }}>
+                <Text style={styles.videoModalTitle} numberOfLines={1}>
+                  {selectedVideoReel?.title || 'Video Reel'}
+                </Text>
+                {selectedVideoReel?.category ? (
+                  <Text style={styles.videoModalCategory}>
+                    {selectedVideoReel.category.toUpperCase()} • {selectedVideoReel.isShort ? '9:16 Reel' : 'Cinema Video'}
+                  </Text>
+                ) : null}
+              </View>
+              <TouchableOpacity 
+                style={styles.videoModalCloseBtn} 
+                onPress={() => setSelectedVideoReel(null)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <X size={22} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Video Player Container */}
+            <View style={[
+              styles.videoPlayerBox,
+              selectedVideoReel?.isShort ? styles.videoPlayerBoxVertical : styles.videoPlayerBoxCinema
+            ]}>
+              {selectedVideoReel && (() => {
+                const isDirect = selectedVideoReel.type === 'direct' || 
+                  selectedVideoReel.url?.includes('.mp4') || 
+                  selectedVideoReel.embedUrl?.includes('.mp4') ||
+                  selectedVideoReel.url?.includes('.mov') ||
+                  selectedVideoReel.url?.includes('.webm');
+                const videoSrc = selectedVideoReel.url || selectedVideoReel.embedUrl;
+
+                const html = isDirect
+                  ? `
+                  <!DOCTYPE html>
+                  <html>
+                    <head>
+                      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                      <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; background: #000; }
+                        html, body { width: 100%; height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #000; }
+                        video { width: 100%; height: 100%; object-fit: contain; }
+                      </style>
+                    </head>
+                    <body>
+                      <video 
+                        src="${videoSrc}" 
+                        autoplay 
+                        controls 
+                        playsinline 
+                        webkit-playsinline
+                      ></video>
+                    </body>
+                  </html>
+                  `
+                  : `
+                  <!DOCTYPE html>
+                  <html>
+                    <head>
+                      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                      <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; background: #000; }
+                        html, body { width: 100%; height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #000; }
+                        iframe { width: 100%; height: 100%; border: none; }
+                      </style>
+                    </head>
+                    <body>
+                      <iframe 
+                        src="${selectedVideoReel.embedUrl || selectedVideoReel.url}" 
+                        allow="autoplay; fullscreen; encrypted-media" 
+                        allowfullscreen
+                      ></iframe>
+                    </body>
+                  </html>
+                  `;
+
+                return (
+                  <WebView
+                    key={selectedVideoReel.id}
+                    originWhitelist={['*']}
+                    source={{ html }}
+                    style={{ flex: 1, backgroundColor: '#000000' }}
+                    allowsInlineMediaPlayback
+                    mediaPlaybackRequiresUserAction={false}
+                    javaScriptEnabled
+                    domStorageEnabled
+                  />
+                );
+              })()}
+            </View>
+          </SafeAreaView>
         </View>
       </Modal>
 
@@ -1561,5 +1666,55 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     lineHeight: 16,
+  },
+  videoModalBg: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+  },
+  videoModalSafe: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  videoModalTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  videoModalTitle: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  videoModalCategory: {
+    color: '#3fb668',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  videoModalCloseBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoPlayerBox: {
+    width: '100%',
+    backgroundColor: '#000000',
+    alignSelf: 'center',
+    overflow: 'hidden',
+  },
+  videoPlayerBoxVertical: {
+    flex: 1,
+    maxHeight: height * 0.82,
+    borderRadius: 16,
+    marginHorizontal: 16,
+  },
+  videoPlayerBoxCinema: {
+    width: '100%',
+    aspectRatio: 16 / 9,
   },
 });

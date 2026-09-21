@@ -53,4 +53,55 @@ export const cloudStorageApi = {
       throw new Error('Image upload failed: ' + e.message);
     }
   },
+
+  /**
+   * Upload a video from a local URI directly to Supabase Storage.
+   * Returns the public URL of the uploaded video.
+   */
+  uploadVideo: async (
+    videoUri: string,
+    folder: string = 'reels'
+  ): Promise<UploadResponse> => {
+    try {
+      const ext = videoUri.split('.').pop()?.split('?')[0]?.toLowerCase() || 'mp4';
+      const filename = `reel_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
+      let mimeType = 'video/mp4';
+      if (ext === 'mov') mimeType = 'video/quicktime';
+      else if (ext === 'webm') mimeType = 'video/webm';
+      else if (ext === 'mkv') mimeType = 'video/x-matroska';
+
+      const formData = new FormData();
+      formData.append('file', {
+        uri: videoUri,
+        name: filename,
+        type: mimeType,
+      } as any);
+
+      const { data, error } = await supabase.storage
+        .from(folder)
+        .upload(filename, formData, {
+          upsert: true,
+          contentType: mimeType,
+        });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      const { data: publicData } = supabase.storage
+        .from(folder)
+        .getPublicUrl(data.path);
+
+      return {
+        url: publicData.publicUrl,
+        publicId: data.path,
+        success: true,
+      };
+    } catch (e: any) {
+      console.error('Video upload failed:', e.message);
+      throw new Error('Video upload failed: ' + e.message);
+    }
+  },
 };
+
