@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Modal, Dimensions, ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform, Share, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Modal, Dimensions, ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform, Share, Linking, LayoutAnimation, UIManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
@@ -14,9 +14,13 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { ProductCard } from '../../components/cards/ProductCard';
 import { useCartStore } from '../../store/cartStore';
-import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, ThumbsUp, Check, Award } from 'lucide-react-native';
+import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, ThumbsUp, Check, Award } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import { getArchetype } from '../../constants/categories';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const { width, height } = Dimensions.get('window');
 
@@ -34,6 +38,20 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
   const [selectedVideoReel, setSelectedVideoReel] = useState<VideoReelItem | null>(null);
   const { addItem } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
+
+  // Accordion Expand/Collapse State
+  const [capabilitiesExpanded, setCapabilitiesExpanded] = useState(true);
+  const [certificationsExpanded, setCertificationsExpanded] = useState(false);
+
+  const toggleCapabilities = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setCapabilitiesExpanded(prev => !prev);
+  };
+
+  const toggleCertifications = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setCertificationsExpanded(prev => !prev);
+  };
 
   // Reviews & Rating State
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
@@ -452,36 +470,131 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
           </ScrollView>
         </View>
 
-        {/* ── Capabilities / Specialties ── */}
+        {/* ── Capabilities / Production Logistics (Expandable Accordion) ── */}
         {profile.equipment && profile.equipment.length > 0 && (
           <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-              {isStudio ? 'Studio Amenities' : proArchetype.equipmentSectionTitle}
-            </Text>
-            <View style={styles.chipsWrap}>
-              {profile.equipment.map((eq, i) => (
-                <View key={i} style={[styles.specChip, { backgroundColor: colors.surfaceElevated }]}>
-                  <Text style={[styles.specChipText, { color: colors.textPrimary }]}>{eq}</Text>
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={toggleCapabilities}
+              style={styles.accordionHeaderBtn}
+            >
+              <View style={styles.accordionTitleCol}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
+                    {isStudio ? 'Studio Amenities' : proArchetype.equipmentSectionTitle}
+                  </Text>
+                  <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated, marginLeft: 8 }]}>
+                    <Text style={[styles.countBadgeText, { color: colors.accent }]}>
+                      {profile.equipment.length}
+                    </Text>
+                  </View>
                 </View>
-              ))}
-            </View>
+                {!capabilitiesExpanded && (
+                  <Text style={[styles.accordionHintText, { color: colors.textSecondary }]}>
+                    {profile.equipment.length} verified capabilities • Tap to expand
+                  </Text>
+                )}
+              </View>
+
+              <View style={[styles.accordionChevronCircle, { backgroundColor: colors.surfaceElevated }]}>
+                {capabilitiesExpanded ? (
+                  <ChevronUp size={18} color={colors.accent} />
+                ) : (
+                  <ChevronDown size={18} color={colors.textSecondary} />
+                )}
+              </View>
+            </TouchableOpacity>
+
+            {capabilitiesExpanded && (
+              <View style={styles.accordionBody}>
+                <View style={styles.capabilitiesList}>
+                  {profile.equipment.map((eq, i) => (
+                    <View key={i} style={[styles.capabilityItemRow, { backgroundColor: colors.surfaceElevated }]}>
+                      <View style={[styles.capabilityDot, { backgroundColor: colors.accentGlow }]}>
+                        <Check size={12} color={colors.accent} strokeWidth={2.5} />
+                      </View>
+                      <Text style={[styles.capabilityText, { color: colors.textPrimary }]}>{eq}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={toggleCapabilities}
+                  style={styles.collapseInlineBtn}
+                >
+                  <Text style={[styles.collapseInlineBtnText, { color: colors.textSecondary }]}>Collapse Section</Text>
+                  <ChevronUp size={14} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
 
-        {/* ── Certifications & Industry Badges ── */}
+        {/* ── Certifications & Industry Affiliations (Expandable Accordion) ── */}
         {profile.certifications && profile.certifications.length > 0 && (
           <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-              {proArchetype.skillsSectionTitle}
-            </Text>
-            <View style={styles.chipsWrap}>
-              {profile.certifications.map((cert, i) => (
-                <View key={i} style={[styles.specChip, { backgroundColor: colors.accentGlow }]}>
-                  <CheckCircle size={12} color={colors.accent} style={{ marginRight: 6 }} />
-                  <Text style={[styles.specChipText, { color: colors.accent, fontWeight: '700' }]}>{cert}</Text>
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={toggleCertifications}
+              style={styles.accordionHeaderBtn}
+            >
+              <View style={styles.accordionTitleCol}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
+                    {proArchetype.skillsSectionTitle}
+                  </Text>
+                  <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated, marginLeft: 8 }]}>
+                    <Text style={[styles.countBadgeText, { color: colors.accent }]}>
+                      {profile.certifications.length}
+                    </Text>
+                  </View>
                 </View>
-              ))}
-            </View>
+                {!certificationsExpanded && (
+                  <Text style={[styles.accordionHintText, { color: colors.textSecondary }]}>
+                    {profile.certifications.length} verified credentials • Tap to expand
+                  </Text>
+                )}
+              </View>
+
+              <View style={[styles.accordionChevronCircle, { backgroundColor: colors.surfaceElevated }]}>
+                {certificationsExpanded ? (
+                  <ChevronUp size={18} color={colors.accent} />
+                ) : (
+                  <ChevronDown size={18} color={colors.textSecondary} />
+                )}
+              </View>
+            </TouchableOpacity>
+
+            {certificationsExpanded && (
+              <View style={styles.accordionBody}>
+                <View style={styles.credentialsList}>
+                  {profile.certifications.map((cert, i) => (
+                    <View key={i} style={[styles.credentialCard, { backgroundColor: colors.surfaceElevated }]}>
+                      <View style={[styles.credentialIconCircle, { backgroundColor: colors.accentGlow }]}>
+                        <Award size={16} color={colors.accent} />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 12 }}>
+                        <Text style={[styles.credentialTitle, { color: colors.textPrimary }]}>{cert}</Text>
+                        <View style={styles.credentialVerifiedRow}>
+                          <ShieldCheck size={11} color={colors.accent} style={{ marginRight: 4 }} />
+                          <Text style={[styles.credentialVerifiedText, { color: colors.accent }]}>Verified Credential</Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={toggleCertifications}
+                  style={styles.collapseInlineBtn}
+                >
+                  <Text style={[styles.collapseInlineBtnText, { color: colors.textSecondary }]}>Collapse Section</Text>
+                  <ChevronUp size={14} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
 
@@ -1249,16 +1362,103 @@ const styles = StyleSheet.create({
   },
   portfolioImage: { width: '100%', height: '100%' },
 
-  // Capabilities & Badges
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  specChip: {
+  // Accordion Header & Layout
+  accordionHeaderBtn: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  accordionTitleCol: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  accordionHintText: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  accordionChevronCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  accordionBody: {
+    marginTop: 14,
+  },
+
+  // Capabilities List
+  capabilitiesList: {
+    gap: 7,
+  },
+  capabilityItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 10,
     paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 12,
+    borderRadius: 14,
   },
-  specChipText: { fontSize: 12.5, fontWeight: '600' },
+  capabilityDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  capabilityText: {
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+    flex: 1,
+  },
+
+  // Credentials & Affiliations Cards
+  credentialsList: {
+    gap: 8,
+  },
+  credentialCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+  },
+  credentialIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  credentialTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  credentialVerifiedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 3,
+  },
+  credentialVerifiedText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  // Collapse inline button
+  collapseInlineBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  collapseInlineBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
 
   // Lightbox
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.98)', justifyContent: 'center', alignItems: 'center' },
