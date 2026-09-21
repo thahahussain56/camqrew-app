@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { professionalApi } from '../../api/professionalApi';
 import { bookingApi } from '../../api/bookingApi';
 import { productApi } from '../../api/productApi';
-import { ProfessionalProfile } from '../../types/professional';
+import { ProfessionalProfile, MenuDishItem } from '../../types/professional';
 import { Product } from '../../types/product';
 import { Booking } from '../../types/booking';
 import { Card } from '../../components/ui/Card';
@@ -17,7 +17,8 @@ import { EarningsChart } from '../../components/charts/EarningsChart';
 import { BookingsDonut } from '../../components/charts/BookingsDonut';
 import { Toast } from '../../components/ui/Toast';
 import { ListProductModal } from '../../components/forms/ListProductModal';
-import { DollarSign, Calendar, Eye, Star, Edit3, Bell, PlusCircle, LayoutDashboard, ShoppingBag, FolderGit2, Film } from 'lucide-react-native';
+import { ListMenuDishModal } from '../../components/forms/ListMenuDishModal';
+import { DollarSign, Calendar, Eye, Star, Edit3, Bell, PlusCircle, LayoutDashboard, ShoppingBag, FolderGit2, Film, UtensilsCrossed, Trash2, Plus } from 'lucide-react-native';
 
 type DashTab = 'overview' | 'bookings' | 'sales_rentals' | 'listings';
 
@@ -30,8 +31,75 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
   const [userProducts, setUserProducts] = useState<Product[]>([]);
   const [showListGearModal, setShowListGearModal] = useState(false);
+  const [showMenuDishModal, setShowMenuDishModal] = useState(false);
+  const [editingDish, setEditingDish] = useState<MenuDishItem | null>(null);
+  const [selectedMenuCategory, setSelectedMenuCategory] = useState('All');
+  const [vegOnlyFilter, setVegOnlyFilter] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const [activeTab, setActiveTab] = useState<DashTab>('overview');
+
+  const isCaterer = Boolean(
+    profile?.categories?.some(c =>
+      c.toLowerCase().includes('cater') ||
+      c.toLowerCase().includes('chef') ||
+      c.toLowerCase().includes('food') ||
+      c.toLowerCase().includes('culinary')
+    )
+  );
+
+  const handleSaveMenuDish = async (
+    dishData: Omit<MenuDishItem, 'id' | 'isAvailable'>,
+    editingId?: string
+  ) => {
+    if (!profile) return;
+    const existing = profile.menuItems || [];
+    let updated: MenuDishItem[];
+    if (editingId) {
+      updated = existing.map(d => (d.id === editingId ? { ...d, ...dishData } : d));
+    } else {
+      const newDish: MenuDishItem = {
+        id: 'dish_' + Date.now(),
+        ...dishData,
+        isAvailable: true,
+      };
+      updated = [newDish, ...existing];
+    }
+    await professionalApi.updateProfile({ menuItems: updated });
+    setProfile(prev => (prev ? { ...prev, menuItems: updated } : null));
+  };
+
+  const handleToggleDishAvailability = async (dishId: string) => {
+    if (!profile) return;
+    const existing = profile.menuItems || [];
+    const updated = existing.map(d =>
+      d.id === dishId ? { ...d, isAvailable: !d.isAvailable } : d
+    );
+    await professionalApi.updateProfile({ menuItems: updated });
+    setProfile(prev => (prev ? { ...prev, menuItems: updated } : null));
+    setToastMsg('Dish availability updated.');
+  };
+
+  const handleDeleteMenuDish = (dishId: string) => {
+    Alert.alert(
+      'Remove Dish',
+      'Are you sure you want to remove this dish from your catering menu?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            if (!profile) return;
+            const existing = profile.menuItems || [];
+            const updated = existing.filter(d => d.id !== dishId);
+            await professionalApi.updateProfile({ menuItems: updated });
+            setProfile(prev => (prev ? { ...prev, menuItems: updated } : null));
+            setToastMsg('Dish removed from menu.');
+          },
+        },
+      ]
+    );
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -146,21 +214,26 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
 
       {/* Tabs Row */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
-        {(['overview', 'bookings', 'sales_rentals', 'listings'] as DashTab[]).map(tab => (
+        {([
+          { key: 'overview', label: 'Overview' },
+          { key: 'bookings', label: 'Bookings' },
+          { key: 'sales_rentals', label: isCaterer ? 'Menu Orders' : 'Sales & Rentals' },
+          { key: 'listings', label: isCaterer ? 'Menu & Prices' : 'Gear Store' },
+        ] as { key: DashTab; label: string }[]).map(tab => (
           <TouchableOpacity
-            key={tab}
-            onPress={() => setActiveTab(tab)}
+            key={tab.key}
+            onPress={() => setActiveTab(tab.key)}
             style={{
               paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
-              backgroundColor: activeTab === tab ? colors.accent : colors.surfaceCard,
-              marginRight: 8, borderWidth: 1, borderColor: activeTab === tab ? colors.accent : colors.borderLight,
+              backgroundColor: activeTab === tab.key ? colors.accent : colors.surfaceCard,
+              marginRight: 8, borderWidth: 1, borderColor: activeTab === tab.key ? colors.accent : colors.borderLight,
             }}
           >
             <Text style={{
-              color: activeTab === tab ? '#fff' : colors.textSecondary,
-              fontSize: 13, fontWeight: '700', textTransform: 'capitalize'
+              color: activeTab === tab.key ? '#fff' : colors.textSecondary,
+              fontSize: 13, fontWeight: '700',
             }}>
-              {tab === 'sales_rentals' ? 'Sales & Rentals' : tab}
+              {tab.label}
             </Text>
           </TouchableOpacity>
         ))}
@@ -262,96 +335,374 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
         </View>
       )}
 
-      {/* ── LISTINGS TAB ── */}
+      {/* ── LISTINGS / MENU TAB ── */}
       {activeTab === 'listings' && (
         <>
-          {/* Quick Action Banner: List Equipment for Sale/Rent */}
-          <TouchableOpacity
-            style={styles.listGearBanner}
-            activeOpacity={0.88}
-            onPress={() => setShowListGearModal(true)}
-          >
-            <View style={styles.listGearIconBox}>
-              <PlusCircle size={24} color="#ffffff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.listGearTitle}>Sell or Rent Your Gear</Text>
-              <Text style={styles.listGearSub}>Post equipment to the Camqrew Store</Text>
-            </View>
-            <View style={styles.listGearPill}>
-              <Text style={styles.listGearPillText}>List Now +</Text>
-            </View>
-          </TouchableOpacity>
+          {isCaterer ? (
+            /* ════════════════════════════════════════════════════════
+               SWIGGY-STYLE CATERING MENU & PRICES VIEW
+               ════════════════════════════════════════════════════════ */
+            <View>
+              {/* Swiggy-style Action Banner */}
+              <TouchableOpacity
+                style={[styles.swiggyMenuBanner, { backgroundColor: colors.surfaceCard }]}
+                activeOpacity={0.88}
+                onPress={() => {
+                  setEditingDish(null);
+                  setShowMenuDishModal(true);
+                }}
+              >
+                <View style={styles.swiggyBannerIconBox}>
+                  <UtensilsCrossed size={22} color="#ffffff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.swiggyBannerTitle, { color: colors.textPrimary }]}>
+                    Catering Menu & Dishes
+                  </Text>
+                  <Text style={[styles.swiggyBannerSub, { color: colors.textSecondary }]}>
+                    {profile.menuItems?.length || 0} items • Real-time Swiggy style menu
+                  </Text>
+                </View>
+                <View style={styles.swiggyAddPill}>
+                  <Text style={styles.swiggyAddPillText}>+ Add Dish</Text>
+                </View>
+              </TouchableOpacity>
 
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-            {userProducts.map((prod) => (
-              <ProductCard
-                key={prod.id}
-                product={prod}
-                onPress={() => {}}
-                onAddToCart={() => {}}
-              />
-            ))}
-          </View>
-          
-          {userProducts.length === 0 && (
-            <View style={{ padding: 40, alignItems: 'center' }}>
-              <Text style={{ color: colors.textSecondary }}>No products listed yet.</Text>
+              {/* Swiggy Filter & Veg Toggle Bar */}
+              <View style={styles.swiggyFilterBar}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginBottom: 12 }}>
+                  {['All', 'Starter', 'Main Course', 'Dessert', 'Beverage', 'Live Counter', 'Other'].map(cat => (
+                    <TouchableOpacity
+                      key={cat}
+                      onPress={() => setSelectedMenuCategory(cat)}
+                      style={[
+                        styles.swiggyCatChip,
+                        {
+                          backgroundColor: selectedMenuCategory === cat ? colors.accent : colors.surfaceCard,
+                          borderColor: selectedMenuCategory === cat ? colors.accent : colors.borderLight,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.swiggyCatChipText,
+                          { color: selectedMenuCategory === cat ? '#ffffff' : colors.textSecondary },
+                        ]}
+                      >
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+
+                  {/* Veg Only Toggle */}
+                  <TouchableOpacity
+                    onPress={() => setVegOnlyFilter(v => !v)}
+                    style={[
+                      styles.swiggyVegOnlyBtn,
+                      {
+                        backgroundColor: vegOnlyFilter ? 'rgba(22,163,74,0.15)' : colors.surfaceCard,
+                        borderColor: vegOnlyFilter ? '#16a34a' : colors.borderLight,
+                      },
+                    ]}
+                  >
+                    <View style={styles.vegSymbolBox}>
+                      <View style={styles.vegSymbolDot} />
+                    </View>
+                    <Text style={[styles.swiggyVegOnlyText, { color: vegOnlyFilter ? '#16a34a' : colors.textSecondary }]}>
+                      Veg Only
+                    </Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              </View>
+
+              {/* Items Summary Pill */}
+              <View style={styles.swiggySummaryRow}>
+                <Text style={[styles.swiggySummaryText, { color: colors.textSecondary }]}>
+                  {profile.menuItems?.filter(d => {
+                    if (selectedMenuCategory !== 'All' && d.category !== selectedMenuCategory) return false;
+                    if (vegOnlyFilter && !d.dietaryTags?.some(t => t === 'Veg' || t === 'Jain' || t === 'Vegan')) return false;
+                    return true;
+                  }).length || 0} Dishes listed
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#16a34a' }}>
+                    ● {profile.menuItems?.filter(d => d.dietaryTags?.some(t => t === 'Veg' || t === 'Jain' || t === 'Vegan')).length || 0} Veg
+                  </Text>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#dc2626' }}>
+                    ▲ {profile.menuItems?.filter(d => d.dietaryTags?.includes('Non-Veg')).length || 0} Non-Veg
+                  </Text>
+                </View>
+              </View>
+
+              {/* Swiggy Dishes List */}
+              {profile.menuItems && profile.menuItems.length > 0 ? (
+                profile.menuItems
+                  .filter(d => {
+                    if (selectedMenuCategory !== 'All' && d.category !== selectedMenuCategory) return false;
+                    if (vegOnlyFilter && !d.dietaryTags?.some(t => t === 'Veg' || t === 'Jain' || t === 'Vegan')) return false;
+                    return true;
+                  })
+                  .map(dish => {
+                    const isGreen = dish.dietaryTags?.some(t => t === 'Veg' || t === 'Jain' || t === 'Vegan');
+                    return (
+                      <View key={dish.id} style={[styles.swiggyDishCard, { backgroundColor: colors.surfaceCard }]}>
+                        <View style={{ flex: 1 }}>
+                          {/* Veg/Non-Veg icon + name */}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                            <View style={[styles.vegSymbolBox, { borderColor: isGreen ? '#16a34a' : '#dc2626' }]}>
+                              <View style={[styles.vegSymbolDot, { backgroundColor: isGreen ? '#16a34a' : '#dc2626' }]} />
+                            </View>
+                            <Text style={[styles.swiggyDishName, { color: colors.textPrimary }]} numberOfLines={1}>
+                              {dish.name}
+                            </Text>
+                          </View>
+
+                          <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginVertical: 3 }}>
+                            <View style={[styles.swiggyCategoryBadge, { backgroundColor: colors.surfaceElevated }]}>
+                              <Text style={[styles.swiggyCategoryBadgeText, { color: colors.textSecondary }]}>
+                                {dish.category}
+                              </Text>
+                            </View>
+                            {dish.dietaryTags?.map(t => (
+                              <View
+                                key={t}
+                                style={[
+                                  styles.swiggyCategoryBadge,
+                                  {
+                                    backgroundColor: (t === 'Veg' || t === 'Jain' || t === 'Vegan')
+                                      ? 'rgba(34,197,94,0.1)'
+                                      : 'rgba(239,68,68,0.1)',
+                                  },
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.swiggyCategoryBadgeText,
+                                    { color: (t === 'Veg' || t === 'Jain' || t === 'Vegan') ? '#16a34a' : '#dc2626' },
+                                  ]}
+                                >
+                                  {t}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+
+                          {dish.description ? (
+                            <Text style={[styles.swiggyDishDesc, { color: colors.textSecondary }]} numberOfLines={2}>
+                              {dish.description}
+                            </Text>
+                          ) : null}
+
+                          <View style={{ marginTop: 8 }}>
+                            <Text style={[styles.swiggyDishPrice, { color: colors.textPrimary }]}>
+                              ₹{dish.pricePerPlate.toLocaleString('en-IN')}
+                              <Text style={{ fontSize: 12, fontWeight: '500', color: colors.textSecondary }}> / plate</Text>
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Right Column: In Stock Toggle + Edit / Delete */}
+                        <View style={styles.swiggyRightCol}>
+                          <TouchableOpacity
+                            onPress={() => handleToggleDishAvailability(dish.id)}
+                            style={[
+                              styles.swiggyStockToggle,
+                              {
+                                backgroundColor: dish.isAvailable ? 'rgba(34,197,94,0.12)' : colors.surfaceElevated,
+                                borderColor: dish.isAvailable ? '#16a34a' : colors.borderLight,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.swiggyStockText,
+                                { color: dish.isAvailable ? '#16a34a' : colors.textSecondary },
+                              ]}
+                            >
+                              {dish.isAvailable ? '● IN STOCK' : '○ SOLD OUT'}
+                            </Text>
+                          </TouchableOpacity>
+
+                          <View style={{ flexDirection: 'row', gap: 6, marginTop: 10 }}>
+                            <TouchableOpacity
+                              onPress={() => {
+                                setEditingDish(dish);
+                                setShowMenuDishModal(true);
+                              }}
+                              style={[styles.swiggyMiniBtn, { backgroundColor: colors.surfaceElevated }]}
+                            >
+                              <Edit3 size={13} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => handleDeleteMenuDish(dish.id)}
+                              style={[styles.swiggyMiniBtn, { backgroundColor: 'rgba(239,68,68,0.1)' }]}
+                            >
+                              <Trash2 size={13} color="#ef4444" />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  })
+              ) : (
+                <View style={[styles.swiggyEmptyCard, { backgroundColor: colors.surfaceCard }]}>
+                  <UtensilsCrossed size={40} color={colors.textFaint} />
+                  <Text style={[styles.swiggyEmptyTitle, { color: colors.textPrimary }]}>
+                    No dishes added yet
+                  </Text>
+                  <Text style={[styles.swiggyEmptySub, { color: colors.textSecondary }]}>
+                    Add your starters, main courses, and desserts so customers can calculate quotations without contacting you.
+                  </Text>
+                  <Button
+                    title="+ Add First Dish"
+                    variant="primary"
+                    size="md"
+                    onPress={() => {
+                      setEditingDish(null);
+                      setShowMenuDishModal(true);
+                    }}
+                    style={{ marginTop: 16, backgroundColor: '#3fb668' }}
+                  />
+                </View>
+              )}
+
+              {/* Manage Catering Studio Options */}
+              <Card style={styles.quickCard}>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 16 }]}>
+                  Catering Profile Setup
+                </Text>
+
+                <TouchableOpacity style={styles.manageRow} onPress={() => navigation.navigate('ProfessionalEdit')}>
+                  <View style={styles.manageIcon}><UtensilsCrossed size={20} color={colors.accent} /></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 15 }}>Cuisines & Equipment</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>Mughlai, Italian, Buffet Warmers, Live Counters</Text>
+                  </View>
+                  <Edit3 size={16} color={colors.textFaint} />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.manageRow} onPress={() => navigation.navigate('ProfessionalEdit')}>
+                  <View style={styles.manageIcon}><Star size={20} color={colors.accent} /></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 15 }}>FSSAI & Food Licenses</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>ISO 22000, Food Safety Compliance</Text>
+                  </View>
+                  <Edit3 size={16} color={colors.textFaint} />
+                </TouchableOpacity>
+
+                <Button
+                  title="View Public Profile"
+                  variant="outline"
+                  size="md"
+                  onPress={() => navigation.navigate('PublicProfile', { professionalId: user?.id })}
+                  style={{ marginTop: 10 }}
+                />
+              </Card>
             </View>
+          ) : (
+            /* Standard Equipment Listing for Media Crew */
+            <>
+              <TouchableOpacity
+                style={styles.listGearBanner}
+                activeOpacity={0.88}
+                onPress={() => setShowListGearModal(true)}
+              >
+                <View style={styles.listGearIconBox}>
+                  <PlusCircle size={24} color="#ffffff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.listGearTitle}>Sell or Rent Your Gear</Text>
+                  <Text style={styles.listGearSub}>Post equipment to the Camqrew Store</Text>
+                </View>
+                <View style={styles.listGearPill}>
+                  <Text style={styles.listGearPillText}>List Now +</Text>
+                </View>
+              </TouchableOpacity>
+
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                {userProducts.map((prod) => (
+                  <ProductCard
+                    key={prod.id}
+                    product={prod}
+                    onPress={() => {}}
+                    onAddToCart={() => {}}
+                  />
+                ))}
+              </View>
+
+              {userProducts.length === 0 && (
+                <View style={{ padding: 40, alignItems: 'center' }}>
+                  <Text style={{ color: colors.textSecondary }}>No products listed yet.</Text>
+                </View>
+              )}
+
+              <Card style={styles.quickCard}>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 16 }]}>Manage Studio</Text>
+                
+                <TouchableOpacity style={styles.manageRow} onPress={() => navigation.navigate('ProfessionalEdit')}>
+                  <View style={styles.manageIcon}><FolderGit2 size={20} color={colors.accent} /></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 15 }}>Update Portfolio</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>Add new photos/videos to your public profile</Text>
+                  </View>
+                  <Edit3 size={16} color={colors.textFaint} />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.manageRow} onPress={() => navigation.navigate('ProfessionalEdit')}>
+                  <View style={styles.manageIcon}><Film size={20} color={colors.accent} /></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 15 }}>Video Reels & Showreels</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>Upload video reels & showreels directly</Text>
+                  </View>
+                  <Edit3 size={16} color={colors.textFaint} />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.manageRow} onPress={() => navigation.navigate('ProfessionalEdit')}>
+                  <View style={styles.manageIcon}><Star size={20} color={colors.accent} /></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 15 }}>Edit Services & Pricing</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>Update your day rates and specialties</Text>
+                  </View>
+                  <Edit3 size={16} color={colors.textFaint} />
+                </TouchableOpacity>
+
+                <Button
+                  title="View Public Profile"
+                  variant="outline"
+                  size="md"
+                  onPress={() => navigation.navigate('PublicProfile', { professionalId: user?.id })}
+                  style={{ marginTop: 10 }}
+                />
+              </Card>
+            </>
           )}
-
-          <Card style={styles.quickCard}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 16 }]}>Manage Studio</Text>
-            
-            <TouchableOpacity style={styles.manageRow} onPress={() => navigation.navigate('ProfessionalEdit')}>
-              <View style={styles.manageIcon}><FolderGit2 size={20} color={colors.accent} /></View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 15 }}>Update Portfolio</Text>
-                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>Add new photos/videos to your public profile</Text>
-              </View>
-              <Edit3 size={16} color={colors.textFaint} />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.manageRow} onPress={() => navigation.navigate('ProfessionalEdit')}>
-              <View style={styles.manageIcon}><Film size={20} color={colors.accent} /></View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 15 }}>Video Reels & Showreels</Text>
-                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>Upload video reels & showreels directly</Text>
-              </View>
-              <Edit3 size={16} color={colors.textFaint} />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.manageRow} onPress={() => navigation.navigate('ProfessionalEdit')}>
-              <View style={styles.manageIcon}><Star size={20} color={colors.accent} /></View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 15 }}>Edit Services & Pricing</Text>
-                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>Update your day rates and specialties</Text>
-              </View>
-              <Edit3 size={16} color={colors.textFaint} />
-            </TouchableOpacity>
-
-            <Button
-              title="View Public Profile"
-              variant="outline"
-              size="md"
-              onPress={() => navigation.navigate('PublicProfile', { professionalId: user?.id })}
-              style={{ marginTop: 10 }}
-            />
-          </Card>
         </>
       )}
 
-      {/* Modal */}
-      <ListProductModal
-        visible={showListGearModal}
-        onClose={() => setShowListGearModal(false)}
-        onSuccess={(msg) => {
-          setToastMsg(msg);
-          productApi.getUserProducts().then(res => {
-            setUserProducts(Array.isArray(res) ? res : []);
-          });
-        }}
-      />
+      {/* Modals */}
+      {isCaterer ? (
+        <ListMenuDishModal
+          visible={showMenuDishModal}
+          dishToEdit={editingDish}
+          onClose={() => {
+            setShowMenuDishModal(false);
+            setEditingDish(null);
+          }}
+          onSuccess={(msg) => setToastMsg(msg)}
+          onSave={handleSaveMenuDish}
+        />
+      ) : (
+        <ListProductModal
+          visible={showListGearModal}
+          onClose={() => setShowListGearModal(false)}
+          onSuccess={(msg) => {
+            setToastMsg(msg);
+            productApi.getUserProducts().then(res => {
+              setUserProducts(Array.isArray(res) ? res : []);
+            });
+          }}
+        />
+      )}
     </ScrollView>
   );
 };
@@ -510,5 +861,177 @@ const styles = StyleSheet.create({
   manageIcon: {
     width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(63, 182, 104, 0.1)',
     alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+
+  // ── Swiggy Menu Styles ──
+  swiggyMenuBanner: {
+    borderRadius: 20,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  swiggyBannerIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#3fb668',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  swiggyBannerTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  swiggyBannerSub: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  swiggyAddPill: {
+    backgroundColor: '#3fb668',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+    marginLeft: 8,
+  },
+  swiggyAddPillText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  swiggyFilterBar: {
+    marginBottom: 6,
+  },
+  swiggyCatChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 8,
+  },
+  swiggyCatChipText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  swiggyVegOnlyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    marginRight: 8,
+    gap: 6,
+  },
+  swiggyVegOnlyText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  swiggySummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  swiggySummaryText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  swiggyDishCard: {
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  swiggyDishName: {
+    fontSize: 15,
+    fontWeight: '800',
+    flex: 1,
+  },
+  swiggyCategoryBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  swiggyCategoryBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  swiggyDishDesc: {
+    fontSize: 12,
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  swiggyDishPrice: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  swiggyRightCol: {
+    alignItems: 'flex-end',
+    marginLeft: 12,
+  },
+  swiggyStockToggle: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  swiggyStockText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  swiggyMiniBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  swiggyEmptyCard: {
+    borderRadius: 20,
+    padding: 36,
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  swiggyEmptyTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 12,
+  },
+  swiggyEmptySub: {
+    fontSize: 12.5,
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 18,
+    maxWidth: 280,
+  },
+  vegSymbolBox: {
+    width: 14,
+    height: 14,
+    borderRadius: 2,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: '#16a34a',
+  },
+  vegSymbolDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#16a34a',
   },
 });
