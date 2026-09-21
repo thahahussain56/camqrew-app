@@ -232,90 +232,107 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* ── Top Floating Navigation Controls (Safe Notch Aware) ── */}
+      <SafeAreaView edges={['top']} style={styles.topControlSafeArea}>
+        <View style={styles.topControlRow}>
+          <TouchableOpacity 
+            style={[styles.roundControlBtn, { backgroundColor: 'rgba(0,0,0,0.45)' }]} 
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.8}
+          >
+            <ArrowLeft size={20} color="#ffffff" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.roundControlBtn, { backgroundColor: 'rgba(0,0,0,0.45)' }]} 
+            onPress={handleShareProfile} 
+            activeOpacity={0.8}
+          >
+            <Share2 size={18} color="#ffffff" />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        
         {/* ── Cinematic Hero Banner ── */}
         <View style={styles.headerBanner}>
           <Image source={{ uri: profile.bannerImage }} style={styles.banner} />
           <View style={styles.bannerOverlay} />
-
-          {/* Top Floating Header Controls */}
-          <View style={styles.topControlRow}>
-            <TouchableOpacity style={styles.roundBackBtn} onPress={() => navigation.goBack()}>
-              <ArrowLeft size={20} color="#ffffff" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.roundBackBtn} onPress={handleShareProfile} activeOpacity={0.8}>
-              <Share2 size={18} color="#ffffff" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.avatarWrapper}>
-            <Avatar source={profile.avatar} size={100} verified={profile.verified} />
-          </View>
         </View>
 
-        {/* ── Profile Overview Card ── */}
-        <View style={styles.profileMeta}>
-          <View style={styles.titleRow}>
-            <Text style={[styles.name, { color: colors.textPrimary }]}>{profile.name}</Text>
-            {profile.verified && (
-              <View style={styles.verifiedTagRow}>
-                <ShieldCheck size={16} color={colors.accent} />
+        {/* ── Profile Identity & Overview Sheet ── */}
+        <View style={[styles.profileSheet, { backgroundColor: colors.background }]}>
+          {/* Avatar and Quick Stats Row */}
+          <View style={styles.avatarHeaderRow}>
+            <View style={styles.avatarWrap}>
+              <Avatar source={profile.avatar} size={84} verified={profile.verified} />
+            </View>
+            <View style={styles.quickMetricsRow}>
+              <View style={[styles.metricPill, { backgroundColor: colors.surfaceCard }]}>
+                <Star size={13} color="#FFB800" fill="#FFB800" />
+                <Text style={[styles.metricVal, { color: colors.textPrimary }]}>{(profile.rating ?? 4.9).toFixed(1)}</Text>
+                <Text style={[styles.metricSub, { color: colors.textSecondary }]}>({profile.reviewCount ?? 18})</Text>
               </View>
-            )}
-          </View>
-          <Text style={[styles.title, { color: colors.accent }]}>{isStudio ? 'Creative Studio Bay' : profile.title}</Text>
-
-          <View style={styles.locationRow}>
-            <MapPin size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-            <Text style={[styles.locationText, { color: colors.textSecondary }]}>
-              {profile.city}, {profile.state}
-            </Text>
-            <View style={[styles.dotSeparator, { backgroundColor: colors.borderLight }]} />
-            <Briefcase size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-            <Text style={[styles.locationText, { color: colors.textSecondary }]}>
-              {profile.experienceYears || 2}+ Years Exp
-            </Text>
+              <View style={[styles.metricPill, { backgroundColor: colors.surfaceCard }]}>
+                <Briefcase size={13} color={colors.accent} />
+                <Text style={[styles.metricVal, { color: colors.textPrimary }]}>{profile.experienceYears || 2}+</Text>
+                <Text style={[styles.metricSub, { color: colors.textSecondary }]}>yrs</Text>
+              </View>
+            </View>
           </View>
 
-          <View style={styles.ratingRow}>
-            <View style={[styles.ratingPill, { backgroundColor: colors.surfaceCard }]}>
-              <Star size={14} color={colors.warning} fill={colors.warning} style={{ marginRight: 4 }} />
-              <Text style={[styles.ratingVal, { color: colors.textPrimary }]}>{(profile.rating ?? 4.9).toFixed(1)}</Text>
-              <Text style={[styles.reviewCount, { color: colors.textSecondary }]}>({profile.reviewCount ?? 18} reviews)</Text>
+          {/* Name & Title */}
+          <View style={styles.identityMeta}>
+            <View style={styles.nameRow}>
+              <Text style={[styles.name, { color: colors.textPrimary }]}>{profile.name}</Text>
+              {profile.verified && (
+                <View style={[styles.verifiedBadge, { backgroundColor: colors.accentGlow }]}>
+                  <ShieldCheck size={14} color={colors.accent} />
+                  <Text style={[styles.verifiedBadgeText, { color: colors.accent }]}>Verified</Text>
+                </View>
+              )}
+            </View>
+
+            <Text style={[styles.title, { color: colors.accent }]}>
+              {isStudio ? 'Creative Studio Bay' : profile.title}
+            </Text>
+
+            {/* Location & Categories tags */}
+            <View style={styles.tagsRow}>
+              <View style={[styles.tagPill, { backgroundColor: colors.surfaceElevated }]}>
+                <MapPin size={12} color={colors.textSecondary} style={{ marginRight: 4 }} />
+                <Text style={[styles.tagText, { color: colors.textSecondary }]}>
+                  {profile.city}, {profile.state}
+                </Text>
+              </View>
+              {profile.categories && profile.categories.length > 0 && (
+                <View style={[styles.tagPill, { backgroundColor: colors.surfaceElevated }]}>
+                  <Text style={[styles.tagText, { color: colors.textSecondary }]}>
+                    {profile.categories[0]}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
 
-        {/* ── Floating Action Bar ── */}
-        <View style={[styles.actionCard, { backgroundColor: colors.surfaceCard }]}>
-          <TouchableOpacity 
-            style={[styles.messageBtn, { backgroundColor: colors.surfaceElevated }]}
-            onPress={() => navigation.navigate('Chat', { otherUserId: profile.id, otherUserName: profile.name, otherUserAvatar: profile.avatar })}
-            activeOpacity={0.8}
-          >
-            <MessageSquare size={18} color={colors.textPrimary} style={{ marginRight: 8 }} />
-            <Text style={[styles.messageBtnText, { color: colors.textPrimary }]}>Message</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.bookBtn, { backgroundColor: colors.accent }]}
-            onPress={() => navigation.navigate('Booking', { proId: profile.id, type: bookingType })}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.bookBtnText}>{proArchetype.bookingCtaPrefix} • Starting from ₹{(profile.ratePerDay || 15000).toLocaleString('en-IN')}/{proArchetype.rateUnitDefault.toLowerCase()}</Text>
-          </TouchableOpacity>
+        {/* ── About Section ── */}
+        <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+            About {isStudio ? 'the Studio' : `the ${proArchetype.roleNoun}`}
+          </Text>
+          <Text style={[styles.bioText, { color: colors.textSecondary }]}>
+            {profile.bio}
+          </Text>
         </View>
 
-        {/* ── About Section ── */}
-        <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>About {isStudio ? 'the Studio' : `the ${proArchetype.roleNoun}`}</Text>
-          <Text style={[styles.bioText, { color: colors.textSecondary }]}>{profile.bio}</Text>
-        </Card>
-
-        {/* ── Services & Packages ── */}
-        <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Packages & Rates</Text>
+        {/* ── Packages & Rates ── */}
+        <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Packages & Rates</Text>
+            <Text style={[styles.sectionCountText, { color: colors.textFaint }]}>
+              {safeServices.length} {safeServices.length === 1 ? 'option' : 'options'}
+            </Text>
+          </View>
           {safeServices.map(srv => (
             <View key={srv.id} style={[styles.serviceBox, { backgroundColor: colors.surfaceElevated }]}>
               <View style={styles.serviceHeader}>
@@ -329,27 +346,29 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
               ) : null}
               {srv.deliverables ? (
                 <View style={[styles.deliverablesBox, { backgroundColor: colors.background }]}>
-                  <Text style={[styles.deliverablesLabel, { color: colors.textPrimary }]}>Deliverables:</Text>
+                  <Text style={[styles.deliverablesLabel, { color: colors.textPrimary }]}>Deliverables</Text>
                   <Text style={[styles.deliverablesText, { color: colors.textSecondary }]}>{srv.deliverables}</Text>
                 </View>
               ) : null}
             </View>
           ))}
-        </Card>
+        </View>
 
         {/* ── Showreels & Video Reels ── */}
         {profile.videoReels && profile.videoReels.length > 0 && (
-          <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-            <View style={styles.reelsHeaderRow}>
+          <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+            <View style={styles.sectionHeaderRow}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Film size={18} color={colors.accent} style={{ marginRight: 8 }} />
                 <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>Showreels & Video Reels</Text>
               </View>
-              <Badge label={`${profile.videoReels.length} ${profile.videoReels.length === 1 ? 'Reel' : 'Reels'}`} variant="info" />
+              <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated }]}>
+                <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>{profile.videoReels.length}</Text>
+              </View>
             </View>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18, marginTop: 12 }}>
-              <View style={{ width: 18 }} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20, marginTop: 14 }}>
+              <View style={{ width: 20 }} />
               {profile.videoReels.map((reel) => {
                 const isShort = reel.isShort;
                 return (
@@ -364,7 +383,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                     style={[
                       styles.reelCard,
                       isShort ? styles.reelCardVertical : styles.reelCardCinema,
-                      { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }
+                      { backgroundColor: colors.surfaceElevated }
                     ]}
                   >
                     {reel.thumbnailUrl ? (
@@ -377,7 +396,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                     <View style={styles.reelVignette} />
 
                     {/* Play Button Badge */}
-                    <View style={styles.reelPlayBtn}>
+                    <View style={[styles.reelPlayBtn, { backgroundColor: colors.accent }]}>
                       <Play size={16} color="#ffffff" fill="#ffffff" style={{ marginLeft: 2 }} />
                     </View>
 
@@ -404,16 +423,21 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                   </TouchableOpacity>
                 );
               })}
-              <View style={{ width: 18 }} />
+              <View style={{ width: 20 }} />
             </ScrollView>
-          </Card>
+          </View>
         )}
 
         {/* ── Cinematic Portfolio Gallery ── */}
-        <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Portfolio Highlights</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18 }}>
-            <View style={{ width: 18 }} />
+        <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Portfolio Highlights</Text>
+            <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated }]}>
+              <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>{safePortfolio.length}</Text>
+            </View>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20, marginTop: 4 }}>
+            <View style={{ width: 20 }} />
             {safePortfolio.map((img, idx) => (
               <TouchableOpacity 
                 key={idx} 
@@ -424,32 +448,41 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                 <Image source={{ uri: img }} style={styles.portfolioImage} />
               </TouchableOpacity>
             ))}
-            <View style={{ width: 18 }} />
+            <View style={{ width: 20 }} />
           </ScrollView>
-        </Card>
+        </View>
 
         {/* ── Capabilities / Specialties ── */}
         {profile.equipment && profile.equipment.length > 0 && (
-          <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{isStudio ? 'Studio Amenities' : proArchetype.equipmentSectionTitle}</Text>
+          <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+              {isStudio ? 'Studio Amenities' : proArchetype.equipmentSectionTitle}
+            </Text>
             <View style={styles.chipsWrap}>
               {profile.equipment.map((eq, i) => (
-                <Badge key={i} label={eq} variant="info" />
+                <View key={i} style={[styles.specChip, { backgroundColor: colors.surfaceElevated }]}>
+                  <Text style={[styles.specChipText, { color: colors.textPrimary }]}>{eq}</Text>
+                </View>
               ))}
             </View>
-          </Card>
+          </View>
         )}
 
         {/* ── Certifications & Industry Badges ── */}
         {profile.certifications && profile.certifications.length > 0 && (
-          <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{proArchetype.skillsSectionTitle}</Text>
+          <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+              {proArchetype.skillsSectionTitle}
+            </Text>
             <View style={styles.chipsWrap}>
               {profile.certifications.map((cert, i) => (
-                <Badge key={i} label={cert} variant="success" />
+                <View key={i} style={[styles.specChip, { backgroundColor: colors.accentGlow }]}>
+                  <CheckCircle size={12} color={colors.accent} style={{ marginRight: 6 }} />
+                  <Text style={[styles.specChipText, { color: colors.accent, fontWeight: '700' }]}>{cert}</Text>
+                </View>
               ))}
             </View>
-          </Card>
+          </View>
         )}
 
         {/* ── Redesigned Client Reviews & Star Ratings Section ── */}
@@ -698,9 +731,14 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
 
         {/* ── Gear for Sale & Rent ── */}
         {products && products.length > 0 && (
-          <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 16 }]}>Gear for Sale & Rent</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+          <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Gear for Sale & Rent</Text>
+              <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated }]}>
+                <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>{products.length}</Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 8 }}>
               {products.map(prod => (
                 <ProductCard
                   key={prod.id}
@@ -710,9 +748,46 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                 />
               ))}
             </View>
-          </Card>
+          </View>
         )}
       </ScrollView>
+
+      {/* ── Persistent Bottom Action Dock ── */}
+      <View style={[styles.bottomDock, { backgroundColor: colors.surfaceCard }]}>
+        <SafeAreaView edges={['bottom']} style={styles.bottomDockSafe}>
+          <View style={styles.bottomDockContent}>
+            <View style={styles.bottomPriceCol}>
+              <Text style={[styles.bottomPriceLabel, { color: colors.textSecondary }]}>Starting from</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                <Text style={[styles.bottomPriceVal, { color: colors.accent }]}>
+                  ₹{(profile.ratePerDay || 15000).toLocaleString('en-IN')}
+                </Text>
+                <Text style={[styles.bottomPriceUnit, { color: colors.textFaint }]}>
+                  /{proArchetype.rateUnitDefault.toLowerCase()}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.bottomActionsRow}>
+              <TouchableOpacity
+                style={[styles.bottomMessageBtn, { backgroundColor: colors.surfaceElevated }]}
+                onPress={() => navigation.navigate('Chat', { otherUserId: profile.id, otherUserName: profile.name, otherUserAvatar: profile.avatar })}
+                activeOpacity={0.8}
+              >
+                <MessageSquare size={18} color={colors.textPrimary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.bottomBookBtn, { backgroundColor: colors.accent }]}
+                onPress={() => navigation.navigate('Booking', { proId: profile.id, type: bookingType })}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.bottomBookBtnText}>{proArchetype.bookingCtaPrefix}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeAreaView>
+      </View>
 
       {/* Lightbox Modal */}
       <Modal visible={selectedImgIndex !== null} transparent animationType="fade" onRequestClose={() => setSelectedImgIndex(null)}>
@@ -1012,132 +1087,178 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: {
-    paddingBottom: 50,
+    paddingBottom: 110,
   },
-  
+
+  // Top Floating Header Controls
+  topControlSafeArea: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+  },
+  topControlRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? 12 : 4,
+  },
+  roundControlBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   // Cinematic Banner
   headerBanner: {
-    height: 280,
+    height: 230,
     position: 'relative',
     backgroundColor: '#000000',
   },
-  banner: { width: '100%', height: '100%' },
+  banner: { width: '100%', height: '100%', resizeMode: 'cover' },
   bannerOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
-  topControlRow: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    right: 20,
+
+  // Profile Identity & Overview Sheet
+  profileSheet: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: -28,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+  },
+  avatarHeaderRow: {
     flexDirection: 'row',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    zIndex: 10,
-  },
-  roundBackBtn: {
-    width: 44, height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarWrapper: {
-    position: 'absolute',
-    bottom: -50,
-    left: '50%',
-    marginLeft: -50,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10,
-  },
-
-  // Overview Meta
-  profileMeta: {
-    padding: 20,
-    paddingTop: 64,
-    alignItems: 'center',
-  },
-  titleRow: { flexDirection: 'row', alignItems: 'center' },
-  name: { fontSize: 28, fontWeight: '900' },
-  verifiedTagRow: { marginLeft: 6 },
-  title: { fontSize: 16, fontWeight: '700', marginTop: 4 },
-  
-  locationRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
-  locationText: { fontSize: 14, fontWeight: '600' },
-  dotSeparator: { width: 4, height: 4, borderRadius: 2, marginHorizontal: 10 },
-  
-  ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 16 },
-  ratingPill: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 12,
-  },
-  ratingVal: { fontSize: 14, fontWeight: '900' },
-  reviewCount: { fontSize: 12, marginLeft: 6, fontWeight: '600' },
-
-  // Floating Action Card
-  actionCard: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginBottom: 24,
-    padding: 8,
-    borderRadius: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 4,
-  },
-  messageBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center', justifyContent: 'center',
-    borderRadius: 12,
-    paddingVertical: 14,
-    marginRight: 8,
-  },
-  messageBtnText: { fontSize: 15, fontWeight: '800' },
-  bookBtn: {
-    flex: 1.5,
-    flexDirection: 'row',
-    alignItems: 'center', justifyContent: 'center',
-    borderRadius: 12,
-    paddingVertical: 14,
-  },
-  bookBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '900' },
-
-  // Section Cards
-  sectionCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderWidth: 0,
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 2,
-  },
-  sectionTitle: { fontSize: 20, fontWeight: '900', marginBottom: 16 },
-  bioText: { fontSize: 15, lineHeight: 24, fontWeight: '500' },
-  
-  // Services
-  serviceBox: {
-    padding: 18,
-    borderRadius: 16,
     marginBottom: 12,
   },
+  avatarWrap: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  quickMetricsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  metricPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    gap: 5,
+  },
+  metricVal: { fontSize: 13, fontWeight: '800' },
+  metricSub: { fontSize: 11, fontWeight: '600' },
+
+  identityMeta: { marginTop: 2 },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  name: { fontSize: 24, fontWeight: '900', letterSpacing: -0.3 },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    gap: 4,
+  },
+  verifiedBadgeText: { fontSize: 11, fontWeight: '800' },
+  title: { fontSize: 15, fontWeight: '700', marginTop: 4 },
+  tagsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  tagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  tagText: { fontSize: 12, fontWeight: '600' },
+
+  // Section Cards (Home Screen Design System: borderless, soft elevation)
+  sectionCard: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  sectionTitle: { fontSize: 18, fontWeight: '900', letterSpacing: -0.2 },
+  sectionCountText: { fontSize: 12, fontWeight: '600' },
+  countBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  countBadgeText: { fontSize: 11, fontWeight: '700' },
+  bioText: { fontSize: 14.5, lineHeight: 22, fontWeight: '500' },
+
+  // Packages & Rates
+  serviceBox: {
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 10,
+  },
   serviceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  serviceTitle: { fontSize: 16, fontWeight: '800', flex: 1 },
-  serviceRate: { fontSize: 18, fontWeight: '900' },
-  serviceUnit: { fontSize: 13 },
-  serviceDesc: { fontSize: 14, lineHeight: 20, marginTop: 12 },
-  deliverablesBox: { marginTop: 12, padding: 10, borderRadius: 8 },
-  deliverablesLabel: { fontSize: 12, fontWeight: '700', marginBottom: 4 },
-  deliverablesText: { fontSize: 13, lineHeight: 18 },
+  serviceTitle: { fontSize: 15, fontWeight: '800', flex: 1, marginRight: 8 },
+  serviceRate: { fontSize: 16, fontWeight: '900' },
+  serviceUnit: { fontSize: 12 },
+  serviceDesc: { fontSize: 13.5, lineHeight: 19, marginTop: 8 },
+  deliverablesBox: { marginTop: 10, padding: 10, borderRadius: 10 },
+  deliverablesLabel: { fontSize: 11.5, fontWeight: '700', marginBottom: 3 },
+  deliverablesText: { fontSize: 12.5, lineHeight: 18 },
 
   // Portfolio
   portfolioItemCinematic: {
-    width: 260,
-    height: 180,
-    borderRadius: 16,
+    width: 250,
+    height: 170,
+    borderRadius: 18,
     overflow: 'hidden',
     marginRight: 12,
   },
   portfolioImage: { width: '100%', height: '100%' },
 
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  // Capabilities & Badges
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  specChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 12,
+  },
+  specChipText: { fontSize: 12.5, fontWeight: '600' },
 
   // Lightbox
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.98)', justifyContent: 'center', alignItems: 'center' },
@@ -1585,19 +1706,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   reelCard: {
-    borderRadius: 16,
+    borderRadius: 18,
     overflow: 'hidden',
     marginRight: 14,
     position: 'relative',
-    borderWidth: 1,
   },
   reelCardVertical: {
-    width: 170,
-    height: 270,
+    width: 160,
+    height: 250,
   },
   reelCardCinema: {
-    width: 270,
-    height: 180,
+    width: 250,
+    height: 165,
   },
   reelThumbnail: {
     width: '100%',
@@ -1611,23 +1731,22 @@ const styles = StyleSheet.create({
   },
   reelVignette: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
   reelPlayBtn: {
     position: 'absolute',
     top: '42%',
     left: '50%',
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    marginLeft: -21,
-    marginTop: -21,
-    backgroundColor: '#3fb668',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginLeft: -20,
+    marginTop: -20,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 6,
   },
@@ -1640,11 +1759,11 @@ const styles = StyleSheet.create({
   reelBadgePill: {
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: 8,
   },
   reelBadgeText: {
     color: '#ffffff',
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '700',
   },
   reelInfo: {
@@ -1653,7 +1772,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 10,
-    backgroundColor: 'rgba(0,0,0,0.72)',
+    backgroundColor: 'rgba(0,0,0,0.65)',
   },
   reelCategory: {
     fontSize: 9,
@@ -1663,9 +1782,73 @@ const styles = StyleSheet.create({
   },
   reelTitle: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '700',
-    lineHeight: 16,
+    lineHeight: 15,
+  },
+
+  // Persistent Bottom Action Dock
+  bottomDock: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  bottomDockSafe: {
+    width: '100%',
+  },
+  bottomDockContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  bottomPriceCol: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  bottomPriceLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  bottomPriceVal: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  bottomPriceUnit: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 2,
+  },
+  bottomActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  bottomMessageBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bottomBookBtn: {
+    paddingHorizontal: 20,
+    height: 46,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bottomBookBtnText: {
+    color: '#ffffff',
+    fontSize: 14.5,
+    fontWeight: '800',
   },
   videoModalBg: {
     flex: 1,
