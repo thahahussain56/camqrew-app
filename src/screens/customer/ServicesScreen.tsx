@@ -5,12 +5,10 @@ import { useTheme } from '../../hooks/useTheme';
 import { professionalApi } from '../../api/professionalApi';
 import { studioApi } from '../../api/studioApi';
 import { ProfessionalProfile } from '../../types/professional';
-import { Input } from '../../components/ui/Input';
-import { Chip } from '../../components/ui/Chip';
 import { ProCard } from '../../components/cards/ProCard';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { LocationCascader } from '../../components/forms/LocationCascader';
-import { Search, SlidersHorizontal, MapPin, X, Users, Building2, Filter } from 'lucide-react-native';
+import { Search, SlidersHorizontal, MapPin, X, Users, Building2 } from 'lucide-react-native';
 import { TextInput as RNTextInput } from 'react-native';
 
 type ServiceType = 'professionals' | 'studios';
@@ -32,19 +30,21 @@ export const ServicesScreen: React.FC<{ navigation: any; route: any }> = ({ navi
   const [city, setCity] = useState('');
 
   const proCategories = ['All', 'Photographers', 'Videographers', 'Caterers', 'Organisers', 'Makeup Artists', 'Mehendi Artists', 'Developers', 'Designers'];
+  const studioCategories = ['All', 'Green Screen', 'Sound Stage', 'Photo Bay', 'VFX Bay', 'Podcast'];
+  const currentCategories = serviceType === 'professionals' ? proCategories : studioCategories;
 
   const fetchData = async () => {
     setLoading(true);
     try {
       if (serviceType === 'professionals') {
         const data = await professionalApi.getProfessionals({
-          category: selectedCategory,
+          category: selectedCategory === 'All' ? undefined : selectedCategory,
           searchQuery,
         });
         setResults(Array.isArray(data) ? data : []);
       } else {
         const data = await studioApi.getStudios({
-          searchQuery,
+          searchQuery: selectedCategory === 'All' ? searchQuery : `${searchQuery} ${selectedCategory}`.trim(),
         });
         setResults(Array.isArray(data) ? data : []);
       }
@@ -72,42 +72,55 @@ export const ServicesScreen: React.FC<{ navigation: any; route: any }> = ({ navi
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       
-      {/* ── Premium Header ── */}
-      <View style={[styles.header, { backgroundColor: colors.surfaceCard, borderBottomColor: colors.border }]}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Categories</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Discover top creatives and premium studios</Text>
+      {/* ── Minimal Header (Home-Page Design System) ── */}
+      <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.borderLight }]}>
+        <View style={styles.titleRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>Categories</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Discover top creatives and premium studios</Text>
+          </View>
+        </View>
 
         {/* ── Segmented Toggle (Professionals vs Studios) ── */}
-        <View style={[styles.toggleContainer, { backgroundColor: colors.background }]}>
+        <View style={[styles.segmentContainer, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
           <TouchableOpacity 
             activeOpacity={0.8} 
-            style={[styles.toggleBtn, serviceType === 'professionals' && { backgroundColor: colors.surfaceElevated }]}
-            onPress={() => setServiceType('professionals')}
+            style={[
+              styles.segmentBtn,
+              serviceType === 'professionals' && [styles.segmentBtnActive, { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }]
+            ]}
+            onPress={() => {
+              setServiceType('professionals');
+              setSelectedCategory('All');
+            }}
           >
-            <Users size={16} color={serviceType === 'professionals' ? colors.accent : colors.textSecondary} style={{ marginRight: 6 }} />
-            <Text style={[styles.toggleText, { color: colors.textSecondary }, serviceType === 'professionals' && { color: colors.textPrimary, fontWeight: '900' }]}>
+            <Users size={15} color={serviceType === 'professionals' ? colors.accent : colors.textSecondary} style={{ marginRight: 6 }} />
+            <Text style={[styles.segmentText, { color: serviceType === 'professionals' ? colors.textPrimary : colors.textSecondary, fontWeight: serviceType === 'professionals' ? '800' : '600' }]}>
               Professionals
             </Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
             activeOpacity={0.8} 
-            style={[styles.toggleBtn, serviceType === 'studios' && { backgroundColor: colors.surfaceElevated }]}
+            style={[
+              styles.segmentBtn,
+              serviceType === 'studios' && [styles.segmentBtnActive, { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }]
+            ]}
             onPress={() => {
               setServiceType('studios');
               setSelectedCategory('All');
             }}
           >
-            <Building2 size={16} color={serviceType === 'studios' ? colors.accent : colors.textSecondary} style={{ marginRight: 6 }} />
-            <Text style={[styles.toggleText, { color: colors.textSecondary }, serviceType === 'studios' && { color: colors.textPrimary, fontWeight: '900' }]}>
+            <Building2 size={15} color={serviceType === 'studios' ? colors.accent : colors.textSecondary} style={{ marginRight: 6 }} />
+            <Text style={[styles.segmentText, { color: serviceType === 'studios' ? colors.textPrimary : colors.textSecondary, fontWeight: serviceType === 'studios' ? '800' : '600' }]}>
               Studio Bays
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* ── Search Bar ── */}
-        <View style={[styles.searchContainer, { backgroundColor: colors.surfaceElevated }]}>
-          <Search size={18} color={colors.textSecondary} style={{ marginLeft: 16 }} />
+        <View style={[styles.searchContainer, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+          <Search size={17} color={colors.textSecondary} style={{ marginLeft: 14 }} />
           <RNTextInput
             style={[styles.searchInput, { color: colors.textPrimary }]}
             placeholder={serviceType === 'professionals' ? "Search photographers, editors..." : "Search studio bays..."}
@@ -116,39 +129,66 @@ export const ServicesScreen: React.FC<{ navigation: any; route: any }> = ({ navi
             onChangeText={setSearchQuery}
           />
           <TouchableOpacity
-            style={[styles.filterBtn, { backgroundColor: colors.textPrimary }, hasLocationFilter && { backgroundColor: colors.accent }]}
+            style={[
+              styles.filterBtn,
+              { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight },
+              hasLocationFilter && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
+            ]}
             onPress={() => setShowFilterDrawer(!showFilterDrawer)}
-            activeOpacity={0.85}
+            activeOpacity={0.8}
           >
-            <Filter size={16} color={colors.background} />
+            <SlidersHorizontal size={15} color={hasLocationFilter ? colors.accent : colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
         {hasLocationFilter && (
-          <View style={[styles.activeFilterRow, { backgroundColor: colors.accentGlow }]}>
+          <View style={[styles.activeFilterRow, { backgroundColor: colors.accentGlow, borderColor: colors.accent }]}>
             <MapPin size={12} color={colors.accent} />
             <Text style={[styles.activeFilterText, { color: colors.textPrimary }]}>
               {[state, district, city].filter(Boolean).join(' • ')}
             </Text>
             <TouchableOpacity onPress={() => { setState(''); setDistrict(''); setCity(''); }} style={styles.clearFilterBtn}>
-              <X size={14} color={colors.textSecondary} />
+              <X size={13} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
         )}
 
-        {/* ── Category Chips (Only for Professionals) ── */}
-        {serviceType === 'professionals' && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
-            {proCategories.map(cat => (
-              <Chip
+        {/* ── Category Chips ── */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsScrollContent}
+        >
+          {currentCategories.map(cat => {
+            const active = selectedCategory === cat;
+            return (
+              <TouchableOpacity
                 key={cat}
-                label={cat}
-                active={selectedCategory === cat}
                 onPress={() => setSelectedCategory(cat)}
-              />
-            ))}
-          </ScrollView>
-        )}
+                style={[
+                  styles.catChip,
+                  {
+                    backgroundColor: active ? colors.accent : colors.surfaceElevated,
+                    borderColor: active ? colors.accent : colors.borderLight,
+                  }
+                ]}
+                activeOpacity={0.75}
+              >
+                <Text
+                  style={[
+                    styles.catChipText,
+                    {
+                      color: active ? '#ffffff' : colors.textSecondary,
+                      fontWeight: active ? '800' : '600',
+                    }
+                  ]}
+                >
+                  {cat}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* ── Location Drawer ── */}
@@ -217,53 +257,97 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 16,
+    paddingTop: 10,
+    paddingBottom: 14,
     borderBottomWidth: 1,
   },
-  title: { fontSize: 26, fontWeight: '900' },
-  subtitle: { fontSize: 13, fontWeight: '500', marginTop: 2, marginBottom: 16 },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  title: { fontSize: 24, fontWeight: '900' },
+  subtitle: { fontSize: 13, fontWeight: '500', marginTop: 2 },
   
-  toggleContainer: {
+  // Segmented Mode Switcher
+  segmentContainer: {
     flexDirection: 'row',
     borderRadius: 14,
     padding: 4,
-    marginBottom: 16,
+    borderWidth: 1,
+    marginBottom: 12,
   },
-  toggleBtn: {
+  segmentBtn: {
     flex: 1,
     flexDirection: 'row',
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  toggleText: { fontSize: 13, fontWeight: '700' },
+  segmentBtnActive: {
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  segmentText: { fontSize: 13 },
 
+  // Search Bar
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
-    height: 50,
+    borderRadius: 14,
+    height: 46,
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    marginBottom: 12,
   },
   searchInput: {
     flex: 1,
-    paddingHorizontal: 12,
-    fontSize: 15,
+    paddingHorizontal: 10,
+    fontSize: 14,
     height: '100%',
   },
   filterBtn: {
-    width: 40, height: 40,
-    borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
-    marginRight: 6,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   
-  activeFilterRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  activeFilterText: { fontSize: 12, fontWeight: '800', marginHorizontal: 6 },
+  activeFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  activeFilterText: { fontSize: 12, fontWeight: '700', marginHorizontal: 6 },
   clearFilterBtn: { padding: 2 },
   
-  chipsScroll: { marginTop: 16 },
+  // Category Chips
+  chipsScrollContent: {
+    gap: 8,
+    paddingRight: 16,
+  },
+  catChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  catChipText: {
+    fontSize: 12.5,
+  },
   
   filterDrawer: {
     padding: 20,

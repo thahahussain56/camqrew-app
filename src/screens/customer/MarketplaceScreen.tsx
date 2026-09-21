@@ -12,7 +12,7 @@ import { ProductCard } from '../../components/cards/ProductCard';
 import { Toast } from '../../components/ui/Toast';
 import { useCartStore } from '../../store/cartStore';
 import { GEAR_CATEGORIES } from '../../constants/categories';
-import { Search, ShoppingBag, Filter } from 'lucide-react-native';
+import { Search, ShoppingBag, SlidersHorizontal, ShieldCheck, RefreshCw, Film } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TextInput as RNTextInput } from 'react-native';
 
@@ -30,6 +30,14 @@ export const MarketplaceScreen: React.FC<{ navigation: any; route: any }> = ({ n
   const [products, setProducts] = useState<Product[]>([]);
   const [toastMsg, setToastMsg] = useState('');
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (route?.params?.initialType === 'rental') {
+      setActiveTab('rental');
+    } else if (route?.params?.initialType === 'sale') {
+      setActiveTab('official');
+    }
+  }, [route?.params?.initialType]);
 
   // Fetch from DB based on selected tab mapping
   // Fetch from DB based on selected tab mapping
@@ -62,29 +70,76 @@ export const MarketplaceScreen: React.FC<{ navigation: any; route: any }> = ({ n
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
       <Toast visible={!!toastMsg} message={toastMsg} type="success" onDismiss={() => setToastMsg('')} />
 
-      {/* ── Premium Header ── */}
-      <View style={[styles.header, { backgroundColor: colors.surfaceCard, borderBottomColor: colors.border }]}>
+      {/* ── Minimal Header (Home-Page Design System) ── */}
+      <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.borderLight }]}>
+        {/* Title Row */}
         <View style={styles.titleRow}>
-          <View>
+          <View style={{ flex: 1, marginRight: 12 }}>
             <Text style={[styles.title, { color: colors.textPrimary }]}>Gear Store</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Shop & Rent Professional Equipment</Text>
           </View>
           <TouchableOpacity
-            style={[styles.cartIconBtn, { backgroundColor: colors.surfaceElevated }]}
+            style={[styles.cartIconBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}
             onPress={() => navigation.navigate('Cart')}
+            activeOpacity={0.8}
           >
-            <ShoppingBag size={22} color={colors.textPrimary} />
+            <ShoppingBag size={20} color={colors.textPrimary} />
             {cartCount > 0 && (
-              <View style={[styles.badgeDot, { backgroundColor: '#ef4444', borderColor: colors.surfaceCard }]}>
+              <View style={[styles.badgeDot, { backgroundColor: '#ef4444', borderColor: colors.background }]}>
                 <Text style={styles.badgeText}>{cartCount}</Text>
               </View>
             )}
           </TouchableOpacity>
         </View>
 
+        {/* ── Segmented Mode Switcher (Official vs Used vs Rentals) ── */}
+        <View style={[styles.segmentContainer, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={[
+              styles.segmentBtn,
+              activeTab === 'official' && [styles.segmentBtnActive, { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }]
+            ]}
+            onPress={() => setActiveTab('official')}
+          >
+            <ShieldCheck size={14} color={activeTab === 'official' ? colors.accent : colors.textSecondary} style={{ marginRight: 5 }} />
+            <Text style={[styles.segmentText, { color: activeTab === 'official' ? colors.textPrimary : colors.textSecondary, fontWeight: activeTab === 'official' ? '800' : '600' }]}>
+              Official Gear
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={[
+              styles.segmentBtn,
+              activeTab === 'used' && [styles.segmentBtnActive, { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }]
+            ]}
+            onPress={() => setActiveTab('used')}
+          >
+            <RefreshCw size={13} color={activeTab === 'used' ? colors.accent : colors.textSecondary} style={{ marginRight: 5 }} />
+            <Text style={[styles.segmentText, { color: activeTab === 'used' ? colors.textPrimary : colors.textSecondary, fontWeight: activeTab === 'used' ? '800' : '600' }]}>
+              Used Pro
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={[
+              styles.segmentBtn,
+              activeTab === 'rental' && [styles.segmentBtnActive, { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }]
+            ]}
+            onPress={() => setActiveTab('rental')}
+          >
+            <Film size={14} color={activeTab === 'rental' ? colors.accent : colors.textSecondary} style={{ marginRight: 5 }} />
+            <Text style={[styles.segmentText, { color: activeTab === 'rental' ? colors.textPrimary : colors.textSecondary, fontWeight: activeTab === 'rental' ? '800' : '600' }]}>
+              Rentals
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {/* ── Search Bar ── */}
-        <View style={[styles.searchContainer, { backgroundColor: colors.surfaceElevated }]}>
-          <Search size={18} color={colors.textFaint} style={{ marginLeft: 16 }} />
+        <View style={[styles.searchContainer, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+          <Search size={17} color={colors.textSecondary} style={{ marginLeft: 14 }} />
           <RNTextInput
             style={[styles.searchInput, { color: colors.textPrimary }]}
             placeholder="Search cameras, lenses, lights..."
@@ -92,80 +147,58 @@ export const MarketplaceScreen: React.FC<{ navigation: any; route: any }> = ({ n
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
-          <TouchableOpacity style={[styles.filterBtn, { backgroundColor: colors.background }]}>
-            <Filter size={16} color={colors.textPrimary} />
+          <TouchableOpacity
+            style={[
+              styles.filterBtn,
+              { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight },
+              selectedCategory !== 'All' && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
+            ]}
+            onPress={() => setSelectedCategory('All')}
+            activeOpacity={0.8}
+          >
+            <SlidersHorizontal size={15} color={selectedCategory !== 'All' ? colors.accent : colors.textSecondary} />
           </TouchableOpacity>
         </View>
-      </View>
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        
-        {/* ── DB-Aligned Store Tabs ── */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
-          <TouchableOpacity
-            style={[
-              styles.storeTab,
-              { backgroundColor: colors.surfaceCard, borderColor: 'transparent' },
-              activeTab === 'official' && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
-            ]}
-            onPress={() => setActiveTab('official')}
-          >
-            <Text style={[styles.storeTabText, activeTab === 'official' ? { color: colors.accent, fontWeight: '900' } : { color: colors.textSecondary }]}>
-              ✨ Official Gear
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.storeTab,
-              { backgroundColor: colors.surfaceCard, borderColor: 'transparent' },
-              activeTab === 'used' && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
-            ]}
-            onPress={() => setActiveTab('used')}
-          >
-            <Text style={[styles.storeTabText, activeTab === 'used' ? { color: colors.accent, fontWeight: '900' } : { color: colors.textSecondary }]}>
-              ♻️ Used Pro Gear
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.storeTab,
-              { backgroundColor: colors.surfaceCard, borderColor: 'transparent' },
-              activeTab === 'rental' && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
-            ]}
-            onPress={() => setActiveTab('rental')}
-          >
-            <Text style={[styles.storeTabText, activeTab === 'rental' ? { color: colors.accent, fontWeight: '900' } : { color: colors.textSecondary }]}>
-              🎬 Rentals
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
 
         {/* ── Category Chips ── */}
-        <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {GEAR_CATEGORIES.map(cat => {
-              const active = selectedCategory === cat;
-              return (
-                <TouchableOpacity
-                  key={cat}
-                  onPress={() => setSelectedCategory(cat)}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsScrollContent}
+        >
+          {GEAR_CATEGORIES.map(cat => {
+            const active = selectedCategory === cat;
+            return (
+              <TouchableOpacity
+                key={cat}
+                onPress={() => setSelectedCategory(cat)}
+                style={[
+                  styles.catChip,
+                  {
+                    backgroundColor: active ? colors.accent : colors.surfaceElevated,
+                    borderColor: active ? colors.accent : colors.borderLight,
+                  }
+                ]}
+                activeOpacity={0.75}
+              >
+                <Text
                   style={[
-                    styles.catChip,
-                    { backgroundColor: colors.surfaceCard, borderColor: colors.border },
-                    active && { backgroundColor: colors.textPrimary, borderColor: colors.textPrimary }
+                    styles.catChipText,
+                    {
+                      color: active ? '#ffffff' : colors.textSecondary,
+                      fontWeight: active ? '800' : '600',
+                    }
                   ]}
                 >
-                  <Text style={[
-                    styles.catChipText,
-                    { color: colors.textSecondary },
-                    active && { color: colors.background }
-                  ]}>{cat}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
+                  {cat}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
 
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100, paddingTop: 16 }}>
         {/* ── Product Grid ── */}
         <View style={styles.gridContent}>
           {loading ? (
@@ -197,82 +230,114 @@ export const MarketplaceScreen: React.FC<{ navigation: any; route: any }> = ({ n
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 20,
+    paddingTop: 10,
+    paddingBottom: 14,
     borderBottomWidth: 1,
   },
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 12,
   },
-  title: { fontSize: 26, fontWeight: '900' },
+  title: { fontSize: 24, fontWeight: '900' },
   subtitle: { fontSize: 13, fontWeight: '500', marginTop: 2 },
   cartIconBtn: {
-    width: 44, height: 44,
-    borderRadius: 22,
-    alignItems: 'center', justifyContent: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     position: 'relative',
   },
   badgeDot: {
-    position: 'absolute', top: 0, right: -4,
-    borderRadius: 12, minWidth: 20, height: 20,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2,
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
   },
   badgeText: { color: '#ffffff', fontSize: 10, fontWeight: '900' },
   
+  // Segmented Mode Switcher
+  segmentContainer: {
+    flexDirection: 'row',
+    borderRadius: 14,
+    padding: 4,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  segmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: 9,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentBtnActive: {
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  segmentText: {
+    fontSize: 12.5,
+  },
+
   // Search Bar
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
-    height: 50,
+    borderRadius: 14,
+    height: 46,
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    marginBottom: 12,
   },
   searchInput: {
     flex: 1,
-    paddingHorizontal: 12,
-    fontSize: 15,
+    paddingHorizontal: 10,
+    fontSize: 14,
     height: '100%',
   },
   filterBtn: {
-    width: 40, height: 40,
-    borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
-    marginRight: 6,
-  },
-
-  // Store Tabs
-  tabScroll: {
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    gap: 12,
-  },
-  storeTab: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    marginRight: 10,
-    flexDirection: 'row',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  storeTabText: { fontSize: 14, fontWeight: '700' },
 
   // Categories
-  catChip: {
-    paddingHorizontal: 16, paddingVertical: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginRight: 8,
+  chipsScrollContent: {
+    gap: 8,
+    paddingRight: 16,
   },
-  catChipText: { fontSize: 13, fontWeight: '600' },
+  catChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  catChipText: {
+    fontSize: 12.5,
+  },
 
   // Grid
   gridContent: { paddingHorizontal: 16 },
   grid: {
-    flexDirection: 'row', flexWrap: 'wrap',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
   emptyState: { alignItems: 'center', padding: 40, marginTop: 40 },
