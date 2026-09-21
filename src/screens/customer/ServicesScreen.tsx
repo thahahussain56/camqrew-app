@@ -73,7 +73,7 @@ export const ServicesScreen: React.FC<{ navigation: any; route: any }> = ({ navi
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       
       {/* ── Minimal Header (Home-Page Design System) ── */}
-      <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.borderLight }]}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <View style={styles.titleRow}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.title, { color: colors.textPrimary }]}>Categories</Text>
@@ -82,12 +82,12 @@ export const ServicesScreen: React.FC<{ navigation: any; route: any }> = ({ navi
         </View>
 
         {/* ── Segmented Toggle (Professionals vs Studios) ── */}
-        <View style={[styles.segmentContainer, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+        <View style={[styles.segmentContainer, { backgroundColor: colors.surfaceElevated }]}>
           <TouchableOpacity 
             activeOpacity={0.8} 
             style={[
               styles.segmentBtn,
-              serviceType === 'professionals' && [styles.segmentBtnActive, { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }]
+              serviceType === 'professionals' && [styles.segmentBtnActive, { backgroundColor: colors.surfaceCard }]
             ]}
             onPress={() => {
               setServiceType('professionals');
@@ -104,7 +104,7 @@ export const ServicesScreen: React.FC<{ navigation: any; route: any }> = ({ navi
             activeOpacity={0.8} 
             style={[
               styles.segmentBtn,
-              serviceType === 'studios' && [styles.segmentBtnActive, { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }]
+              serviceType === 'studios' && [styles.segmentBtnActive, { backgroundColor: colors.surfaceCard }]
             ]}
             onPress={() => {
               setServiceType('studios');
@@ -119,7 +119,7 @@ export const ServicesScreen: React.FC<{ navigation: any; route: any }> = ({ navi
         </View>
 
         {/* ── Search Bar ── */}
-        <View style={[styles.searchContainer, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+        <View style={[styles.searchContainer, { backgroundColor: colors.surfaceElevated }]}>
           <Search size={17} color={colors.textSecondary} style={{ marginLeft: 14 }} />
           <RNTextInput
             style={[styles.searchInput, { color: colors.textPrimary }]}
@@ -131,8 +131,8 @@ export const ServicesScreen: React.FC<{ navigation: any; route: any }> = ({ navi
           <TouchableOpacity
             style={[
               styles.filterBtn,
-              { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight },
-              hasLocationFilter && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
+              { backgroundColor: colors.surfaceCard },
+              hasLocationFilter && { backgroundColor: colors.accentGlow }
             ]}
             onPress={() => setShowFilterDrawer(!showFilterDrawer)}
             activeOpacity={0.8}
@@ -142,7 +142,7 @@ export const ServicesScreen: React.FC<{ navigation: any; route: any }> = ({ navi
         </View>
 
         {hasLocationFilter && (
-          <View style={[styles.activeFilterRow, { backgroundColor: colors.accentGlow, borderColor: colors.accent }]}>
+          <View style={[styles.activeFilterRow, { backgroundColor: colors.accentGlow }]}>
             <MapPin size={12} color={colors.accent} />
             <Text style={[styles.activeFilterText, { color: colors.textPrimary }]}>
               {[state, district, city].filter(Boolean).join(' • ')}
@@ -169,7 +169,6 @@ export const ServicesScreen: React.FC<{ navigation: any; route: any }> = ({ navi
                   styles.catChip,
                   {
                     backgroundColor: active ? colors.accent : colors.surfaceElevated,
-                    borderColor: active ? colors.accent : colors.borderLight,
                   }
                 ]}
                 activeOpacity={0.75}
@@ -259,7 +258,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 14,
-    borderBottomWidth: 1,
   },
   titleRow: {
     flexDirection: 'row',
@@ -275,7 +273,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: 14,
     padding: 4,
-    borderWidth: 1,
     marginBottom: 12,
   },
   segmentBtn: {
@@ -287,7 +284,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   segmentBtnActive: {
-    borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.12,
@@ -302,7 +298,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 14,
     height: 46,
-    borderWidth: 1,
     paddingHorizontal: 6,
     marginBottom: 12,
   },
@@ -316,7 +311,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -328,7 +322,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
-    borderWidth: 1,
     marginBottom: 12,
   },
   activeFilterText: { fontSize: 12, fontWeight: '700', marginHorizontal: 6 },
@@ -343,7 +336,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 12,
-    borderWidth: 1,
   },
   catChipText: {
     fontSize: 12.5,
