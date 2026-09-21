@@ -407,8 +407,8 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                     borderStyle: 'dashed',
                     borderColor: colors.accent,
                     backgroundColor: colors.accentGlow,
-                    borderRadius: 14,
-                    padding: 20,
+                    borderRadius: 16,
+                    padding: 22,
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginBottom: 16,
@@ -416,9 +416,11 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                   onPress={pickVideoForReel}
                   activeOpacity={0.7}
                 >
-                  <UploadCloud size={30} color={colors.accent} style={{ marginBottom: 6 }} />
-                  <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 14 }}>Pick Video File</Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: 11, marginTop: 4 }}>Select MP4, MOV, or WebM from your device</Text>
+                  <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(63,182,104,0.15)', borderWidth: 1.5, borderColor: 'rgba(63,182,104,0.3)', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                    <UploadCloud size={28} color={colors.accent} />
+                  </View>
+                  <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 14.5 }}>Choose Video File</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 11, marginTop: 4 }}>Supports all video formats (MP4, MOV, WebM, AVI, MKV, etc.)</Text>
                 </TouchableOpacity>
               )}
 

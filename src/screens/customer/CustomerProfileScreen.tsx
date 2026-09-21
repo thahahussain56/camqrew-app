@@ -28,7 +28,8 @@ import {
   Calendar, ShoppingBag, CreditCard, Gift, LogOut, ChevronRight,
   Camera, Pencil, Star, Briefcase, Eye, Plus, PlusCircle, Film,
   Play, Trash2, X, ChevronLeft, ChevronRight as ChevronRightIcon,
-  Image as ImageIcon, CheckCircle, User, UploadCloud,
+  Image as ImageIcon, CheckCircle, User, UploadCloud, Video,
+  Smartphone, RefreshCw,
 } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import { supabase } from '../../api/supabaseClient';
@@ -534,35 +535,76 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
         {/* ── Creator Showcase: Video Reels & Showreels ── */}
         {user?.role === 'professional' && (
           <>
+            {/* ── Creator Showcase: Video Reels & Showreels ── */}
             <View style={[styles.showcaseSectionCard, { backgroundColor: colors.surfaceCard }]}>
               <View style={styles.showcaseHeaderRow}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Film size={18} color={colors.accent} style={{ marginRight: 8 }} />
-                  <Text style={[styles.showcaseTitle, { color: colors.textPrimary }]}>Showreels & Video Reels</Text>
+                  <View style={[styles.sectionIconBadge, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
+                    <Film size={18} color={colors.accent} />
+                  </View>
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={[styles.showcaseTitle, { color: colors.textPrimary }]}>Showreels & Video Reels</Text>
+                      <View style={[styles.countBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+                        <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>
+                          {(proProfile?.videoReels || []).length}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.showcaseSubheader, { color: colors.textSecondary }]}>
+                      Upload vertical 9:16 reels & cinematic clips • All formats
+                    </Text>
+                  </View>
                 </View>
                 <TouchableOpacity
-                  style={{ backgroundColor: 'rgba(63,182,104,0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, flexDirection: 'row', alignItems: 'center' }}
+                  style={[styles.headerActionPill, { backgroundColor: 'rgba(63,182,104,0.15)', borderColor: 'rgba(63,182,104,0.3)' }]}
                   onPress={() => setShowReelModal(true)}
                   activeOpacity={0.8}
                 >
-                  <Plus size={13} color="#3fb668" style={{ marginRight: 4 }} />
-                  <Text style={{ color: '#3fb668', fontSize: 11, fontWeight: '800' }}>Add Reel</Text>
+                  <Plus size={13} color={colors.accent} style={{ marginRight: 4 }} />
+                  <Text style={{ color: colors.accent, fontSize: 11.5, fontWeight: '800' }}>Add Reel</Text>
                 </TouchableOpacity>
               </View>
 
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18, marginTop: 12 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18, marginTop: 14 }}>
                 <View style={{ width: 18 }} />
+                {/* Unified Upload Card: Post Reel */}
                 <TouchableOpacity 
                   activeOpacity={0.85} 
                   onPress={() => setShowReelModal(true)} 
-                  style={[styles.addReelCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.accent }]}
+                  style={[
+                    styles.uploadCardUnified, 
+                    { 
+                      backgroundColor: isDark ? 'rgba(63,182,104,0.06)' : 'rgba(63,182,104,0.04)', 
+                      borderColor: colors.accent 
+                    }
+                  ]}
                 >
-                  <View style={[styles.addPhotoIconCircle, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
+                  <View style={[styles.uploadCardIconRing, { backgroundColor: 'rgba(63,182,104,0.15)', borderColor: 'rgba(63,182,104,0.3)' }]}>
                     <Film size={22} color={colors.accent} />
+                    <View style={[styles.uploadCardPlusBadge, { backgroundColor: colors.accent, borderColor: colors.surfaceCard }]}>
+                      <Plus size={10} color="#ffffff" strokeWidth={3} />
+                    </View>
                   </View>
-                  <Text style={[styles.addPhotoCardText, { color: colors.textPrimary }]}>+ Post Reel</Text>
-                  <Text style={[styles.addPhotoCardSub, { color: colors.textSecondary }]}>Upload Video</Text>
+                  <Text style={[styles.uploadCardTitle, { color: colors.textPrimary }]}>+ Post Reel</Text>
+                  <Text style={[styles.uploadCardSub, { color: colors.textSecondary }]}>All Formats</Text>
+                  <View style={[styles.uploadCardPill, { backgroundColor: 'rgba(63,182,104,0.14)' }]}>
+                    <Text style={[styles.uploadCardPillText, { color: colors.accent }]}>UPLOAD</Text>
+                  </View>
                 </TouchableOpacity>
+
+                {/* Empty State Hint if creator has no reels */}
+                {(proProfile?.videoReels || []).length === 0 && (
+                  <View style={[styles.reelEmptyCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+                    <View style={[styles.reelEmptyIconWrap, { backgroundColor: 'rgba(63,182,104,0.12)' }]}>
+                      <Video size={20} color={colors.accent} />
+                    </View>
+                    <Text style={[styles.reelEmptyTitle, { color: colors.textPrimary }]}>Publish Your First Reel</Text>
+                    <Text style={[styles.reelEmptySub, { color: colors.textSecondary }]}>
+                      Videos uploaded here appear on your profile and in the public Reels Feed for client discovery.
+                    </Text>
+                  </View>
+                )}
 
                 {(proProfile?.videoReels || []).map((reel) => {
                   const isShort = reel.isShort;
@@ -578,35 +620,46 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
                         style={[
                           styles.reelCard,
                           isShort ? styles.reelCardVertical : styles.reelCardCinema,
-                          { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }
+                          { backgroundColor: '#090d16', borderColor: colors.borderLight }
                         ]}
                       >
                         {reel.thumbnailUrl ? (
                           <Image source={{ uri: reel.thumbnailUrl }} style={styles.reelThumbnail} resizeMode="cover" />
                         ) : (
-                          <View style={[styles.reelPlaceholder, { backgroundColor: '#111827' }]}>
-                            <Film size={32} color={colors.accent} />
+                          <View style={[styles.reelPlaceholder, { backgroundColor: '#090d16' }]}>
+                            <Film size={34} color="rgba(63,182,104,0.45)" />
+                            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: '700', marginTop: 6, letterSpacing: 0.5 }}>VIDEO REEL</Text>
                           </View>
                         )}
-                        <View style={styles.reelVignette} />
+                        <LinearGradient
+                          colors={['rgba(0,0,0,0.5)', 'transparent', 'rgba(0,0,0,0.88)']}
+                          locations={[0, 0.45, 1]}
+                          style={StyleSheet.absoluteFill}
+                        />
 
+                        {/* Centered Glassmorphic Play Button */}
                         <View style={styles.reelPlayBtn}>
                           <Play size={16} color="#ffffff" fill="#ffffff" style={{ marginLeft: 2 }} />
                         </View>
 
+                        {/* Top Badges */}
                         <View style={styles.reelTopBadges}>
-                          <View style={[styles.reelBadgePill, { backgroundColor: 'rgba(0,0,0,0.65)' }]}>
+                          <View style={[styles.reelBadgePill, { backgroundColor: 'rgba(0,0,0,0.7)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }]}>
+                            <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.accent, marginRight: 5 }} />
                             <Text style={styles.reelBadgeText}>
-                              {isShort ? '9:16 REEL' : 'VIDEO'}
+                              {isShort ? '9:16 REEL' : 'CINEMA'}
                             </Text>
                           </View>
                         </View>
 
+                        {/* Bottom Metadata */}
                         <View style={styles.reelInfo}>
                           {reel.category ? (
-                            <Text style={[styles.reelCategory, { color: colors.accent }]} numberOfLines={1}>
-                              {reel.category.toUpperCase()}
-                            </Text>
+                            <View style={[styles.reelCategoryTag, { backgroundColor: 'rgba(63,182,104,0.25)' }]}>
+                              <Text style={[styles.reelCategory, { color: '#4ade80' }]} numberOfLines={1}>
+                                {reel.category.toUpperCase()}
+                              </Text>
+                            </View>
                           ) : null}
                           <Text style={styles.reelTitle} numberOfLines={2}>
                             {reel.title}
@@ -632,35 +685,65 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
             <View style={[styles.showcaseSectionCard, { backgroundColor: colors.surfaceCard }]}>
               <View style={styles.showcaseHeaderRow}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <ImageIcon size={18} color={colors.accent} style={{ marginRight: 8 }} />
-                  <Text style={[styles.showcaseTitle, { color: colors.textPrimary }]}>Portfolio Highlights</Text>
+                  <View style={[styles.sectionIconBadge, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
+                    <ImageIcon size={18} color={colors.accent} />
+                  </View>
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={[styles.showcaseTitle, { color: colors.textPrimary }]}>Portfolio Highlights</Text>
+                      <View style={[styles.countBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+                        <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>
+                          {(proProfile?.portfolio || []).length}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.showcaseSubheader, { color: colors.textSecondary }]}>
+                      High-resolution photography & stills
+                    </Text>
+                  </View>
                 </View>
                 <TouchableOpacity
-                  style={{ backgroundColor: 'rgba(63,182,104,0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, flexDirection: 'row', alignItems: 'center' }}
+                  style={[styles.headerActionPill, { backgroundColor: 'rgba(63,182,104,0.15)', borderColor: 'rgba(63,182,104,0.3)' }]}
                   onPress={handlePostPhoto}
                   activeOpacity={0.8}
                 >
-                  <Plus size={13} color="#3fb668" style={{ marginRight: 4 }} />
-                  <Text style={{ color: '#3fb668', fontSize: 11, fontWeight: '800' }}>Add Photo</Text>
+                  <Plus size={13} color={colors.accent} style={{ marginRight: 4 }} />
+                  <Text style={{ color: colors.accent, fontSize: 11.5, fontWeight: '800' }}>Add Photo</Text>
                 </TouchableOpacity>
               </View>
 
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18, marginTop: 12 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18, marginTop: 14 }}>
                 <View style={{ width: 18 }} />
+                {/* Unified Upload Card: Post Photo */}
                 <TouchableOpacity 
                   activeOpacity={0.85} 
                   onPress={handlePostPhoto} 
-                  style={[styles.addPhotoCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.accent }]}
+                  style={[
+                    styles.uploadCardUnified, 
+                    { 
+                      backgroundColor: isDark ? 'rgba(63,182,104,0.06)' : 'rgba(63,182,104,0.04)', 
+                      borderColor: colors.accent 
+                    }
+                  ]}
                 >
                   {uploadingPhoto ? (
-                    <ActivityIndicator size="small" color={colors.accent} />
+                    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                      <ActivityIndicator size="small" color={colors.accent} />
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: colors.accent, marginTop: 8 }}>Uploading...</Text>
+                    </View>
                   ) : (
                     <>
-                      <View style={[styles.addPhotoIconCircle, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
+                      <View style={[styles.uploadCardIconRing, { backgroundColor: 'rgba(63,182,104,0.15)', borderColor: 'rgba(63,182,104,0.3)' }]}>
                         <Camera size={22} color={colors.accent} />
+                        <View style={[styles.uploadCardPlusBadge, { backgroundColor: colors.accent, borderColor: colors.surfaceCard }]}>
+                          <Plus size={10} color="#ffffff" strokeWidth={3} />
+                        </View>
                       </View>
-                      <Text style={[styles.addPhotoCardText, { color: colors.textPrimary }]}>+ Post Photo</Text>
-                      <Text style={[styles.addPhotoCardSub, { color: colors.textSecondary }]}>Add to Gallery</Text>
+                      <Text style={[styles.uploadCardTitle, { color: colors.textPrimary }]}>+ Post Photo</Text>
+                      <Text style={[styles.uploadCardSub, { color: colors.textSecondary }]}>From Gallery</Text>
+                      <View style={[styles.uploadCardPill, { backgroundColor: 'rgba(63,182,104,0.14)' }]}>
+                        <Text style={[styles.uploadCardPillText, { color: colors.accent }]}>UPLOAD</Text>
+                      </View>
                     </>
                   )}
                 </TouchableOpacity>
@@ -670,7 +753,7 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
                     key={idx} 
                     activeOpacity={0.88} 
                     onPress={() => setSelectedImgIndex(idx)} 
-                    style={styles.portfolioItem}
+                    style={[styles.portfolioItem, { borderColor: colors.borderLight }]}
                   >
                     <Image source={{ uri: img }} style={styles.portfolioImage} />
                   </TouchableOpacity>
@@ -1140,97 +1223,115 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
           style={styles.sheetOverlay}
         >
           <View style={[styles.reelModalCard, { backgroundColor: colors.surfaceCard }]}>
+            {/* Sheet Handle */}
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+
             {/* Modal Header */}
             <View style={styles.reelModalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Film size={20} color={colors.accent} style={{ marginRight: 8 }} />
-                <Text style={[styles.reelModalTitle, { color: colors.textPrimary }]}>Post Video Reel</Text>
+                <View style={[styles.modalHeaderIconWrap, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
+                  <Film size={20} color={colors.accent} />
+                </View>
+                <View>
+                  <Text style={[styles.reelModalTitle, { color: colors.textPrimary }]}>Upload Video Reel</Text>
+                  <Text style={[styles.reelModalSub, { color: colors.textSecondary }]}>
+                    All video formats supported (MP4, MOV, WebM, etc.)
+                  </Text>
+                </View>
               </View>
-              <TouchableOpacity onPress={() => !submittingReel && setShowReelModal(false)} style={{ padding: 4 }}>
-                <X size={22} color={colors.textSecondary} />
+              <TouchableOpacity 
+                onPress={() => !submittingReel && setShowReelModal(false)} 
+                style={[styles.modalCloseBtn, { backgroundColor: colors.surfaceElevated }]}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <X size={18} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: Dimensions.get('window').height * 0.7 }}>
-              <Text style={[styles.reelModalSub, { color: colors.textSecondary }]}>
-                Upload video clips, 9:16 vertical reels, or showreels directly from your device.
-              </Text>
-
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: Dimensions.get('window').height * 0.72 }}>
               {/* Native Video File Picker */}
               {!selectedVideoUri ? (
                 <TouchableOpacity
-                  style={{
-                    borderWidth: 2,
-                    borderStyle: 'dashed',
-                    borderColor: colors.border,
-                    borderRadius: 14,
-                    padding: 24,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: colors.surfaceElevated,
-                    marginBottom: 16,
-                  }}
+                  style={[
+                    styles.modalDropzone,
+                    {
+                      backgroundColor: isDark ? 'rgba(63,182,104,0.06)' : 'rgba(63,182,104,0.04)',
+                      borderColor: colors.accent,
+                    },
+                  ]}
                   onPress={handlePickVideoForReel}
-                  activeOpacity={0.7}
+                  activeOpacity={0.75}
                 >
-                  <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(63,182,104,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-                    <UploadCloud size={24} color="#3fb668" />
+                  <View style={[styles.dropzoneIconRing, { backgroundColor: 'rgba(63,182,104,0.15)', borderColor: 'rgba(63,182,104,0.3)' }]}>
+                    <UploadCloud size={30} color={colors.accent} />
                   </View>
-                  <Text style={{ fontSize: 14, fontWeight: '800', color: colors.textPrimary, marginBottom: 4 }}>
-                    Choose Video from Gallery
+                  <Text style={[styles.dropzoneMainText, { color: colors.textPrimary }]}>
+                    Choose Video File
                   </Text>
-                  <Text style={{ fontSize: 11.5, color: colors.textSecondary }}>
-                    Supports MP4, MOV, WebM, and all video formats
+                  <Text style={[styles.dropzoneSubText, { color: colors.textSecondary }]}>
+                    Tap to browse videos from your device
+                  </Text>
+                  <View style={styles.dropzonePillRow}>
+                    <View style={[styles.dropzoneFormatBadge, { backgroundColor: 'rgba(63,182,104,0.18)' }]}>
+                      <Text style={{ color: colors.accent, fontSize: 10.5, fontWeight: '800' }}>✓ ALL FORMATS ACCEPTED</Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontSize: 10.5, color: colors.textSecondary, marginTop: 5 }}>
+                    MP4 • MOV • WebM • AVI • MKV • FLV • WMV • 3GP
                   </Text>
                 </TouchableOpacity>
               ) : (
-                <View style={{
-                  backgroundColor: colors.surfaceElevated,
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  borderColor: '#3fb668',
-                  padding: 14,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 16,
-                }}>
+                <View style={[styles.modalSelectedCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.accent }]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 }}>
-                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(63,182,104,0.15)', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-                      <Film size={20} color="#3fb668" />
+                    <View style={[styles.modalSelectedIconCircle, { backgroundColor: 'rgba(63,182,104,0.15)' }]}>
+                      <Film size={22} color={colors.accent} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '800', color: colors.textPrimary }} numberOfLines={1}>
+                      <Text style={{ fontSize: 13.5, fontWeight: '800', color: colors.textPrimary }} numberOfLines={1}>
                         {selectedVideoName}
                       </Text>
-                      <Text style={{ fontSize: 11, color: '#3fb668', fontWeight: '700', marginTop: 2 }}>
-                        ✓ {selectedVideoSize} • Ready to upload
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3 }}>
+                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent, marginRight: 6 }} />
+                        <Text style={{ fontSize: 11.5, color: colors.accent, fontWeight: '700' }}>
+                          Ready to upload {selectedVideoSize ? `• ${selectedVideoSize}` : ''}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setSelectedVideoUri(null);
-                      setSelectedVideoName('');
-                      setSelectedVideoSize('');
-                    }}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <X size={18} color={colors.textSecondary} />
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <TouchableOpacity
+                      onPress={handlePickVideoForReel}
+                      disabled={submittingReel}
+                      style={[styles.modalChangeBtn, { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }]}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textSecondary }}>Change</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSelectedVideoUri(null);
+                        setSelectedVideoName('');
+                        setSelectedVideoSize('');
+                      }}
+                      disabled={submittingReel}
+                      style={[styles.modalRemoveBtn, { backgroundColor: 'rgba(255,77,79,0.12)' }]}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <X size={15} color="#ff4d4f" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
 
               <Input
                 label="Reel Title"
-                placeholder="e.g. 2026 Commercial Highlights"
+                placeholder="e.g. 2026 Commercial Highlights, Drone Reel"
                 value={newReelTitle}
                 onChangeText={setNewReelTitle}
               />
 
               <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 6 }}>Category</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-                {['Showreel', 'Wedding', 'Commercial', 'Fashion', 'Music Video', 'Short Film', 'Drone Reel'].map(cat => (
+                {['Showreel', 'Wedding', 'Commercial', 'Fashion', 'Music Video', 'Short Film', 'Drone Reel', 'Event'].map(cat => (
                   <Chip
                     key={cat}
                     label={cat}
@@ -1240,38 +1341,79 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
                 ))}
               </ScrollView>
 
+              {/* Vertical 9:16 Format Toggle Card */}
               <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 18 }}
+                style={[
+                  styles.modalFormatCard,
+                  {
+                    backgroundColor: newReelIsShort ? (isDark ? 'rgba(63,182,104,0.1)' : 'rgba(63,182,104,0.06)') : colors.surfaceElevated,
+                    borderColor: newReelIsShort ? colors.accent : colors.borderLight,
+                  },
+                ]}
                 onPress={() => setNewReelIsShort(!newReelIsShort)}
                 activeOpacity={0.8}
               >
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 12 }}>
+                  <View style={[styles.modalFormatIconWrap, { backgroundColor: newReelIsShort ? 'rgba(63,182,104,0.2)' : 'rgba(0,0,0,0.05)' }]}>
+                    <Smartphone size={18} color={newReelIsShort ? colors.accent : colors.textSecondary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '800' }}>
+                      Vertical 9:16 Reel Format
+                    </Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 11, marginTop: 2 }}>
+                      Optimized for full-screen immersive playback in Reels feed
+                    </Text>
+                  </View>
+                </View>
                 <View
                   style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: 6,
+                    width: 22,
+                    height: 22,
+                    borderRadius: 7,
                     borderWidth: 2,
-                    borderColor: newReelIsShort ? '#3fb668' : colors.textFaint,
-                    backgroundColor: newReelIsShort ? '#3fb668' : 'transparent',
+                    borderColor: newReelIsShort ? colors.accent : colors.textFaint,
+                    backgroundColor: newReelIsShort ? colors.accent : 'transparent',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    marginRight: 10,
                   }}
                 >
                   {newReelIsShort && <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 12 }}>✓</Text>}
                 </View>
-                <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '700' }}>
-                  Vertical 9:16 format (Shorts / Reels)
-                </Text>
               </TouchableOpacity>
+
+              {/* Uploading Progress Indicator Banner */}
+              {submittingReel && (
+                <View style={[styles.modalProgressBanner, { backgroundColor: 'rgba(63,182,104,0.12)', borderColor: 'rgba(63,182,104,0.3)' }]}>
+                  <ActivityIndicator size="small" color={colors.accent} style={{ marginRight: 10 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12.5, fontWeight: '800', color: colors.accent }}>
+                      Uploading Video to Cloud Storage...
+                    </Text>
+                    <Text style={{ fontSize: 10.5, color: colors.textSecondary, marginTop: 1 }}>
+                      Please wait while your video is uploaded and linked
+                    </Text>
+                  </View>
+                </View>
+              )}
 
               <Button
                 title={submittingReel ? 'Uploading Reel...' : 'Post Reel to Profile'}
                 variant="primary"
                 size="md"
                 disabled={submittingReel || (!selectedVideoUri && !newReelUrl.trim())}
-                icon={submittingReel ? <ActivityIndicator size="small" color="#ffffff" /> : <Film size={16} color="#ffffff" />}
+                icon={submittingReel ? <ActivityIndicator size="small" color="#ffffff" /> : <UploadCloud size={16} color="#ffffff" />}
                 onPress={handlePostReel}
+                style={{ marginTop: 6 }}
+              />
+
+              <Button
+                title="Cancel"
+                variant="outline"
+                size="md"
+                disabled={submittingReel}
+                onPress={() => setShowReelModal(false)}
+                style={{ marginTop: 8, marginBottom: 12 }}
               />
             </ScrollView>
           </View>
@@ -1445,71 +1587,193 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
   },
-  addPhotoCard: {
-    width: 130,
-    height: 180,
-    borderRadius: 16,
+  showcaseSubheader: {
+    fontSize: 11.5,
+    marginTop: 2,
+  },
+  sectionIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  countBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+  countBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  headerActionPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+
+  // ── Unified Modern Upload Cards (Identical Design for Reel & Photo) ──
+  uploadCardUnified: {
+    width: 140,
+    height: 210,
+    borderRadius: 20,
     borderWidth: 1.5,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
-    padding: 12,
+    marginRight: 14,
+    padding: 14,
+  },
+  uploadCardIconRing: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    position: 'relative',
+  },
+  uploadCardPlusBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+  },
+  uploadCardTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: -0.2,
+  },
+  uploadCardSub: {
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  uploadCardPill: {
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  uploadCardPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+
+  // Backward-compatibility aliases
+  addPhotoCard: {
+    width: 140,
+    height: 210,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+    padding: 14,
   },
   addReelCard: {
-    width: 130,
-    height: 180,
-    borderRadius: 16,
+    width: 140,
+    height: 210,
+    borderRadius: 20,
     borderWidth: 1.5,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
-    padding: 12,
+    marginRight: 14,
+    padding: 14,
   },
   addPhotoIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   addPhotoCardText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
     textAlign: 'center',
   },
   addPhotoCardSub: {
-    fontSize: 10,
+    fontSize: 11,
     textAlign: 'center',
-    marginTop: 3,
+    marginTop: 4,
   },
+
+  // Reel Empty State Hint Card
+  reelEmptyCard: {
+    width: 220,
+    height: 210,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  reelEmptyIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  reelEmptyTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  reelEmptySub: {
+    fontSize: 11,
+    lineHeight: 16,
+  },
+
+  // Portfolio Item
   portfolioItem: {
-    width: 240,
-    height: 180,
-    borderRadius: 16,
+    width: 210,
+    height: 210,
+    borderRadius: 20,
     overflow: 'hidden',
-    marginRight: 12,
+    marginRight: 14,
+    borderWidth: 1,
   },
   portfolioImage: {
     width: '100%',
     height: '100%',
   },
+
+  // Reel Cards
   reelCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
     marginRight: 14,
     position: 'relative',
     borderWidth: 1,
   },
   reelCardVertical: {
-    width: 150,
-    height: 240,
+    width: 135,
+    height: 210,
   },
   reelCardCinema: {
-    width: 240,
-    height: 160,
+    width: 260,
+    height: 210,
   },
   reelThumbnail: {
     width: '100%',
@@ -1527,62 +1791,72 @@ const styles = StyleSheet.create({
   },
   reelPlayBtn: {
     position: 'absolute',
-    top: '40%',
+    top: '42%',
     left: '50%',
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    marginLeft: -19,
-    marginTop: -19,
-    backgroundColor: '#3fb668',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    marginLeft: -21,
+    marginTop: -21,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 5,
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
     elevation: 5,
   },
   reelTopBadges: {
     position: 'absolute',
-    top: 8,
-    left: 8,
+    top: 10,
+    left: 10,
     flexDirection: 'row',
   },
   reelBadgePill: {
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
     borderRadius: 8,
   },
   reelBadgeText: {
     color: '#ffffff',
     fontSize: 9,
     fontWeight: '800',
+    letterSpacing: 0.5,
   },
   reelInfo: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 8,
-    backgroundColor: 'rgba(0,0,0,0.72)',
+    padding: 10,
+  },
+  reelCategoryTag: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginBottom: 4,
   },
   reelCategory: {
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: '800',
-    letterSpacing: 0.5,
-    marginBottom: 2,
+    letterSpacing: 0.6,
   },
   reelTitle: {
     color: '#ffffff',
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700',
     lineHeight: 15,
   },
   reelDeleteBtn: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 10,
+    right: 10,
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -1657,8 +1931,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   reelModalCard: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     padding: 22,
     paddingBottom: 36,
   },
@@ -1666,15 +1940,130 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 16,
+  },
+  modalHeaderIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
   },
   reelModalTitle: {
     fontSize: 18,
     fontWeight: '900',
   },
   reelModalSub: {
-    fontSize: 13,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Modal Dropzone
+  modalDropzone: {
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderRadius: 20,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
+  },
+  dropzoneIconRing: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  dropzoneMainText: {
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  dropzoneSubText: {
+    fontSize: 12,
+    marginBottom: 10,
+  },
+  dropzonePillRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dropzoneFormatBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+
+  // Selected Video Card
+  modalSelectedCard: {
+    borderRadius: 18,
+    borderWidth: 1.5,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalSelectedIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  modalChangeBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  modalRemoveBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Format Toggle Card
+  modalFormatCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    marginBottom: 16,
+  },
+  modalFormatIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+
+  // Progress Banner
+  modalProgressBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 14,
   },
   detectedFormatBox: {
     padding: 10,
