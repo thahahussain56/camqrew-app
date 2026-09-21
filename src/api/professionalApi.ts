@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { ProfessionalProfile, ReviewItem, FeedReelItem } from '../types/professional';
+import { ProfessionalProfile, ReviewItem, FeedReelItem, MenuDishItem } from '../types/professional';
 
 export interface GetProfessionalsFilter {
   category?: string;
@@ -95,6 +95,7 @@ const mapPro = (row: any): ProfessionalProfile => {
     portfolio: Array.isArray(row.portfolio_items) ? row.portfolio_items.map((i: any) => i.media_url) : [],
     services: Array.isArray(row.services) ? row.services : [], 
     videoReels: Array.isArray(row.video_reels) ? row.video_reels : [],
+    menuItems: Array.isArray(row.menu_items) ? row.menu_items as MenuDishItem[] : [],
     reviews: [],
     weeklyAvailability: { mon: true, tue: true, wed: true, thu: true, fri: true, sat: true, sun: false },
     blockedDates: [],
@@ -281,6 +282,7 @@ export const professionalApi = {
     if (proFields.certifications) updatePayload.skills = proFields.certifications; // Maps to skills in db
     if (proFields.services) updatePayload.services = proFields.services;
     if (proFields.videoReels !== undefined) updatePayload.video_reels = proFields.videoReels;
+    if (proFields.menuItems !== undefined) updatePayload.menu_items = proFields.menuItems;
 
     const { data: updated, error } = await supabase
       .from('professional_profiles')

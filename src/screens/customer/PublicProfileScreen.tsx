@@ -6,7 +6,7 @@ import { useAuthStore } from '../../store/authStore';
 import { professionalApi } from '../../api/professionalApi';
 import { studioApi } from '../../api/studioApi';
 import { productApi } from '../../api/productApi';
-import { ProfessionalProfile, ReviewItem, VideoReelItem } from '../../types/professional';
+import { ProfessionalProfile, ReviewItem, VideoReelItem, MenuDishItem } from '../../types/professional';
 import { Product } from '../../types/product';
 import { Avatar } from '../../components/ui/Avatar';
 import { Card } from '../../components/ui/Card';
@@ -14,7 +14,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { ProductCard } from '../../components/cards/ProductCard';
 import { useCartStore } from '../../store/cartStore';
-import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, ThumbsUp, Check, Award } from 'lucide-react-native';
+import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, ThumbsUp, Check, Award, UtensilsCrossed, Plus, Minus } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import { getArchetype } from '../../constants/categories';
 
@@ -51,6 +51,25 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
   const toggleCertifications = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setCertificationsExpanded(prev => !prev);
+  };
+
+  // Menu Section State (Caterers)
+  const [menuExpanded, setMenuExpanded] = useState(true);
+  const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>('All');
+  const [menuSelections, setMenuSelections] = useState<Record<string, number>>({});
+  const MENU_CATEGORIES = ['All', 'Starter', 'Main Course', 'Dessert', 'Beverage', 'Live Counter', 'Other'];
+
+  const menuTotal = Object.entries(menuSelections).reduce((sum, [id, qty]) => {
+    const dish = profile?.menuItems?.find(d => d.id === id);
+    return sum + (dish ? dish.pricePerPlate * qty : 0);
+  }, 0);
+  const menuItemCount = Object.values(menuSelections).reduce((a, b) => a + b, 0);
+
+  const adjustMenuQty = (id: string, delta: number) => {
+    setMenuSelections(prev => {
+      const next = (prev[id] || 0) + delta;
+      return { ...prev, [id]: Math.max(0, next) };
+    });
   };
 
   // Reviews & Rating State
@@ -469,6 +488,155 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
             <View style={{ width: 20 }} />
           </ScrollView>
         </View>
+
+        {/* ── Menu & Dishes (Caterers Only) ── */}
+        {proArchetype.archetype === 'catering' && profile.menuItems && profile.menuItems.filter(d => d.isAvailable).length > 0 && (
+          <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+            {/* Accordion Header */}
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={() => setMenuExpanded(prev => !prev)}
+              style={styles.accordionHeaderBtn}
+            >
+              <View style={styles.accordionTitleCol}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <UtensilsCrossed size={16} color={colors.accent} style={{ marginRight: 8 }} />
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
+                    Menu & Dishes
+                  </Text>
+                  <View style={[styles.countBadge, { backgroundColor: colors.accentGlow, marginLeft: 8 }]}>
+                    <Text style={[styles.countBadgeText, { color: colors.accent }]}>
+                      {profile.menuItems.filter(d => d.isAvailable).length}
+                    </Text>
+                  </View>
+                </View>
+                {!menuExpanded && (
+                  <Text style={[styles.accordionHintText, { color: colors.textSecondary }]}>
+                    Browse dishes • Select & get instant quotation
+                  </Text>
+                )}
+              </View>
+              <View style={[styles.accordionChevronCircle, { backgroundColor: colors.surfaceElevated }]}>
+                {menuExpanded ? (
+                  <ChevronUp size={18} color={colors.accent} />
+                ) : (
+                  <ChevronDown size={18} color={colors.textSecondary} />
+                )}
+              </View>
+            </TouchableOpacity>
+
+            {menuExpanded && (
+              <View style={styles.accordionBody}>
+                {/* Category Filter Tabs */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+                  {MENU_CATEGORIES.filter(cat =>
+                    cat === 'All' || profile.menuItems!.some(d => d.isAvailable && d.category === cat)
+                  ).map(cat => (
+                    <TouchableOpacity
+                      key={cat}
+                      onPress={() => setMenuCategoryFilter(cat)}
+                      style={[
+                        styles.menuCatChip,
+                        menuCategoryFilter === cat
+                          ? { backgroundColor: colors.accentGlow, borderColor: colors.accent }
+                          : { backgroundColor: colors.surfaceElevated, borderColor: 'transparent' },
+                      ]}
+                    >
+                      <Text style={[
+                        styles.menuCatChipText,
+                        { color: menuCategoryFilter === cat ? colors.accent : colors.textSecondary },
+                      ]}>{cat}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                {/* Dish Cards */}
+                {profile.menuItems
+                  .filter(d => d.isAvailable && (menuCategoryFilter === 'All' || d.category === menuCategoryFilter))
+                  .map(dish => {
+                    const qty = menuSelections[dish.id] || 0;
+                    const isGreen = dish.dietaryTags.some(t => t === 'Veg' || t === 'Jain' || t === 'Vegan');
+                    return (
+                      <View key={dish.id} style={[styles.menuDishRow, { backgroundColor: colors.surfaceElevated }]}>
+                        <View style={{ flex: 1, marginRight: 12 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                            {/* Veg/Non-veg dot */}
+                            <View style={[styles.menuVegDot, { backgroundColor: isGreen ? '#16a34a' : '#dc2626', borderColor: isGreen ? '#16a34a' : '#dc2626' }]} />
+                            <Text style={[styles.menuDishName, { color: colors.textPrimary }]}>{dish.name}</Text>
+                          </View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <View style={[styles.menuCatTag, { backgroundColor: colors.accentGlow }]}>
+                              <Text style={[styles.menuCatTagText, { color: colors.accent }]}>{dish.category}</Text>
+                            </View>
+                            {dish.dietaryTags.map(tag => (
+                              <View key={tag} style={[styles.menuDietTag, {
+                                backgroundColor: (tag === 'Veg' || tag === 'Jain' || tag === 'Vegan') ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                              }]}>
+                                <Text style={[styles.menuDietTagText, {
+                                  color: (tag === 'Veg' || tag === 'Jain' || tag === 'Vegan') ? '#16a34a' : '#dc2626',
+                                }]}>{tag}</Text>
+                              </View>
+                            ))}
+                          </View>
+                          {dish.description ? (
+                            <Text style={[styles.menuDishDesc, { color: colors.textSecondary }]} numberOfLines={1}>{dish.description}</Text>
+                          ) : null}
+                        </View>
+
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={[styles.menuDishPrice, { color: colors.accent }]}>
+                            ₹{dish.pricePerPlate.toLocaleString('en-IN')}
+                          </Text>
+                          <Text style={[styles.menuDishPriceUnit, { color: colors.textSecondary }]}>/plate</Text>
+                          {/* Quantity stepper */}
+                          <View style={styles.menuQtyStepper}>
+                            <TouchableOpacity
+                              onPress={() => adjustMenuQty(dish.id, -1)}
+                              style={[styles.menuQtyBtn, { backgroundColor: qty > 0 ? colors.surfaceCard : colors.surfaceElevated }]}
+                            >
+                              <Minus size={13} color={qty > 0 ? colors.textPrimary : colors.textFaint} />
+                            </TouchableOpacity>
+                            <Text style={[styles.menuQtyValue, { color: colors.textPrimary }]}>{qty}</Text>
+                            <TouchableOpacity
+                              onPress={() => adjustMenuQty(dish.id, 1)}
+                              style={[styles.menuQtyBtn, { backgroundColor: colors.accentGlow }]}
+                            >
+                              <Plus size={13} color={colors.accent} />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  })}
+
+                {/* Get Quotation floating summary bar */}
+                {menuItemCount > 0 && (
+                  <TouchableOpacity
+                    activeOpacity={0.88}
+                    onPress={() => navigation.navigate('QuotationSummary', {
+                      professionalId: proId,
+                      catererName: profile.name,
+                      catererTitle: profile.title,
+                      ratePerDay: profile.ratePerDay,
+                      menuItems: profile.menuItems,
+                      selections: menuSelections,
+                    })}
+                    style={[styles.menuQuotationBar, { backgroundColor: colors.accent }]}
+                  >
+                    <View>
+                      <Text style={styles.menuQuotationBarLabel}>{menuItemCount} dish{menuItemCount > 1 ? 'es' : ''} selected</Text>
+                      <Text style={styles.menuQuotationBarTotal}>₹{menuTotal.toLocaleString('en-IN')} / plate</Text>
+                    </View>
+                    <View style={styles.menuQuotationBarRight}>
+                      <Text style={styles.menuQuotationBarCta}>Get Quotation</Text>
+                      <ChevronRight size={16} color="#ffffff" />
+                    </View>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
+        )}
 
         {/* ── Capabilities / Production Logistics (Expandable Accordion) ── */}
         {profile.equipment && profile.equipment.length > 0 && (
@@ -2099,5 +2267,123 @@ const styles = StyleSheet.create({
   videoPlayerBoxCinema: {
     width: '100%',
     aspectRatio: 16 / 9,
+  },
+
+  // ── Menu & Dishes styles ──
+  menuCatChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+  },
+  menuCatChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  menuDishRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+  },
+  menuVegDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    borderWidth: 1.5,
+    marginRight: 7,
+    flexShrink: 0,
+  },
+  menuDishName: {
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    flex: 1,
+  },
+  menuDishDesc: {
+    fontSize: 12,
+    fontWeight: '400',
+    marginTop: 5,
+    lineHeight: 16,
+  },
+  menuCatTag: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  menuCatTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  menuDietTag: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  menuDietTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  menuDishPrice: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  menuDishPriceUnit: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 1,
+    marginBottom: 8,
+  },
+  menuQtyStepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  menuQtyBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuQtyValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    minWidth: 18,
+    textAlign: 'center',
+  },
+  menuQuotationBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 14,
+  },
+  menuQuotationBarLabel: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  menuQuotationBarTotal: {
+    color: '#ffffff',
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+    marginTop: 1,
+  },
+  menuQuotationBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  menuQuotationBarCta: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

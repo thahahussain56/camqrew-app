@@ -30,6 +30,7 @@ import { ChatScreen } from '../screens/shared/ChatScreen';
 import { ChatListScreen } from '../screens/shared/ChatListScreen';
 import { ChatInfoScreen } from '../screens/shared/ChatInfoScreen';
 import { JobReviewScreen } from '../screens/customer/JobReviewScreen';
+import { QuotationSummaryScreen } from '../screens/customer/QuotationSummaryScreen';
 
 // Professional Screens (for Creator Dashboard access via Profile)
 import { ProfessionalDashboardScreen } from '../screens/professional/ProfessionalDashboardScreen';
@@ -79,6 +80,7 @@ function HomeStack() {
       <Stack.Screen name="ReelsFeed" component={ReelsFeedScreen} />
       <Stack.Screen name="JobBoardScreen" component={JobBoardScreen} />
       <Stack.Screen name="JobBoard" component={JobBoardScreen} />
+      <Stack.Screen name="QuotationSummary" component={QuotationSummaryScreen} />
     </Stack.Navigator>
   );
 }
@@ -97,6 +99,7 @@ function ExploreStack() {
       <Stack.Screen name="ReelsFeed" component={ReelsFeedScreen} />
       <Stack.Screen name="JobBoardScreen" component={JobBoardScreen} />
       <Stack.Screen name="JobBoard" component={JobBoardScreen} />
+      <Stack.Screen name="QuotationSummary" component={QuotationSummaryScreen} />
     </Stack.Navigator>
   );
 }

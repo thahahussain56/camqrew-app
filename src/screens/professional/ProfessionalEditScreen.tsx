@@ -5,7 +5,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { professionalApi } from '../../api/professionalApi';
 import { cloudStorageApi } from '../../api/cloudStorageApi';
-import { ProfessionalProfile, ServiceItem, VideoReelItem } from '../../types/professional';
+import { ProfessionalProfile, ServiceItem, VideoReelItem, MenuDishItem } from '../../types/professional';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -14,7 +14,7 @@ import { ChipInput } from '../../components/forms/ChipInput';
 import { LocationCascader } from '../../components/forms/LocationCascader';
 import { Toast } from '../../components/ui/Toast';
 import { PROFESSIONAL_CATEGORIES, getArchetype } from '../../constants/categories';
-import { ChevronDown, ChevronUp, Plus, Trash2, Save, Camera, Image as ImageIcon, Film, Play, UploadCloud, CheckCircle, Video } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Plus, Minus, Trash2, Save, Camera, Image as ImageIcon, Film, Play, UploadCloud, CheckCircle, Video, UtensilsCrossed } from 'lucide-react-native';
 
 export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors } = useTheme();
@@ -74,6 +74,22 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [newService, setNewService] = useState<{title: string, rate: string, unit: string, category: string, deliverables: string, type: 'standard' | 'package'}>({ title: '', rate: '', unit: 'Day', category: 'Photography', deliverables: '', type: 'standard' });
 
+  // Menu / Dishes State (Caterers only)
+  const [menuItems, setMenuItems] = useState<MenuDishItem[]>([]);
+  const [newDish, setNewDish] = useState<{
+    name: string;
+    category: MenuDishItem['category'];
+    pricePerPlate: string;
+    dietaryTags: MenuDishItem['dietaryTags'];
+    description: string;
+  }>({
+    name: '',
+    category: 'Starter',
+    pricePerPlate: '',
+    dietaryTags: ['Veg'],
+    description: '',
+  });
+
   useEffect(() => {
     if (user?.id) {
       professionalApi.getProfileById(user.id).then(p => {
@@ -95,6 +111,7 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
           setBannerImage(p.bannerImage || '');
           setPortfolio(p.portfolio || []);
           setServices(p.services || []);
+          setMenuItems(p.menuItems || []);
           setVideoReels(p.videoReels || []);
         }
       }).catch(console.warn);
@@ -226,6 +243,7 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
         internationalTravel,
         socials: { instagram, website, youtube, facebook },
         services,
+        menuItems,
         videoReels,
       });
       setToastMessage('Profile updated successfully!');
@@ -797,6 +815,166 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
           </View>
         )}
       </Card>
+
+      {/* 7. Menu & Dishes (Caterers Only) */}
+      {activeArchetype.archetype === 'catering' && (
+        <Card style={styles.accordionCard}>
+          <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('menu')}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <UtensilsCrossed size={16} color="#3fb668" style={{ marginRight: 8 }} />
+              <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>7. Menu & Dishes</Text>
+              {menuItems.length > 0 && (
+                <View style={{ marginLeft: 8, backgroundColor: '#3fb668', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                  <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{menuItems.length}</Text>
+                </View>
+              )}
+            </View>
+            {openSections.menu ? <ChevronUp size={20} color="#3fb668" /> : <ChevronDown size={20} color={colors.textSecondary} />}
+          </TouchableOpacity>
+
+          {openSections.menu && (
+            <View style={styles.accordionBody}>
+              <Text style={[styles.subHeading, { color: colors.textSecondary, marginBottom: 12, fontWeight: '400' }]}>
+                List your dishes so customers can browse, select items, and get an instant quotation before booking.
+              </Text>
+
+              {/* Existing Dishes */}
+              {menuItems.map((dish) => (
+                <View key={dish.id} style={[styles.srvBox, { borderColor: colors.borderLight, backgroundColor: colors.surfaceElevated }]}>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <Text style={[styles.srvTitle, { color: colors.textPrimary }]}>{dish.name}</Text>
+                      {dish.dietaryTags.map(tag => (
+                        <View key={tag} style={{
+                          paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+                          backgroundColor: (tag === 'Veg' || tag === 'Jain' || tag === 'Vegan') ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                        }}>
+                          <Text style={{ fontSize: 9, fontWeight: '800', color: (tag === 'Veg' || tag === 'Jain' || tag === 'Vegan') ? '#16a34a' : '#dc2626' }}>
+                            {tag.toUpperCase()}
+                          </Text>
+                        </View>
+                      ))}
+                      <View style={{ backgroundColor: colors.accentGlow, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                        <Text style={{ color: colors.accent, fontSize: 9, fontWeight: '800' }}>{dish.category.toUpperCase()}</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.srvRate, { color: colors.accent, marginTop: 4 }]}>
+                      ₹{dish.pricePerPlate.toLocaleString('en-IN')} / plate
+                    </Text>
+                    {dish.description ? (
+                      <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }} numberOfLines={1}>{dish.description}</Text>
+                    ) : null}
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => setMenuItems(prev => prev.map(d => d.id === dish.id ? { ...d, isAvailable: !d.isAvailable } : d))}
+                    style={{ paddingHorizontal: 8, paddingVertical: 4, marginRight: 4 }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: dish.isAvailable ? colors.accent : colors.textSecondary }}>
+                      {dish.isAvailable ? '● Live' : '○ Hidden'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setMenuItems(prev => prev.filter(d => d.id !== dish.id))} style={{ padding: 8 }}>
+                    <Trash2 size={16} color="#e11d48" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              {/* Add Dish Form */}
+              <View style={[styles.addBox, { borderColor: colors.borderLight, marginTop: 10 }]}>
+                <Text style={[styles.addTitle, { color: colors.textPrimary }]}>Add New Dish</Text>
+
+                <Input
+                  label="Dish Name"
+                  placeholder="e.g. Butter Chicken, Paan Ice Cream"
+                  value={newDish.name}
+                  onChangeText={t => setNewDish({ ...newDish, name: t })}
+                />
+
+                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 6 }}>Category</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                  {(['Starter', 'Main Course', 'Dessert', 'Beverage', 'Live Counter', 'Other'] as MenuDishItem['category'][]).map(cat => (
+                    <Chip
+                      key={cat}
+                      label={cat}
+                      active={newDish.category === cat}
+                      onPress={() => setNewDish({ ...newDish, category: cat })}
+                    />
+                  ))}
+                </ScrollView>
+
+                <Input
+                  label="Price per Plate / Serving (₹)"
+                  placeholder="e.g. 250"
+                  value={newDish.pricePerPlate}
+                  onChangeText={t => setNewDish({ ...newDish, pricePerPlate: t })}
+                  keyboardType="numeric"
+                />
+
+                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 8 }}>Dietary Type</Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                  {(['Veg', 'Non-Veg', 'Jain', 'Vegan'] as ('Veg' | 'Non-Veg' | 'Jain' | 'Vegan')[]).map(tag => {
+                    const isActive = newDish.dietaryTags.includes(tag);
+                    const isGreen = tag === 'Veg' || tag === 'Jain' || tag === 'Vegan';
+                    return (
+                      <TouchableOpacity
+                        key={tag}
+                        onPress={() => {
+                          setNewDish(prev => ({
+                            ...prev,
+                            dietaryTags: isActive
+                              ? prev.dietaryTags.filter(t => t !== tag)
+                              : [...prev.dietaryTags, tag],
+                          }));
+                        }}
+                        style={{
+                          paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
+                          backgroundColor: isActive ? (isGreen ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)') : colors.surfaceElevated,
+                          borderWidth: 1,
+                          borderColor: isActive ? (isGreen ? '#16a34a' : '#dc2626') : colors.borderLight,
+                        }}
+                      >
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: isActive ? (isGreen ? '#16a34a' : '#dc2626') : colors.textSecondary }}>
+                          {tag}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <Input
+                  label="Short Description (optional)"
+                  placeholder="e.g. Slow-cooked in a rich tomato-butter gravy"
+                  value={newDish.description}
+                  onChangeText={t => setNewDish({ ...newDish, description: t })}
+                />
+
+                <Button
+                  title="Add Dish to Menu"
+                  variant="secondary"
+                  size="md"
+                  icon={<Plus size={15} color={colors.accent} />}
+                  onPress={() => {
+                    if (!newDish.name.trim() || !newDish.pricePerPlate) return;
+                    const dish: MenuDishItem = {
+                      id: 'dish_' + Date.now(),
+                      name: newDish.name.trim(),
+                      category: newDish.category,
+                      pricePerPlate: Number(newDish.pricePerPlate),
+                      dietaryTags: newDish.dietaryTags.length > 0 ? newDish.dietaryTags : ['Veg'],
+                      description: newDish.description.trim() || undefined,
+                      isAvailable: true,
+                    };
+                    setMenuItems(prev => [...prev, dish]);
+                    setNewDish({ name: '', category: 'Starter', pricePerPlate: '', dietaryTags: ['Veg'], description: '' });
+                    setToastMessage('Dish added to menu!');
+                  }}
+                  style={{ marginTop: 8 }}
+                />
+              </View>
+            </View>
+          )}
+        </Card>
+      )}
 
       <Button
         title="Save Profile Changes"
