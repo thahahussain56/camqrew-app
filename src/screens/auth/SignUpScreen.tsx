@@ -577,7 +577,7 @@ export const ProfessionalSignUpScreen: React.FC<{ navigation: any }> = ({ naviga
 
               <Field 
                 label="Professional Title *" 
-                placeholder={selectedCategory === 'Caterers' ? 'e.g. Executive Banquet Caterer' : selectedCategory === 'Organisers' ? 'e.g. Luxury Wedding & Event Planner' : selectedCategory === 'Developers' ? 'e.g. Full-Stack Web & Mobile Developer' : selectedCategory === 'Models' ? 'e.g. International Runway & High-Fashion Model' : 'e.g. Senior Wedding Photographer'} 
+                placeholder={selectedCategory === 'Home Bakers' ? 'e.g. Artisan Cake Designer & Fresh Baked Foods' : selectedCategory === 'Caterers' ? 'e.g. Executive Banquet Caterer' : selectedCategory === 'Organisers' ? 'e.g. Luxury Wedding & Event Planner' : selectedCategory === 'Developers' ? 'e.g. Full-Stack Web & Mobile Developer' : selectedCategory === 'Models' ? 'e.g. International Runway & High-Fashion Model' : 'e.g. Senior Wedding Photographer'} 
                 value={title} 
                 onChangeText={setTitle} 
               />
@@ -585,13 +585,13 @@ export const ProfessionalSignUpScreen: React.FC<{ navigation: any }> = ({ naviga
               <Field label="Years of Experience" placeholder="e.g. 5" value={experienceYears} onChangeText={setExperienceYears} keyboardType="number-pad" autoCapitalize="none" />
               <Field 
                 label={`${regArchetype.skillsSectionTitle} (comma separated)`} 
-                placeholder={selectedCategory === 'Caterers' ? 'FSSAI Certified, Mughlai, Live Chaat, Mocktail Bar' : selectedCategory === 'Organisers' ? 'Turnkey Planning, Stage Fabrication, Artist Booking' : selectedCategory === 'Developers' ? 'React, Next.js, Node.js, Supabase, AWS' : selectedCategory === 'Models' ? 'Lakmé Fashion Week, FDCI, Vogue, Ramp Walk Certified' : 'Photography, Cinematography, DGCA Drone Pilot'} 
+                placeholder={selectedCategory === 'Home Bakers' ? 'Fondant Sculpting, Eggless Baking, French Macarons, Custom Tiered Cakes' : selectedCategory === 'Caterers' ? 'FSSAI Certified, Mughlai, Live Chaat, Mocktail Bar' : selectedCategory === 'Organisers' ? 'Turnkey Planning, Stage Fabrication, Artist Booking' : selectedCategory === 'Developers' ? 'React, Next.js, Node.js, Supabase, AWS' : selectedCategory === 'Models' ? 'Lakmé Fashion Week, FDCI, Vogue, Ramp Walk Certified' : 'Photography, Cinematography, DGCA Drone Pilot'} 
                 value={skills} 
                 onChangeText={setSkills} 
               />
               <Field 
                 label={`${regArchetype.equipmentSectionTitle} (comma separated)`} 
-                placeholder={selectedCategory === 'Caterers' ? 'Buffet Warmers, Live Counters, Crockery Included' : selectedCategory === 'Organisers' ? 'Line Array Sound, Light Trussing, LED Wall' : selectedCategory === 'Developers' ? 'TypeScript, PostgreSQL, Tailwind, Docker' : selectedCategory === 'Models' ? 'Height: 5\'10", Vitals: 34-25-36, High-Fashion Runway, Bridal' : 'Sony A7S III, Canon R5, DJI Mavic 3'} 
+                placeholder={selectedCategory === 'Home Bakers' ? 'Baking Studio, Commercial Deck Oven, KitchenAid Stand Mixers, Cold Storage' : selectedCategory === 'Caterers' ? 'Buffet Warmers, Live Counters, Crockery Included' : selectedCategory === 'Organisers' ? 'Line Array Sound, Light Trussing, LED Wall' : selectedCategory === 'Developers' ? 'TypeScript, PostgreSQL, Tailwind, Docker' : selectedCategory === 'Models' ? 'Height: 5\'10", Vitals: 34-25-36, High-Fashion Runway, Bridal' : 'Sony A7S III, Canon R5, DJI Mavic 3'} 
                 value={equipment} 
                 onChangeText={setEquipment} 
               />

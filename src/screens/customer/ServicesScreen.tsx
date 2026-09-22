@@ -29,7 +29,7 @@ export const ServicesScreen: React.FC<{ navigation: any; route: any }> = ({ navi
   const [district, setDistrict] = useState('');
   const [city, setCity] = useState('');
 
-  const proCategories = ['All', 'Photographers', 'Videographers', 'Models', 'Caterers', 'Organisers', 'Makeup Artists', 'Mehendi Artists', 'Developers', 'Designers'];
+  const proCategories = ['All', 'Photographers', 'Videographers', 'Models', 'Home Bakers', 'Caterers', 'Organisers', 'Makeup Artists', 'Mehendi Artists', 'Developers', 'Designers'];
   const studioCategories = ['All', 'Green Screen', 'Sound Stage', 'Photo Bay', 'VFX Bay', 'Podcast'];
   const currentCategories = serviceType === 'professionals' ? proCategories : studioCategories;
 
