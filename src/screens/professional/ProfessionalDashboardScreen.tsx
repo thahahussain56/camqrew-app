@@ -18,7 +18,7 @@ import { BookingsDonut } from '../../components/charts/BookingsDonut';
 import { Toast } from '../../components/ui/Toast';
 import { ListProductModal } from '../../components/forms/ListProductModal';
 import { ListMenuDishModal } from '../../components/forms/ListMenuDishModal';
-import { DollarSign, Calendar, Eye, Star, Edit3, Bell, PlusCircle, LayoutDashboard, ShoppingBag, FolderGit2, Film, UtensilsCrossed, Trash2, Plus } from 'lucide-react-native';
+import { DollarSign, Calendar, Eye, Star, Edit3, Bell, PlusCircle, LayoutDashboard, ShoppingBag, FolderGit2, Film, UtensilsCrossed, Trash2, Plus, Clock } from 'lucide-react-native';
 
 type DashTab = 'overview' | 'bookings' | 'sales_rentals' | 'listings';
 
@@ -484,6 +484,21 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
                                 {dish.category}
                               </Text>
                             </View>
+                            {dish.minQuantity ? (
+                              <View style={[styles.swiggyCategoryBadge, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                                <Text style={[styles.swiggyCategoryBadgeText, { color: '#f59e0b', fontWeight: '800' }]}>
+                                  Min: {dish.minQuantity}
+                                </Text>
+                              </View>
+                            ) : null}
+                            {dish.prepTime ? (
+                              <View style={[styles.swiggyCategoryBadge, { backgroundColor: 'rgba(59, 130, 246, 0.12)', flexDirection: 'row', alignItems: 'center' }]}>
+                                <Clock size={10} color="#3b82f6" style={{ marginRight: 3 }} />
+                                <Text style={[styles.swiggyCategoryBadgeText, { color: '#3b82f6', fontWeight: '800' }]}>
+                                  Prep: {dish.prepTime}
+                                </Text>
+                              </View>
+                            ) : null}
                             {dish.dietaryTags?.map(t => (
                               <View
                                 key={t}
@@ -517,7 +532,7 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
                           <View style={{ marginTop: 8 }}>
                             <Text style={[styles.swiggyDishPrice, { color: colors.textPrimary }]}>
                               ₹{dish.pricePerPlate.toLocaleString('en-IN')}
-                              <Text style={{ fontSize: 12, fontWeight: '500', color: colors.textSecondary }}> / plate</Text>
+                              <Text style={{ fontSize: 12, fontWeight: '500', color: colors.textSecondary }}> /{dish.unit || (isBaker ? 'kg' : 'plate')}</Text>
                             </Text>
                           </View>
                         </View>
@@ -705,6 +720,7 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
         <ListMenuDishModal
           visible={showMenuDishModal}
           dishToEdit={editingDish}
+          isBaker={isBaker}
           onClose={() => {
             setShowMenuDishModal(false);
             setEditingDish(null);

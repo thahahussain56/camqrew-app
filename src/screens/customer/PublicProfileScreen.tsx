@@ -14,7 +14,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { ProductCard } from '../../components/cards/ProductCard';
 import { useCartStore } from '../../store/cartStore';
-import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, ThumbsUp, Check, Award, UtensilsCrossed, Plus, Minus } from 'lucide-react-native';
+import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, ThumbsUp, Check, Award, UtensilsCrossed, Plus, Minus, Clock } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import { getArchetype } from '../../constants/categories';
 
@@ -571,6 +571,12 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                             {dish.minQuantity ? (
                               <View style={[styles.menuDietTag, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.35)', borderWidth: 1 }]}>
                                 <Text style={[styles.menuDietTagText, { color: '#f59e0b', fontWeight: '700' }]}>Min: {dish.minQuantity}</Text>
+                              </View>
+                            ) : null}
+                            {dish.prepTime ? (
+                              <View style={[styles.menuDietTag, { backgroundColor: 'rgba(59, 130, 246, 0.12)', borderColor: 'rgba(59, 130, 246, 0.35)', borderWidth: 1, flexDirection: 'row', alignItems: 'center' }]}>
+                                <Clock size={10} color="#3b82f6" style={{ marginRight: 3 }} />
+                                <Text style={[styles.menuDietTagText, { color: '#3b82f6', fontWeight: '700' }]}>Prep: {dish.prepTime}</Text>
                               </View>
                             ) : null}
                             {dish.dietaryTags.map(tag => (

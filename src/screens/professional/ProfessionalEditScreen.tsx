@@ -83,6 +83,9 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
     dietaryTags: MenuDishItem['dietaryTags'];
     description: string;
     imageUrl: string;
+    minQuantity?: string;
+    unit?: string;
+    prepTime?: string;
   }>({
     name: '',
     category: 'Starter',
@@ -90,6 +93,9 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
     dietaryTags: ['Veg'],
     description: '',
     imageUrl: '',
+    minQuantity: '',
+    unit: '',
+    prepTime: '',
   });
 
   useEffect(() => {
@@ -872,8 +878,14 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                       </View>
                     </View>
                     <Text style={[styles.srvRate, { color: colors.accent, marginTop: 4 }]}>
-                      ₹{dish.pricePerPlate.toLocaleString('en-IN')} / plate
+                      ₹{dish.pricePerPlate.toLocaleString('en-IN')} /{dish.unit || 'plate'}
+                      {dish.minQuantity ? ` • Min: ${dish.minQuantity}` : ''}
                     </Text>
+                    {dish.prepTime ? (
+                      <Text style={{ color: '#3b82f6', fontSize: 11, fontWeight: '700', marginTop: 2 }}>
+                        ⏱️ Prep: {dish.prepTime}
+                      </Text>
+                    ) : null}
                     {dish.description ? (
                       <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }} numberOfLines={1}>{dish.description}</Text>
                     ) : null}
@@ -905,7 +917,7 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
 
                 <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 6 }}>Category</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-                  {(['Starter', 'Main Course', 'Dessert', 'Beverage', 'Live Counter', 'Other'] as MenuDishItem['category'][]).map(cat => (
+                  {(['Starter', 'Main Course', 'Dessert', 'Beverage', 'Live Counter', 'Cakes', 'Pastries', 'Savory', 'Breads', 'Other'] as MenuDishItem['category'][]).map(cat => (
                     <Chip
                       key={cat}
                       label={cat}
@@ -915,12 +927,38 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                   ))}
                 </ScrollView>
 
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <View style={{ flex: 1.2 }}>
+                    <Input
+                      label="Price (₹)"
+                      placeholder="e.g. 250"
+                      value={newDish.pricePerPlate}
+                      onChangeText={t => setNewDish({ ...newDish, pricePerPlate: t })}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Input
+                      label="Unit"
+                      placeholder="Kg, plate, box"
+                      value={newDish.unit || ''}
+                      onChangeText={t => setNewDish({ ...newDish, unit: t })}
+                    />
+                  </View>
+                </View>
+
                 <Input
-                  label="Price per Plate / Serving (₹)"
-                  placeholder="e.g. 250"
-                  value={newDish.pricePerPlate}
-                  onChangeText={t => setNewDish({ ...newDish, pricePerPlate: t })}
-                  keyboardType="numeric"
+                  label="Minimum Order Qty (Optional)"
+                  placeholder="e.g. 0.5 Kg, 1 Box, 1 Cake"
+                  value={newDish.minQuantity || ''}
+                  onChangeText={t => setNewDish({ ...newDish, minQuantity: t })}
+                />
+
+                <Input
+                  label="Preparation Time / Notice (Optional)"
+                  placeholder="e.g. 24 Hours Notice, 48 Hours, Same Day (4 hrs)"
+                  value={newDish.prepTime || ''}
+                  onChangeText={t => setNewDish({ ...newDish, prepTime: t })}
                 />
 
                 <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 8 }}>Dietary Type</Text>
@@ -984,10 +1022,13 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                       dietaryTags: newDish.dietaryTags.length > 0 ? newDish.dietaryTags : ['Veg'],
                       description: newDish.description.trim() || undefined,
                       imageUrl: newDish.imageUrl.trim() || undefined,
+                      minQuantity: newDish.minQuantity?.trim() || undefined,
+                      unit: newDish.unit?.trim() || undefined,
+                      prepTime: newDish.prepTime?.trim() || undefined,
                       isAvailable: true,
                     };
                     setMenuItems(prev => [...prev, dish]);
-                    setNewDish({ name: '', category: 'Starter', pricePerPlate: '', dietaryTags: ['Veg'], description: '', imageUrl: '' });
+                    setNewDish({ name: '', category: 'Starter', pricePerPlate: '', dietaryTags: ['Veg'], description: '', imageUrl: '', minQuantity: '', unit: '', prepTime: '' });
                     setToastMessage('Dish added to menu!');
                   }}
                   style={{ marginTop: 8 }}

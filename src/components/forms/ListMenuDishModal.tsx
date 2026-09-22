@@ -16,11 +16,12 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Chip } from '../ui/Chip';
 import { MenuDishItem } from '../../types/professional';
-import { UtensilsCrossed, X } from 'lucide-react-native';
+import { UtensilsCrossed, X, Clock } from 'lucide-react-native';
 
 interface ListMenuDishModalProps {
   visible: boolean;
   dishToEdit?: MenuDishItem | null;
+  isBaker?: boolean;
   onClose: () => void;
   onSuccess: (message: string) => void;
   onSave: (dish: Omit<MenuDishItem, 'id' | 'isAvailable'>, editingId?: string) => Promise<void>;
@@ -35,6 +36,17 @@ const MENU_CATEGORIES: MenuDishItem['category'][] = [
   'Other',
 ];
 
+const BAKER_CATEGORIES: MenuDishItem['category'][] = [
+  'Cakes',
+  'Pastries',
+  'Breads',
+  'Savory',
+  'Dessert',
+  'Live Counter',
+  'Starter',
+  'Other',
+];
+
 const DIETARY_OPTIONS: ('Veg' | 'Non-Veg' | 'Jain' | 'Vegan')[] = [
   'Veg',
   'Non-Veg',
@@ -45,6 +57,7 @@ const DIETARY_OPTIONS: ('Veg' | 'Non-Veg' | 'Jain' | 'Vegan')[] = [
 export const ListMenuDishModal: React.FC<ListMenuDishModalProps> = ({
   visible,
   dishToEdit,
+  isBaker = false,
   onClose,
   onSuccess,
   onSave,
@@ -57,6 +70,9 @@ export const ListMenuDishModal: React.FC<ListMenuDishModalProps> = ({
   const [dietaryTags, setDietaryTags] = useState<MenuDishItem['dietaryTags']>(['Veg']);
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [minQuantity, setMinQuantity] = useState('');
+  const [unit, setUnit] = useState('');
+  const [prepTime, setPrepTime] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -67,15 +83,21 @@ export const ListMenuDishModal: React.FC<ListMenuDishModalProps> = ({
       setDietaryTags(dishToEdit.dietaryTags || ['Veg']);
       setDescription(dishToEdit.description || '');
       setImageUrl(dishToEdit.imageUrl || '');
+      setMinQuantity(dishToEdit.minQuantity || '');
+      setUnit(dishToEdit.unit || (isBaker ? 'Kg' : 'plate'));
+      setPrepTime(dishToEdit.prepTime || '');
     } else {
       setName('');
-      setCategory('Starter');
+      setCategory(isBaker ? 'Cakes' : 'Starter');
       setPricePerPlate('');
       setDietaryTags(['Veg']);
       setDescription('');
       setImageUrl('');
+      setMinQuantity(isBaker ? '0.5 Kg' : '');
+      setUnit(isBaker ? 'Kg' : 'plate');
+      setPrepTime(isBaker ? '24 Hours Notice' : '');
     }
-  }, [dishToEdit, visible]);
+  }, [dishToEdit, visible, isBaker]);
 
   const toggleDietaryTag = (tag: 'Veg' | 'Non-Veg' | 'Jain' | 'Vegan') => {
     setDietaryTags(prev => {
@@ -114,10 +136,13 @@ export const ListMenuDishModal: React.FC<ListMenuDishModalProps> = ({
           dietaryTags: dietaryTags.length > 0 ? dietaryTags : ['Veg'],
           description: description.trim() || undefined,
           imageUrl: imageUrl.trim() || undefined,
+          minQuantity: minQuantity.trim() || undefined,
+          unit: unit.trim() || undefined,
+          prepTime: prepTime.trim() || undefined,
         },
         dishToEdit ? dishToEdit.id : undefined,
       );
-      onSuccess(dishToEdit ? 'Dish updated successfully!' : '🎉 New dish added to menu!');
+      onSuccess(dishToEdit ? (isBaker ? 'Bake item updated!' : 'Dish updated successfully!') : (isBaker ? '🎉 New bake item added to menu!' : '🎉 New dish added to menu!'));
       onClose();
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Failed to save menu dish');
@@ -125,6 +150,8 @@ export const ListMenuDishModal: React.FC<ListMenuDishModalProps> = ({
       setLoading(false);
     }
   };
+
+  const currentCategories = isBaker ? BAKER_CATEGORIES : MENU_CATEGORIES;
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -141,10 +168,10 @@ export const ListMenuDishModal: React.FC<ListMenuDishModalProps> = ({
               </View>
               <View>
                 <Text style={[styles.title, { color: colors.textPrimary }]}>
-                  {dishToEdit ? 'Edit Menu Dish' : 'Add Dish to Menu'}
+                  {dishToEdit ? (isBaker ? 'Edit Bake Item' : 'Edit Menu Dish') : (isBaker ? 'Add Bake / Cake' : 'Add Dish to Menu')}
                 </Text>
                 <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                  Swiggy-style catering menu item & pricing
+                  {isBaker ? 'Artisan bakes & celebration food pricing' : 'Swiggy-style catering menu item & pricing'}
                 </Text>
               </View>
             </View>
@@ -156,16 +183,16 @@ export const ListMenuDishModal: React.FC<ListMenuDishModalProps> = ({
           <ScrollView style={styles.scrollBody} showsVerticalScrollIndicator={false}>
             {/* Dish Name */}
             <Input
-              label="Dish / Item Name *"
-              placeholder="e.g. Paneer Butter Masala, Mutton Biryani, Gulab Jamun"
+              label={isBaker ? 'Bake / Item Name *' : 'Dish / Item Name *'}
+              placeholder={isBaker ? 'e.g. Belgian Chocolate Truffle Cake, Bento Box' : 'e.g. Paneer Butter Masala, Mutton Biryani'}
               value={name}
               onChangeText={setName}
             />
 
             {/* Category Selector */}
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Menu Category *</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Category *</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-              {MENU_CATEGORIES.map(cat => (
+              {currentCategories.map(cat => (
                 <Chip
                   key={cat}
                   label={cat}
@@ -175,14 +202,77 @@ export const ListMenuDishModal: React.FC<ListMenuDishModalProps> = ({
               ))}
             </ScrollView>
 
-            {/* Price per Plate */}
+            {/* Price & Unit Row */}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1.2 }}>
+                <Input
+                  label={isBaker ? 'Price (₹) *' : 'Price per Plate (₹) *'}
+                  placeholder={isBaker ? '1200' : '250'}
+                  value={pricePerPlate}
+                  onChangeText={setPricePerPlate}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Input
+                  label="Unit"
+                  placeholder={isBaker ? 'Kg, Cake, Box' : 'plate'}
+                  value={unit}
+                  onChangeText={setUnit}
+                />
+              </View>
+            </View>
+
+            {/* Minimum Order Quantity */}
             <Input
-              label="Price per Plate / Serving (₹) *"
-              placeholder="e.g. 250"
-              value={pricePerPlate}
-              onChangeText={setPricePerPlate}
-              keyboardType="numeric"
+              label="Minimum Order Qty (Optional)"
+              placeholder={isBaker ? 'e.g. 0.5 Kg, 1 Cake, 1 Box (6 Pcs)' : 'e.g. 10 plates'}
+              value={minQuantity}
+              onChangeText={setMinQuantity}
             />
+
+            {/* Preparation Time / Notice Required */}
+            <View style={{ marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={[styles.fieldLabel, { color: colors.textSecondary, marginBottom: 0 }]}>
+                  Preparation Time / Notice {isBaker ? '*' : '(Optional)'}
+                </Text>
+                <Text style={{ fontSize: 11, color: colors.textSecondary }}>Advance lead time</Text>
+              </View>
+
+              {/* Quick Presets */}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                {['Same Day (4 hrs)', '24 Hours', '48 Hours', '2-3 Days', '1 Week'].map(preset => {
+                  const isSel = prepTime === preset;
+                  return (
+                    <TouchableOpacity
+                      key={preset}
+                      onPress={() => setPrepTime(preset)}
+                      style={[
+                        styles.presetChip,
+                        { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight },
+                        isSel && { backgroundColor: 'rgba(63,182,104,0.15)', borderColor: '#3fb668' }
+                      ]}
+                    >
+                      <Text style={[
+                        styles.presetChipText,
+                        { color: colors.textSecondary },
+                        isSel && { color: '#3fb668', fontWeight: '800' }
+                      ]}>
+                        {isSel ? '✓ ' : ''}{preset}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Input
+                placeholder="e.g. 24 Hours Notice, 48 Hours, 2-3 Days"
+                value={prepTime}
+                onChangeText={setPrepTime}
+                leftIcon={<Clock size={16} color={colors.accent} />}
+              />
+            </View>
 
             {/* Dietary Classification */}
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Dietary Classification *</Text>
@@ -403,6 +493,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.65)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  presetChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  presetChipText: {
+    fontSize: 11.5,
+    fontWeight: '700',
   },
   footer: {
     flexDirection: 'row',
