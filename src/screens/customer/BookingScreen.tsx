@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
@@ -14,16 +14,27 @@ import { Input } from '../../components/ui/Input';
 import { Toast } from '../../components/ui/Toast';
 import { DatePickerModal } from '../../components/ui/DatePickerModal';
 import { TimePickerModal } from '../../components/ui/TimePickerModal';
-import { Calendar, Clock, MapPin, CheckCircle, ChevronDown, ArrowLeft } from 'lucide-react-native';
+import { Calendar, Clock, MapPin, CheckCircle, ChevronDown, ArrowLeft, ShieldCheck, FileText, UtensilsCrossed } from 'lucide-react-native';
 import { useAuthStore } from '../../store/authStore';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LocationCascader } from '../../components/forms/LocationCascader';
 import { formatLocationString } from '../../constants/locations';
 import { useLocationStore } from '../../store/locationStore';
+import { getArchetype } from '../../constants/categories';
 
 const { width } = Dimensions.get('window');
 
 const STEP_TITLES = ['Select Service', 'Schedule & Location', 'Review Package', 'Send Request'];
+
+const CATEGORY_EVENT_TYPES: Record<string, string[]> = {
+  home_baker: ['Birthday Cake', 'Wedding Cake', 'Anniversary', 'Dessert Table Grazing', 'Artisan Breads Box', 'Corporate Gifting'],
+  catering: ['Wedding Reception', 'Corporate Gala', 'Sangeet & Cocktail', 'Birthday Party', 'Pooja / Traditional'],
+  modeling_talent: ['High-Fashion Runway', 'Bridal / Couture Lookbook', 'E-Commerce Catalog Fit', 'Commercial TVC', 'Editorial Magazine'],
+  event_management: ['Luxury Wedding', 'Corporate Summit', 'Fashion Gala', 'Music Festival', 'Private Social'],
+  tech_digital: ['Full-Stack Web App', 'Mobile App MVP', 'UI/UX Design System', 'API / Backend Architecture'],
+  beauty_bridal: ['Bridal HD Makeup', 'Sangeet / Reception Glam', 'Bridal Mehendi', 'Party Makeup', 'Editorial / Commercial'],
+  media_crew: ['Wedding', 'Corporate', 'Birthday/Party', 'Product Launch', 'Short Film', 'Drone Shoot', 'Podcast'],
+};
 
 export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
   const { colors } = useTheme();
@@ -50,6 +61,10 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
 
   const [isConfirmed, setIsConfirmed] = useState(false);
 
+  // Archetype
+  const proArchetype = useMemo(() => getArchetype(profile?.categories), [profile?.categories]);
+  const archetype = isStudio ? 'media_crew' : proArchetype.archetype;
+
   // Booking Form State
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
   const [startDate, setStartDate] = useState('');
@@ -66,6 +81,37 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
   const [eventType, setEventType] = useState('Production');
   const [notes, setNotes] = useState('');
 
+  // Category-specific options
+  // 1. Home Baker
+  const [bakerDietary, setBakerDietary] = useState('Eggless (100% Veg)');
+  const [bakerCakeMessage, setBakerCakeMessage] = useState('');
+  const [bakerCandlesKit, setBakerCandlesKit] = useState(true);
+  const [bakerTimeSlot, setBakerTimeSlot] = useState('Afternoon (01:00 PM - 05:00 PM)');
+
+  // 2. Catering
+  const [catererServingStyle, setCatererServingStyle] = useState('Buffet Setup');
+  const [catererDietary, setCatererDietary] = useState('Pure Veg & Jain Counter');
+  const [catererGuestCount, setCatererGuestCount] = useState('50');
+  const [catererMealSlot, setCatererMealSlot] = useState('Dinner (07:30 PM - 11:30 PM)');
+
+  // 3. Modeling & Talent
+  const [modelAssignmentType, setModelAssignmentType] = useState('High-Fashion Runway & Lookbook');
+  const [modelLookCount, setModelLookCount] = useState('4 - 6 Looks');
+  const [modelUsageRights, setModelUsageRights] = useState('Digital & Social Media (1 Year)');
+  const [modelStylingProvided, setModelStylingProvided] = useState('Stylist & MUA Provided on Set');
+
+  // 4. Event Management
+  const [eventScope, setEventScope] = useState('Turnkey Event Planning & Decor');
+  const [eventScale, setEventScale] = useState('Medium (100 - 500 Guests)');
+
+  // 5. Tech & Digital
+  const [techDeliverable, setTechDeliverable] = useState('Full-Stack Web App');
+  const [techSpecsLink, setTechSpecsLink] = useState('');
+
+  // 6. Beauty & Bridal
+  const [beautyStyle, setBeautyStyle] = useState('HD Bridal Makeup & Hair Styling');
+  const [beautyPartyCount, setBeautyPartyCount] = useState('Bride Only');
+
   const resolvedLocation = isStudio
     ? location
     : (venueAddress.trim()
@@ -81,6 +127,133 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
   const [showEndDateModal, setShowEndDateModal] = useState(false);
   const [showStartTimeModal, setShowStartTimeModal] = useState(false);
   const [showEndTimeModal, setShowEndTimeModal] = useState(false);
+
+  // Category Configuration Meta
+  const categoryConfig = useMemo(() => {
+    if (isStudio) {
+      return {
+        headerTitle: 'Book Studio',
+        serviceTitle: 'Studio Bay Rental',
+        packageSectionHeading: 'Select Studio Package',
+        dateLabel: 'Booking Dates (DD/MM/YYYY)',
+        isSingleDate: false,
+        locationCascaderLabel: 'Studio Locality',
+        locationAddressLabel: 'Studio Location / Address',
+        locationAddressPlaceholder: 'Studio Address',
+        contractTitle: '📜 CAMQREW STUDIO RENTAL CONTRACT',
+        contractSubject: 'Studio Bay Rental',
+        notesPlaceholder: 'Specify lighting grids, green room requirements, power load...',
+        rateUnitLabel: (days: number) => `Studio Rental (${days} ${days === 1 ? 'day' : 'days'})`,
+      };
+    }
+    switch (archetype) {
+      case 'home_baker':
+        return {
+          headerTitle: 'Order from Baker',
+          serviceTitle: 'Custom Artisan Cake & Fresh Bakes Order',
+          packageSectionHeading: 'Select Cake / Bake Package',
+          dateLabel: 'Delivery / Pickup Date (DD/MM/YYYY)',
+          isSingleDate: true,
+          locationCascaderLabel: 'Delivery Locality (State → District → City/Town)',
+          locationAddressLabel: 'Delivery Address, Landmark & Pincode *',
+          locationAddressPlaceholder: 'e.g. Flat 402, Sea Green Apts, Bandra West, Mumbai (or Studio Pickup)',
+          contractTitle: '📜 CAMQREW ARTISAN BAKERY ORDER AGREEMENT',
+          contractSubject: 'Custom Bakery & Artisan Confectionery Order',
+          notesPlaceholder: 'Specify cake flavor notes, color themes, lettering, and special packaging details...',
+          rateUnitLabel: () => 'Custom Artisan Bake Order',
+        };
+      case 'catering':
+        return {
+          headerTitle: 'Book Caterer',
+          serviceTitle: 'Banquet Catering & Culinary Package',
+          packageSectionHeading: 'Select Catering Package',
+          dateLabel: 'Event & Catering Dates (DD/MM/YYYY)',
+          isSingleDate: false,
+          locationCascaderLabel: 'Event Locality (State → District → City/Town)',
+          locationAddressLabel: 'Banquet / Venue Address & Kitchen Access Details *',
+          locationAddressPlaceholder: 'e.g. Royal Palm Banquets, Hall B, Andheri East, Mumbai',
+          contractTitle: '📜 CAMQREW BANQUET & CATERING SERVICE CONTRACT',
+          contractSubject: 'Catering & Culinary Services',
+          notesPlaceholder: 'Buffet setup timing, live counter space, water/power supply, dietary splits...',
+          rateUnitLabel: (days: number) => `Catering Service (${days} ${days === 1 ? 'day' : 'days'})`,
+        };
+      case 'modeling_talent':
+        return {
+          headerTitle: 'Book Model / Talent',
+          serviceTitle: 'High-Fashion Campaign & Lookbook Shoot',
+          packageSectionHeading: 'Select Assignment Package',
+          dateLabel: 'Shoot / Runway Dates (DD/MM/YYYY)',
+          isSingleDate: false,
+          locationCascaderLabel: 'Shoot Locality (State → District → City/Town)',
+          locationAddressLabel: 'Studio / Location Address & Fitting Venue *',
+          locationAddressPlaceholder: 'e.g. Studio 9, Film City, Goregaon, Mumbai',
+          contractTitle: '📜 CAMQREW MODELING & TALENT ASSIGNMENT CONTRACT',
+          contractSubject: 'Modeling & Fashion Assignment',
+          notesPlaceholder: 'Moodboard details, call times, fitting schedules, wardrobe notes...',
+          rateUnitLabel: (days: number) => `Modeling Assignment (${days} ${days === 1 ? 'day' : 'days'})`,
+        };
+      case 'event_management':
+        return {
+          headerTitle: 'Book Event Planner',
+          serviceTitle: 'Turnkey Event Planning & Production Execution',
+          packageSectionHeading: 'Select Planning Package',
+          dateLabel: 'Event & Setup Dates (DD/MM/YYYY)',
+          isSingleDate: false,
+          locationCascaderLabel: 'Event Locality (State → District → City/Town)',
+          locationAddressLabel: 'Event Venue / Grounds / Banquet Address *',
+          locationAddressPlaceholder: 'e.g. Grand Ballroom, JW Marriott, Juhu, Mumbai',
+          contractTitle: '📜 CAMQREW EVENT MANAGEMENT & PRODUCTION AGREEMENT',
+          contractSubject: 'Event Planning & Production Management',
+          notesPlaceholder: 'Venue dimensions, staging, audio-visual scope, vendor coordination...',
+          rateUnitLabel: (days: number) => `Event Management (${days} ${days === 1 ? 'day' : 'days'})`,
+        };
+      case 'tech_digital':
+        return {
+          headerTitle: 'Book Developer / Designer',
+          serviceTitle: 'Full-Stack Web App MVP & Digital Design',
+          packageSectionHeading: 'Select Scope / Sprint Package',
+          dateLabel: 'Project Sprint Dates (DD/MM/YYYY)',
+          isSingleDate: false,
+          locationCascaderLabel: 'Client / Work Locality (State → District → City/Town)',
+          locationAddressLabel: 'Client Office / Remote Work Base Address *',
+          locationAddressPlaceholder: 'e.g. Remote / HSR Layout Sector 4, Bengaluru',
+          contractTitle: '📜 CAMQREW DIGITAL & SOFTWARE DEVELOPMENT CONTRACT',
+          contractSubject: 'Digital Engineering & Design Sprints',
+          notesPlaceholder: 'Tech stack requirements, repository access, project milestone expectations...',
+          rateUnitLabel: (days: number) => `Sprint Duration (${days} ${days === 1 ? 'day' : 'days'})`,
+        };
+      case 'beauty_bridal':
+        return {
+          headerTitle: 'Book Beauty Artist',
+          serviceTitle: 'Full Bridal HD Makeup & Sangeet Mehendi',
+          packageSectionHeading: 'Select Artistry Package',
+          dateLabel: 'Ceremony / Booking Dates (DD/MM/YYYY)',
+          isSingleDate: false,
+          locationCascaderLabel: 'Service Locality (State → District → City/Town)',
+          locationAddressLabel: 'Bridal Suite / Hotel / Home Venue Address *',
+          locationAddressPlaceholder: 'e.g. Suite 501, Taj Lands End, Bandra West, Mumbai',
+          contractTitle: '📜 CAMQREW BRIDAL & BEAUTY ARTISTRY AGREEMENT',
+          contractSubject: 'Bridal Makeup & Beauty Artistry',
+          notesPlaceholder: 'Skin type notes, jewelry draping assistance, ceremony call time...',
+          rateUnitLabel: (days: number) => `Artistry Package (${days} ${days === 1 ? 'day' : 'days'})`,
+        };
+      default:
+        return {
+          headerTitle: 'Book Creator',
+          serviceTitle: 'Video Production & Photography',
+          packageSectionHeading: 'Select Package',
+          dateLabel: 'Shoot Dates (DD/MM/YYYY)',
+          isSingleDate: false,
+          locationCascaderLabel: 'Shoot Locality (State → District → City/Town)',
+          locationAddressLabel: 'Venue / Landmark Address (Optional)',
+          locationAddressPlaceholder: 'e.g. Grand Ballroom, Royal Orchid Hotel',
+          contractTitle: '📜 CAMQREW CREATIVE SERVICE CONTRACT',
+          contractSubject: 'Production & Creative Services',
+          notesPlaceholder: 'Special notes, shotlist references, lighting preferences...',
+          rateUnitLabel: (days: number) => `Production Coverage (${days} ${days === 1 ? 'day' : 'days'})`,
+        };
+    }
+  }, [archetype, isStudio]);
 
   useEffect(() => {
     if (!proId) return;
@@ -121,6 +294,13 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
         if (passedJobCity) setShootCity(passedJobCity);
         if (jobLocation) setLocation(jobLocation);
         if (jobRequirements) setNotes(jobRequirements);
+
+        // Initialize category event type
+        const arch = getArchetype(p.categories);
+        const evTypes = CATEGORY_EVENT_TYPES[arch.archetype] || CATEGORY_EVENT_TYPES.media_crew;
+        if (evTypes.length > 0) {
+          setEventType(evTypes[0]);
+        }
       }
     }).finally(() => {
       setPageLoading(false);
@@ -155,13 +335,69 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
     const rate = jobBudget 
       ? jobBudget 
       : (selectedService ? selectedService.rate : profile.ratePerDay || 15000);
-    const isFixedPackage = Boolean(jobBudget) || (selectedService?.type === 'package');
+    const isFixedPackage = Boolean(jobBudget) || (selectedService?.type === 'package') || categoryConfig.isSingleDate;
     const subtotal = isFixedPackage ? rate : (rate * daysCount);
     const platformFee = 499;
     const gst = Math.round((subtotal + platformFee) * 0.18);
     const total = subtotal + platformFee + gst;
     return { subtotal, platformFee, gst, total };
   };
+
+  const totals = calculateTotal();
+
+  // Category Escrow Milestones (30% / 40% / 30%)
+  const advanceEscrow = Math.round(totals.total * 0.3);
+  const wrapEscrow = Math.round(totals.total * 0.4);
+  const finalEscrow = totals.total - advanceEscrow - wrapEscrow;
+
+  const getCategoryMilestones = () => {
+    switch (archetype) {
+      case 'home_baker':
+        return [
+          { id: '1', title: 'Advance Escrow (30%)', desc: 'Order confirmation & ingredient sourcing', percentage: 30, amount: advanceEscrow },
+          { id: '2', title: 'Bake Ready Escrow (40%)', desc: 'Fresh baking & photo proof shared', percentage: 40, amount: wrapEscrow },
+          { id: '3', title: 'Delivery Wrap Escrow (30%)', desc: 'Safe delivery & client confirmation', percentage: 30, amount: finalEscrow },
+        ];
+      case 'catering':
+        return [
+          { id: '1', title: 'Advance Escrow (30%)', desc: 'Date lock & raw material procurement', percentage: 30, amount: advanceEscrow },
+          { id: '2', title: 'Setup Escrow (40%)', desc: 'Live buffet & kitchen counters running', percentage: 40, amount: wrapEscrow },
+          { id: '3', title: 'Service Wrap Escrow (30%)', desc: 'Banquet conclusion & final wrap', percentage: 30, amount: finalEscrow },
+        ];
+      case 'modeling_talent':
+        return [
+          { id: '1', title: 'Advance Escrow (30%)', desc: 'Date reservation & fitting rehearsal', percentage: 30, amount: advanceEscrow },
+          { id: '2', title: 'Shoot Wrap Escrow (40%)', desc: 'Call time wrap & looks completed', percentage: 40, amount: wrapEscrow },
+          { id: '3', title: 'Usage Rights Escrow (30%)', desc: 'Deliverables clearance & commercial license', percentage: 30, amount: finalEscrow },
+        ];
+      case 'tech_digital':
+        return [
+          { id: '1', title: 'Advance Escrow (30%)', desc: 'Sprint kickoff & technical architecture', percentage: 30, amount: advanceEscrow },
+          { id: '2', title: 'Core Sprint Escrow (40%)', desc: 'Prototype & core features deployed', percentage: 40, amount: wrapEscrow },
+          { id: '3', title: 'Production Release Escrow (30%)', desc: 'Code handover, QA testing & sign-off', percentage: 30, amount: finalEscrow },
+        ];
+      case 'beauty_bridal':
+        return [
+          { id: '1', title: 'Advance Escrow (30%)', desc: 'Date lock & bridal vanity prep', percentage: 30, amount: advanceEscrow },
+          { id: '2', title: 'Look Ready Escrow (40%)', desc: 'Bridal styling & draping wrap', percentage: 40, amount: wrapEscrow },
+          { id: '3', title: 'Wrap Escrow (30%)', desc: 'Touch-up wrap & photoshoot ready', percentage: 30, amount: finalEscrow },
+        ];
+      case 'event_management':
+        return [
+          { id: '1', title: 'Advance Escrow (30%)', desc: 'Vendor lock & material fabrication', percentage: 30, amount: advanceEscrow },
+          { id: '2', title: 'Setup Wrap Escrow (40%)', desc: 'Stage, sound & venue handover', percentage: 40, amount: wrapEscrow },
+          { id: '3', title: 'Event Wrap Escrow (30%)', desc: 'Event conclusion & vendor clearance', percentage: 30, amount: finalEscrow },
+        ];
+      default:
+        return [
+          { id: '1', title: 'Advance Escrow (30%)', desc: 'Held now; locks creator calendar', percentage: 30, amount: advanceEscrow },
+          { id: '2', title: 'Shoot Wrap Escrow (40%)', desc: 'Released after production wraps', percentage: 40, amount: wrapEscrow },
+          { id: '3', title: 'Deliverables Escrow (30%)', desc: 'Released upon final deliverables approval', percentage: 30, amount: finalEscrow },
+        ];
+    }
+  };
+
+  const categoryMilestones = getCategoryMilestones();
 
   const handleNext = async () => {
     if (currentStep === 1) {
@@ -174,8 +410,12 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
     }
     
     if (currentStep === 2) {
-      if (!startDate || !endDate) {
-        setToastMessage('Please select your booking dates.');
+      if (!startDate) {
+        setToastMessage('Please select your date.');
+        return;
+      }
+      if (!categoryConfig.isSingleDate && !endDate) {
+        setToastMessage('Please select end date.');
         return;
       }
       if (isStudio && !location.trim()) {
@@ -183,7 +423,7 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
         return;
       }
       if (!isStudio && (!shootState || !shootDistrict || !shootCity)) {
-        setToastMessage('Please select shoot locality.');
+        setToastMessage('Please select your locality.');
         return;
       }
     }
@@ -204,30 +444,66 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
     } else {
       setLoading(true);
       try {
-        const totals = calculateTotal();
+        // Compile category specifications cleanly into notes
+        const specsList: string[] = [];
+        if (archetype === 'home_baker') {
+          specsList.push(`[Dietary: ${bakerDietary}]`);
+          if (bakerCakeMessage.trim()) specsList.push(`[Message on Cake: "${bakerCakeMessage.trim()}"]`);
+          specsList.push(`[Candle & Knife Kit: ${bakerCandlesKit ? 'Included' : 'Not Needed'}]`);
+          specsList.push(`[Time Slot: ${bakerTimeSlot}]`);
+        } else if (archetype === 'catering') {
+          specsList.push(`[Serving Style: ${catererServingStyle}]`);
+          specsList.push(`[Dietary: ${catererDietary}]`);
+          specsList.push(`[Expected Guests: ${catererGuestCount} pax]`);
+          specsList.push(`[Meal Service: ${catererMealSlot}]`);
+        } else if (archetype === 'modeling_talent') {
+          specsList.push(`[Assignment: ${modelAssignmentType}]`);
+          specsList.push(`[Looks: ${modelLookCount}]`);
+          specsList.push(`[Usage Rights: ${modelUsageRights}]`);
+          specsList.push(`[Styling: ${modelStylingProvided}]`);
+        } else if (archetype === 'tech_digital') {
+          specsList.push(`[Deliverable: ${techDeliverable}]`);
+          if (techSpecsLink.trim()) specsList.push(`[Specs/Figma Link: ${techSpecsLink.trim()}]`);
+        } else if (archetype === 'beauty_bridal') {
+          specsList.push(`[Style: ${beautyStyle}]`);
+          specsList.push(`[Party Count: ${beautyPartyCount}]`);
+        } else if (archetype === 'event_management') {
+          specsList.push(`[Scope: ${eventScope}]`);
+          specsList.push(`[Scale: ${eventScale}]`);
+        }
+
+        const combinedNotes = [
+          `OCCASION / TYPE: ${eventType}`,
+          specsList.length > 0 ? `SPECIFICATIONS:\n${specsList.join('\n')}` : '',
+          notes.trim() ? `SPECIAL NOTES:\n${notes.trim()}` : '',
+        ].filter(Boolean).join('\n\n');
+
         const payload: any = {
           professionalName: profile.name,
           professionalAvatar: profile.avatar,
           professionalTitle: profile.title,
           customerId: user?.id || 'usr_client',
           customerName: user?.name || 'Client Request',
-          serviceTitle: selectedService?.title || (isStudio ? 'Studio Bay Rental' : 'Creative Service'),
+          serviceTitle: selectedService?.title || (isStudio ? 'Studio Bay Rental' : categoryConfig.serviceTitle),
           startDate,
-          endDate,
-          startTime,
+          endDate: categoryConfig.isSingleDate ? startDate : endDate,
+          startTime: archetype === 'home_baker' ? bakerTimeSlot : startTime,
           endTime,
-          daysCount,
+          daysCount: categoryConfig.isSingleDate ? 1 : daysCount,
           location: resolvedLocation,
           ratePerDay: selectedService?.rate || profile.ratePerDay || 15000,
           totalAmount: totals.total,
+          notes: combinedNotes,
           contractSignature,
-          contractTermsText: 'Standard Camqrew Creative Service Agreement',
+          contractTermsText: categoryConfig.contractTitle,
           contractSignedAt: new Date().toISOString(),
-          milestones: [
-            { id: 'm1', title: 'Advance Escrow (30%)', percentage: 30, amount: Math.round(totals.total * 0.3), status: 'held' },
-            { id: 'm2', title: 'Shoot Wrap Escrow (40%)', percentage: 40, amount: Math.round(totals.total * 0.4), status: 'held' },
-            { id: 'm3', title: 'Final Deliverables Escrow (30%)', percentage: 30, amount: Math.round(totals.total * 0.3), status: 'held' },
-          ],
+          milestones: categoryMilestones.map(m => ({
+            id: `m_${m.id}`,
+            title: `${m.title} - ${m.desc}`,
+            percentage: m.percentage,
+            amount: m.amount,
+            status: 'held',
+          })),
         };
 
         if (isStudio) {
@@ -251,15 +527,13 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
 
         setTimeout(() => {
           navigation.navigate('HomeTab');
-        }, 2000);
+        }, 2200);
       } catch (e) {
         setLoading(false);
         setToastMessage('Booking failed. Please try again.');
       }
     }
   };
-
-  const totals = calculateTotal();
 
   if (isConfirmed) {
     return (
@@ -271,23 +545,23 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
             Request Sent! 🎉
           </Text>
           <Text style={{ fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: 10, lineHeight: 22, fontWeight: '500' }}>
-            Your request has been sent to <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>{profile.name}</Text>.
+            Your booking request has been sent to <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>{profile.name}</Text>.
           </Text>
 
           <View style={{ width: '100%', marginVertical: 20, padding: 16, borderRadius: 16, backgroundColor: colors.surfaceElevated }}>
             <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 6 }}>
-              Service: <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>{selectedService?.title || (isStudio ? 'Studio Booking' : 'Creative Service')}</Text>
+              Service: <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>{selectedService?.title || (isStudio ? 'Studio Booking' : categoryConfig.serviceTitle)}</Text>
             </Text>
             <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 6 }}>
-              Date: <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>{startDate} ({startTime})</Text>
+              Date: <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>{startDate} {archetype === 'home_baker' ? `(${bakerTimeSlot})` : `(${startTime})`}</Text>
             </Text>
             <Text style={{ fontSize: 13, color: colors.textSecondary }}>
-              Status: <Text style={{ color: colors.accent, fontWeight: '800' }}>⏳ Pending Approval</Text>
+              Status: <Text style={{ color: colors.accent, fontWeight: '800' }}>⏳ Pending Approval & Escrow</Text>
             </Text>
           </View>
 
           <Button
-            title="Open Chat with Host 💬"
+            title="Open Chat with Creator 💬"
             variant="primary"
             size="lg"
             onPress={() => navigation.navigate('ChatTab')}
@@ -306,6 +580,8 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
     );
   }
 
+  const currentCategoryEventTypes = CATEGORY_EVENT_TYPES[archetype] || CATEGORY_EVENT_TYPES.media_crew;
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -317,7 +593,7 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
               <ArrowLeft size={22} color={colors.textPrimary} />
             </TouchableOpacity>
             <View>
-              <Text style={[styles.title, { color: colors.textPrimary }]}>Book {isStudio ? 'Studio' : 'Creator'}</Text>
+              <Text style={[styles.title, { color: colors.textPrimary }]}>{categoryConfig.headerTitle}</Text>
               <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{profile.name}</Text>
             </View>
           </View>
@@ -326,6 +602,7 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           
+          {/* STEP 1: SELECT PACKAGE / SERVICE */}
           {currentStep === 1 && (
             <View style={[styles.cardBox, { backgroundColor: colors.surfaceCard }]}>
               {jobId && (
@@ -352,18 +629,20 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
               )}
 
               <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>
-                {jobId ? 'Selected Package' : 'Select Package'}
+                {jobId ? 'Selected Package' : categoryConfig.packageSectionHeading}
               </Text>
               {(selectedService && selectedService.id.startsWith('srv_broadcast_') ? [selectedService] : (profile.services && profile.services.length > 0 ? profile.services : [
                 {
                   id: 'srv_default',
-                  title: isStudio ? 'Full Day Studio Access' : 'Full Day Shoot Package',
+                  title: isStudio ? 'Full Day Studio Access' : (archetype === 'home_baker' ? 'Custom Artisan Cake Order' : 'Signature Professional Package'),
                   category: isStudio ? 'Studio Rental' : (profile.categories[0] || 'Creative Service'),
                   rate: profile.ratePerDay || 15000,
-                  unit: 'per day',
+                  unit: archetype === 'home_baker' ? 'per order' : (archetype === 'catering' ? 'per event' : 'per day'),
                   description: isStudio 
                     ? 'Includes full access to the studio bay, basic grip equipment, and green room.'
-                    : 'Includes full day coverage with high resolution deliverables.',
+                    : (archetype === 'home_baker'
+                      ? 'Handcrafted with premium ingredients, custom theme frosting, candle and knife kit included.'
+                      : 'Comprehensive coverage with premium deliverables and escrow protection.'),
                 }
               ])).map(srv => {
                 const isSelected = selectedService?.id === srv.id || (!selectedService && srv.id === 'srv_default');
@@ -373,8 +652,8 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
                     activeOpacity={0.9}
                     onPress={() => {
                       setSelectedService(srv);
-                      if (srv.type === 'package') {
-                        setEndDate(startDate); // Sync to current start date immediately
+                      if (srv.type === 'package' || categoryConfig.isSingleDate) {
+                        setEndDate(startDate);
                       }
                     }}
                     style={[
@@ -404,22 +683,25 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
             </View>
           )}
 
+          {/* STEP 2: SCHEDULE, CATEGORY OPTIONS & LOCATION */}
           {currentStep === 2 && (
             <View style={[styles.cardBox, { backgroundColor: colors.surfaceCard }]}>
               <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>Schedule Details</Text>
 
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Booking Dates (DD/MM/YYYY)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{categoryConfig.dateLabel}</Text>
               <View style={styles.pickerRow}>
                 <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight, flex: 1 }]} onPress={() => setShowStartDateModal(true)}>
                   <Calendar size={16} color={colors.accent} style={{ marginRight: 8 }} />
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.pickerSub, { color: colors.textSecondary }]}>{selectedService?.type === 'package' ? 'Package Date' : 'Start Date'}</Text>
+                    <Text style={[styles.pickerSub, { color: colors.textSecondary }]}>
+                      {categoryConfig.isSingleDate ? 'Delivery / Pickup Date' : 'Start Date'}
+                    </Text>
                     <Text style={[styles.pickerVal, { color: colors.textPrimary }]}>{startDate}</Text>
                   </View>
                   <ChevronDown size={16} color={colors.textSecondary} />
                 </TouchableOpacity>
 
-                {selectedService?.type !== 'package' && (
+                {!categoryConfig.isSingleDate && selectedService?.type !== 'package' && (
                   <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight, flex: 1 }]} onPress={() => setShowEndDateModal(true)}>
                     <Calendar size={16} color={colors.accent} style={{ marginRight: 8 }} />
                     <View style={{ flex: 1 }}>
@@ -431,40 +713,78 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
                 )}
               </View>
 
-              <Text style={[styles.inputLabel, { marginTop: 16, color: colors.textSecondary }]}>Booking Time (Hours)</Text>
-              <View style={styles.pickerRow}>
-                <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]} onPress={() => setShowStartTimeModal(true)}>
-                  <Clock size={16} color={colors.accent} style={{ marginRight: 8 }} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.pickerSub, { color: colors.textSecondary }]}>Check-in</Text>
-                    <Text style={[styles.pickerVal, { color: colors.textPrimary }]}>{startTime}</Text>
+              {/* Time Slots for Home Bakers */}
+              {archetype === 'home_baker' && (
+                <View style={{ marginTop: 8, marginBottom: 12 }}>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Delivery / Pickup Time Slot</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {['Morning (09 AM - 01 PM)', 'Afternoon (01 PM - 05 PM)', 'Evening (05 PM - 09 PM)', 'Studio Self-Pickup'].map(slot => {
+                      const isSel = bakerTimeSlot.startsWith(slot.substring(0, 7));
+                      return (
+                        <TouchableOpacity
+                          key={slot}
+                          onPress={() => setBakerTimeSlot(slot)}
+                          style={[
+                            styles.slotChip,
+                            { backgroundColor: colors.surfaceElevated },
+                            isSel && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
+                          ]}
+                        >
+                          <Text style={[styles.slotChipText, { color: colors.textSecondary }, isSel && { color: colors.accent, fontWeight: '800' }]}>
+                            {slot}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
-                  <ChevronDown size={16} color={colors.textSecondary} />
-                </TouchableOpacity>
+                </View>
+              )}
 
-                <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]} onPress={() => setShowEndTimeModal(true)}>
-                  <Clock size={16} color={colors.accent} style={{ marginRight: 8 }} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.pickerSub, { color: colors.textSecondary }]}>Check-out</Text>
-                    <Text style={[styles.pickerVal, { color: colors.textPrimary }]}>{endTime}</Text>
+              {/* Standard Hours for Non-Bakers */}
+              {archetype !== 'home_baker' && (
+                <>
+                  <Text style={[styles.inputLabel, { marginTop: 12, color: colors.textSecondary }]}>Service Time (Hours)</Text>
+                  <View style={styles.pickerRow}>
+                    <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]} onPress={() => setShowStartTimeModal(true)}>
+                      <Clock size={16} color={colors.accent} style={{ marginRight: 8 }} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.pickerSub, { color: colors.textSecondary }]}>Check-in / Call</Text>
+                        <Text style={[styles.pickerVal, { color: colors.textPrimary }]}>{startTime}</Text>
+                      </View>
+                      <ChevronDown size={16} color={colors.textSecondary} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]} onPress={() => setShowEndTimeModal(true)}>
+                      <Clock size={16} color={colors.accent} style={{ marginRight: 8 }} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.pickerSub, { color: colors.textSecondary }]}>Check-out / Wrap</Text>
+                        <Text style={[styles.pickerVal, { color: colors.textPrimary }]}>{endTime}</Text>
+                      </View>
+                      <ChevronDown size={16} color={colors.textSecondary} />
+                    </TouchableOpacity>
                   </View>
-                  <ChevronDown size={16} color={colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
+                </>
+              )}
+
+              {/* LOCATION SECTION */}
+              <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
+              <Text style={[styles.sectionHeading, { color: colors.textPrimary, fontSize: 16, marginBottom: 10 }]}>
+                {isStudio ? 'Studio Location' : 'Locality & Address'}
+              </Text>
 
               {isStudio ? (
                 <Input
-                  label="Studio Location / Address"
+                  label={categoryConfig.locationAddressLabel}
                   value={location}
                   onChangeText={setLocation}
                   leftIcon={<MapPin size={18} color={colors.textSecondary} />}
-                  containerStyle={{ marginTop: 16 }}
+                  containerStyle={{ marginTop: 8 }}
                   editable={false}
                 />
               ) : (
-                <View style={{ marginTop: 16 }}>
+                <View style={{ marginTop: 4 }}>
                   <LocationCascader
-                    label="Shoot Locality (State → District → City/Town)"
+                    label={categoryConfig.locationCascaderLabel}
                     selectedState={shootState}
                     selectedDistrict={shootDistrict}
                     selectedCity={shootCity}
@@ -475,8 +795,8 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
                     }}
                   />
                   <Input
-                    label="Venue / Landmark Address (Optional)"
-                    placeholder="e.g. Grand Ballroom, Royal Orchid Hotel"
+                    label={categoryConfig.locationAddressLabel}
+                    placeholder={categoryConfig.locationAddressPlaceholder}
                     value={venueAddress}
                     onChangeText={setVenueAddress}
                     leftIcon={<MapPin size={18} color={colors.textSecondary} />}
@@ -485,11 +805,14 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
                 </View>
               )}
 
+              {/* OCCASION / PROJECT TYPE PILLS */}
               {!isStudio && (
                 <>
-                  <Text style={[styles.inputLabel, { marginTop: 16, color: colors.textSecondary }]}>Event / Project Type</Text>
+                  <Text style={[styles.inputLabel, { marginTop: 16, color: colors.textSecondary }]}>
+                    {archetype === 'home_baker' ? 'Occasion / Cake Type' : (archetype === 'catering' ? 'Catering Event Type' : 'Event / Project Type')}
+                  </Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-                    {['Wedding', 'Corporate', 'Birthday/Party', 'Product Launch', 'Short Film', 'Drone Shoot', 'Podcast'].map(ev => {
+                    {currentCategoryEventTypes.map(ev => {
                       const isSel = eventType === ev;
                       return (
                         <TouchableOpacity
@@ -509,28 +832,303 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
                 </>
               )}
 
+              {/* CATEGORY-SPECIFIC INTERACTIVE CONTROLS */}
+              {/* 1. Home Baker Customizations */}
+              {archetype === 'home_baker' && (
+                <View style={[styles.customSpecsBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+                  <Text style={[styles.specsTitle, { color: colors.accent }]}>🍰 Cake Customization & Dietary Options</Text>
+                  
+                  <Text style={[styles.inputLabel, { marginTop: 10, color: colors.textSecondary }]}>Dietary Preference</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                    {['Eggless (100% Veg)', 'Contains Egg', 'Vegan', 'Gluten-Free', 'Keto / Sugar-Free'].map(diet => {
+                      const isSel = bakerDietary === diet;
+                      return (
+                        <TouchableOpacity
+                          key={diet}
+                          onPress={() => setBakerDietary(diet)}
+                          style={[
+                            styles.miniChip,
+                            { backgroundColor: colors.surfaceCard },
+                            isSel && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
+                          ]}
+                        >
+                          <Text style={[styles.miniChipText, { color: colors.textSecondary }, isSel && { color: colors.accent, fontWeight: '800' }]}>
+                            {diet}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <Input
+                    label="Message / Inscription on Cake"
+                    placeholder="e.g. Happy 25th Birthday Sarah! 🎉"
+                    value={bakerCakeMessage}
+                    onChangeText={setBakerCakeMessage}
+                  />
+
+                  <TouchableOpacity
+                    style={styles.toggleRow}
+                    onPress={() => setBakerCandlesKit(!bakerCandlesKit)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.checkbox, bakerCandlesKit && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
+                      {bakerCandlesKit && <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>✓</Text>}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.toggleTitle, { color: colors.textPrimary }]}>Complimentary Candle & Eco-Knife Kit</Text>
+                      <Text style={[styles.toggleSub, { color: colors.textSecondary }]}>Include premium sparkling candle and reusable serving knife</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* 2. Catering Customizations */}
+              {archetype === 'catering' && (
+                <View style={[styles.customSpecsBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+                  <Text style={[styles.specsTitle, { color: colors.accent }]}>🍽️ Catering Service Style & Dietary Standards</Text>
+
+                  <Text style={[styles.inputLabel, { marginTop: 10, color: colors.textSecondary }]}>Serving Style</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                    {['Buffet Setup', 'Plated Service', 'Live Counters', 'Packed Bento'].map(style => {
+                      const isSel = catererServingStyle.startsWith(style.substring(0, 6));
+                      return (
+                        <TouchableOpacity
+                          key={style}
+                          onPress={() => setCatererServingStyle(style)}
+                          style={[
+                            styles.miniChip,
+                            { backgroundColor: colors.surfaceCard },
+                            isSel && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
+                          ]}
+                        >
+                          <Text style={[styles.miniChipText, { color: colors.textSecondary }, isSel && { color: colors.accent, fontWeight: '800' }]}>
+                            {style}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <Text style={[styles.inputLabel, { marginTop: 6, color: colors.textSecondary }]}>Dietary Classification</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                    {['Pure Veg & Jain Counter', 'Veg & Non-Veg Mixed', 'Halal Certified Gourmet'].map(diet => {
+                      const isSel = catererDietary === diet;
+                      return (
+                        <TouchableOpacity
+                          key={diet}
+                          onPress={() => setCatererDietary(diet)}
+                          style={[
+                            styles.miniChip,
+                            { backgroundColor: colors.surfaceCard },
+                            isSel && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
+                          ]}
+                        >
+                          <Text style={[styles.miniChipText, { color: colors.textSecondary }, isSel && { color: colors.accent, fontWeight: '800' }]}>
+                            {diet}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <Input
+                    label="Expected Guest Count (Pax)"
+                    placeholder="e.g. 50, 150, 500"
+                    value={catererGuestCount}
+                    onChangeText={setCatererGuestCount}
+                    keyboardType="number-pad"
+                  />
+                </View>
+              )}
+
+              {/* 3. Modeling & Talent Customizations */}
+              {archetype === 'modeling_talent' && (
+                <View style={[styles.customSpecsBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+                  <Text style={[styles.specsTitle, { color: colors.accent }]}>✨ Commercial Licensing & Assignment Scope</Text>
+
+                  <Text style={[styles.inputLabel, { marginTop: 10, color: colors.textSecondary }]}>Commercial Usage Rights</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                    {['Digital & Social (1 Yr)', 'Omnichannel (2 Yrs)', 'Worldwide Buyout'].map(rights => {
+                      const isSel = modelUsageRights.startsWith(rights.substring(0, 7));
+                      return (
+                        <TouchableOpacity
+                          key={rights}
+                          onPress={() => setModelUsageRights(rights)}
+                          style={[
+                            styles.miniChip,
+                            { backgroundColor: colors.surfaceCard },
+                            isSel && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
+                          ]}
+                        >
+                          <Text style={[styles.miniChipText, { color: colors.textSecondary }, isSel && { color: colors.accent, fontWeight: '800' }]}>
+                            {rights}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <Text style={[styles.inputLabel, { marginTop: 6, color: colors.textSecondary }]}>Expected Look Count</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                    {['1 - 3 Looks', '4 - 6 Looks', 'Full Day 8+ Looks'].map(looks => {
+                      const isSel = modelLookCount === looks;
+                      return (
+                        <TouchableOpacity
+                          key={looks}
+                          onPress={() => setModelLookCount(looks)}
+                          style={[
+                            styles.miniChip,
+                            { backgroundColor: colors.surfaceCard },
+                            isSel && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
+                          ]}
+                        >
+                          <Text style={[styles.miniChipText, { color: colors.textSecondary }, isSel && { color: colors.accent, fontWeight: '800' }]}>
+                            {looks}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <Text style={[styles.inputLabel, { marginTop: 6, color: colors.textSecondary }]}>Styling & Wardrobe Arrangement</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                    {['Stylist Provided on Set', 'Self-Styled / Clean Base', 'Designer Fitting Arranged'].map(style => {
+                      const isSel = modelStylingProvided.startsWith(style.substring(0, 8));
+                      return (
+                        <TouchableOpacity
+                          key={style}
+                          onPress={() => setModelStylingProvided(style)}
+                          style={[
+                            styles.miniChip,
+                            { backgroundColor: colors.surfaceCard },
+                            isSel && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
+                          ]}
+                        >
+                          <Text style={[styles.miniChipText, { color: colors.textSecondary }, isSel && { color: colors.accent, fontWeight: '800' }]}>
+                            {style}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {/* 4. Event Management Customizations */}
+              {archetype === 'event_management' && (
+                <View style={[styles.customSpecsBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+                  <Text style={[styles.specsTitle, { color: colors.accent }]}>🎪 Event Scope & Scale</Text>
+                  <Text style={[styles.inputLabel, { marginTop: 10, color: colors.textSecondary }]}>Production Scope</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                    {['Turnkey Planning & Decor', 'Day-Of Coordination', 'Stage & Sound Production'].map(scope => {
+                      const isSel = eventScope === scope;
+                      return (
+                        <TouchableOpacity
+                          key={scope}
+                          onPress={() => setEventScope(scope)}
+                          style={[
+                            styles.miniChip,
+                            { backgroundColor: colors.surfaceCard },
+                            isSel && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
+                          ]}
+                        >
+                          <Text style={[styles.miniChipText, { color: colors.textSecondary }, isSel && { color: colors.accent, fontWeight: '800' }]}>
+                            {scope}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {/* 5. Tech & Digital Customizations */}
+              {archetype === 'tech_digital' && (
+                <View style={[styles.customSpecsBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+                  <Text style={[styles.specsTitle, { color: colors.accent }]}>💻 Technical Deliverable & Architecture</Text>
+                  <Text style={[styles.inputLabel, { marginTop: 10, color: colors.textSecondary }]}>Deliverable Type</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                    {['Full-Stack Web App', 'Mobile App MVP', 'UI/UX Design System', 'API Architecture'].map(d => {
+                      const isSel = techDeliverable.startsWith(d.substring(0, 8));
+                      return (
+                        <TouchableOpacity
+                          key={d}
+                          onPress={() => setTechDeliverable(d)}
+                          style={[
+                            styles.miniChip,
+                            { backgroundColor: colors.surfaceCard },
+                            isSel && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
+                          ]}
+                        >
+                          <Text style={[styles.miniChipText, { color: colors.textSecondary }, isSel && { color: colors.accent, fontWeight: '800' }]}>
+                            {d}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  <Input
+                    label="Figma / PRD / GitHub Repository Link (Optional)"
+                    placeholder="https://figma.com/file/... or https://github.com/..."
+                    value={techSpecsLink}
+                    onChangeText={setTechSpecsLink}
+                  />
+                </View>
+              )}
+
+              {/* 6. Beauty & Bridal Customizations */}
+              {archetype === 'beauty_bridal' && (
+                <View style={[styles.customSpecsBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+                  <Text style={[styles.specsTitle, { color: colors.accent }]}>💄 Bridal & Artistry Configuration</Text>
+                  <Text style={[styles.inputLabel, { marginTop: 10, color: colors.textSecondary }]}>Party Size</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                    {['Bride Only', 'Bride + 2 Family', 'Bridal Party (5+ People)'].map(p => {
+                      const isSel = beautyPartyCount === p;
+                      return (
+                        <TouchableOpacity
+                          key={p}
+                          onPress={() => setBeautyPartyCount(p)}
+                          style={[
+                            styles.miniChip,
+                            { backgroundColor: colors.surfaceCard },
+                            isSel && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
+                          ]}
+                        >
+                          <Text style={[styles.miniChipText, { color: colors.textSecondary }, isSel && { color: colors.accent, fontWeight: '800' }]}>
+                            {p}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
               <Input
-                label="Special Notes / Instructions"
+                label="Special Instructions / Design Notes"
+                placeholder={categoryConfig.notesPlaceholder}
                 value={notes}
                 onChangeText={setNotes}
                 multiline
                 numberOfLines={3}
-                containerStyle={{ marginTop: 12 }}
+                containerStyle={{ marginTop: 14 }}
               />
             </View>
           )}
 
+          {/* STEP 3: CONTRACT & MILESTONE ESCROW REVIEW */}
           {currentStep === 3 && (
             <View>
               <View style={[styles.cardBox, { backgroundColor: colors.surfaceCard }]}>
                 <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>Service Contract Agreement</Text>
 
                 <View style={[styles.contractBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-                  <Text style={[styles.contractTitle, { color: colors.accent }]}>📜 CAMQREW {isStudio ? 'STUDIO RENTAL' : 'CREATIVE SERVICE'} CONTRACT</Text>
+                  <Text style={[styles.contractTitle, { color: colors.accent }]}>{categoryConfig.contractTitle}</Text>
                   <Text style={[styles.contractText, { color: colors.textSecondary }]}>
-                    This agreement is entered into between {user?.name || 'Client'} ("Client") and {profile.name} ("Host").
-                    The Host agrees to provide {selectedService?.title || 'Services'} on {startDate} in {resolvedLocation}.
-                    All deliverables and payments will be held in Escrow Protection until final milestone release.
+                    This legally binding agreement is entered into between {user?.name || 'Client'} ("Client") and {profile.name} ("Creator/Host").
+                    The Host agrees to provide {categoryConfig.contractSubject} on {startDate} in {resolvedLocation}.
+                    All payments are safeguarded through Camqrew Milestone Escrow Protection and released upon verification.
                   </Text>
                   <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
                   <Input
@@ -540,22 +1138,47 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
                     onChangeText={setContractSignature}
                   />
                   <TouchableOpacity style={styles.agreeRow} onPress={() => setAgreedToTerms(!agreedToTerms)} activeOpacity={0.8}>
-                    <View style={[styles.checkbox, agreedToTerms && { backgroundColor: colors.textPrimary, borderColor: colors.textPrimary }]}>
-                      {agreedToTerms && <Text style={{ color: colors.background, fontWeight: '900', fontSize: 12 }}>✓</Text>}
+                    <View style={[styles.checkbox, agreedToTerms && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
+                      {agreedToTerms && <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>✓</Text>}
                     </View>
                     <Text style={[styles.agreeText, { color: colors.textPrimary }]}>I agree to the legally binding terms of the Camqrew Service Contract.</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
+              {/* Escrow Milestones Schedule */}
+              <View style={[styles.cardBox, { marginTop: 16, backgroundColor: colors.surfaceCard }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                  <ShieldCheck size={20} color={colors.accent} style={{ marginRight: 8 }} />
+                  <Text style={[styles.sectionHeading, { color: colors.textPrimary, marginBottom: 0 }]}>Escrow Protection Schedule</Text>
+                </View>
+                <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 14, lineHeight: 18 }}>
+                  Your payment is securely deposited into escrow and released in 3 stages:
+                </Text>
+
+                {categoryMilestones.map((ms, idx) => (
+                  <View key={ms.id} style={[styles.milestoneRow, { borderBottomColor: colors.borderLight }]}>
+                    <View style={[styles.milestoneBadge, { backgroundColor: colors.accentGlow }]}>
+                      <Text style={{ color: colors.accent, fontWeight: '900', fontSize: 12 }}>{ms.percentage}%</Text>
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={[styles.milestoneTitle, { color: colors.textPrimary }]}>{ms.title}</Text>
+                      <Text style={[styles.milestoneDesc, { color: colors.textSecondary }]}>{ms.desc}</Text>
+                    </View>
+                    <Text style={[styles.milestoneAmt, { color: colors.accent }]}>₹{ms.amount.toLocaleString('en-IN')}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Financial Breakdown */}
               <View style={[styles.cardBox, { marginTop: 16, backgroundColor: colors.surfaceCard }]}>
                 <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>Financial Summary</Text>
                 <View style={styles.calcRow}>
-                  <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>{selectedService?.type === 'package' ? 'Package Fixed Rate' : `Base Rate (${daysCount} days)`}</Text>
+                  <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>{categoryConfig.rateUnitLabel(daysCount)}</Text>
                   <Text style={[styles.calcVal, { color: colors.textPrimary }]}>₹{totals.subtotal.toLocaleString('en-IN')}</Text>
                 </View>
                 <View style={styles.calcRow}>
-                  <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>Platform Safety Fee</Text>
+                  <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>Platform Escrow & Safety Fee</Text>
                   <Text style={[styles.calcVal, { color: colors.textPrimary }]}>₹{totals.platformFee}</Text>
                 </View>
                 <View style={styles.calcRow}>
@@ -570,13 +1193,14 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
             </View>
           )}
 
+          {/* STEP 4: SEND REQUEST */}
           {currentStep === 4 && (
             <View style={[styles.cardBox, { backgroundColor: colors.surfaceCard }]}>
               <View style={styles.paymentBox}>
                 <CheckCircle size={56} color={colors.accent} style={{ marginBottom: 16 }} />
                 <Text style={[styles.payTitle, { color: colors.textPrimary }]}>Send Booking Request</Text>
                 <Text style={[styles.paySub, { color: colors.textSecondary }]}>
-                  No upfront payment is required! Your request will be sent directly to {profile.name}. Once accepted, you will receive a notification to complete your secure Escrow payment of ₹{totals.total.toLocaleString('en-IN')}.
+                  No upfront charge right now! Your tailored request will be sent directly to {profile.name}. Once accepted, you will be notified to activate your escrow protection with ₹{totals.total.toLocaleString('en-IN')}.
                 </Text>
               </View>
             </View>
@@ -616,7 +1240,7 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
       {/* Picker Modals */}
       <DatePickerModal visible={showStartDateModal} onClose={() => setShowStartDateModal(false)} onSelectDate={(date) => {
         setStartDate(date);
-        if (selectedService?.type === 'package') {
+        if (categoryConfig.isSingleDate || selectedService?.type === 'package') {
           setEndDate(date);
         }
       }} selectedDate={startDate} blockedDates={profile.blockedDates || []} title="Select Start Date" />
@@ -646,7 +1270,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 6 }, shadowRadius: 12, elevation: 3,
   },
   sectionHeading: { fontSize: 18, fontWeight: '900', marginBottom: 16 },
-  inputLabel: { fontSize: 13, fontWeight: '800', marginBottom: 8, textTransform: 'uppercase' },
+  inputLabel: { fontSize: 12, fontWeight: '800', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
   
   serviceSelectBox: { padding: 16, borderRadius: 16, borderWidth: 2, marginBottom: 12 },
   srvHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -655,12 +1279,25 @@ const styles = StyleSheet.create({
   srvDesc: { fontSize: 13, marginTop: 8, lineHeight: 20, fontWeight: '500' },
   
   pickerRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  pickerBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 24, borderWidth: 1, borderColor: 'transparent' },
+  pickerBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 20, borderWidth: 1, borderColor: 'transparent' },
   pickerSub: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', marginBottom: 2 },
   pickerVal: { fontSize: 14, fontWeight: '800' },
   
+  slotChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, borderWidth: 1.5, borderColor: 'transparent' },
+  slotChipText: { fontSize: 12, fontWeight: '600' },
+
   evChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24, marginRight: 8, borderWidth: 1.5, borderColor: 'transparent' },
   evChipText: { fontSize: 13, fontWeight: '700' },
+
+  customSpecsBox: { padding: 16, borderRadius: 18, borderWidth: 1, marginTop: 12, marginBottom: 8 },
+  specsTitle: { fontSize: 14, fontWeight: '900', marginBottom: 6 },
+
+  miniChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1.5, borderColor: 'transparent' },
+  miniChipText: { fontSize: 12, fontWeight: '700' },
+
+  toggleRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
+  toggleTitle: { fontSize: 13, fontWeight: '800' },
+  toggleSub: { fontSize: 11, marginTop: 2 },
 
   contractBox: { padding: 16, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed' },
   contractTitle: { fontWeight: '900', fontSize: 13, marginBottom: 8 },
@@ -669,6 +1306,12 @@ const styles = StyleSheet.create({
   agreeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
   checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#ccc', marginRight: 12, alignItems: 'center', justifyContent: 'center' },
   agreeText: { flex: 1, fontSize: 13, fontWeight: '600', lineHeight: 20 },
+
+  milestoneRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1 },
+  milestoneBadge: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  milestoneTitle: { fontSize: 13, fontWeight: '800' },
+  milestoneDesc: { fontSize: 11, marginTop: 2, lineHeight: 16 },
+  milestoneAmt: { fontSize: 14, fontWeight: '900', marginLeft: 8 },
 
   calcRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   calcLabel: { fontWeight: '600', fontSize: 14 },
