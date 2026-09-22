@@ -421,8 +421,20 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
           </TouchableOpacity>
         )}
 
+        {/* ── Cover Photo Banner ── */}
+        <View style={styles.coverBannerContainer}>
+          <Image
+            source={{ uri: user?.banner_image || proProfile?.bannerImage || 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=1600' }}
+            style={styles.coverBannerImage}
+          />
+          <LinearGradient
+            colors={['rgba(0,0,0,0.15)', isDark ? 'rgba(11,15,18,0.7)' : 'rgba(248,250,252,0.7)']}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
+
         {/* ── Profile Card (Light) ──────────────────────────────── */}
-        <View style={[styles.profileCard, { backgroundColor: colors.surfaceCard }]}>
+        <View style={[styles.profileCard, { backgroundColor: colors.surfaceCard, marginTop: -45 }]}>
           {/* Edit Profile and Dashboard buttons are now below the role pill */}
 
           {/* Avatar with camera overlay */}
@@ -1324,6 +1336,19 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
 
 // ── Styles ───────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+
+  coverBannerContainer: {
+    height: 140,
+    marginHorizontal: 16,
+    borderRadius: 24,
+    overflow: 'hidden',
+    marginTop: 6,
+  },
+  coverBannerImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
 
   // Profile card — light white with soft shadow
   profileCard: {
