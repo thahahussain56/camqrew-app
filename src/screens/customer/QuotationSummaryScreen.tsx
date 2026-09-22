@@ -186,6 +186,11 @@ export const QuotationSummaryScreen: React.FC<QuotationSummaryScreenProps> = ({ 
                       <Text style={[styles.dishName, { color: colors.textPrimary }]} numberOfLines={1}>{dish.name}</Text>
                     </View>
                     <Text style={[styles.dishCategory, { color: colors.textSecondary }]}>{dish.category}</Text>
+                    {dish.prepTime ? (
+                      <Text style={{ fontSize: 10, color: '#3b82f6', fontWeight: '600', marginTop: 2 }}>
+                        ⏱️ Prep: {dish.prepTime}
+                      </Text>
+                    ) : null}
                   </View>
                   <View style={{ width: 60, alignItems: 'center' }}>
                     <View style={styles.miniStepper}>
