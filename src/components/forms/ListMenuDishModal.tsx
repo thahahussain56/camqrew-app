@@ -6,6 +6,7 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
+  Image,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -55,6 +56,7 @@ export const ListMenuDishModal: React.FC<ListMenuDishModalProps> = ({
   const [pricePerPlate, setPricePerPlate] = useState('');
   const [dietaryTags, setDietaryTags] = useState<MenuDishItem['dietaryTags']>(['Veg']);
   const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -64,12 +66,14 @@ export const ListMenuDishModal: React.FC<ListMenuDishModalProps> = ({
       setPricePerPlate(dishToEdit.pricePerPlate ? dishToEdit.pricePerPlate.toString() : '');
       setDietaryTags(dishToEdit.dietaryTags || ['Veg']);
       setDescription(dishToEdit.description || '');
+      setImageUrl(dishToEdit.imageUrl || '');
     } else {
       setName('');
       setCategory('Starter');
       setPricePerPlate('');
       setDietaryTags(['Veg']);
       setDescription('');
+      setImageUrl('');
     }
   }, [dishToEdit, visible]);
 
@@ -109,6 +113,7 @@ export const ListMenuDishModal: React.FC<ListMenuDishModalProps> = ({
           pricePerPlate: priceNum,
           dietaryTags: dietaryTags.length > 0 ? dietaryTags : ['Veg'],
           description: description.trim() || undefined,
+          imageUrl: imageUrl.trim() || undefined,
         },
         dishToEdit ? dishToEdit.id : undefined,
       );
@@ -243,6 +248,32 @@ export const ListMenuDishModal: React.FC<ListMenuDishModalProps> = ({
               style={{ height: 75 }}
             />
 
+            {/* Dish Photo URL */}
+            <Input
+              label="Dish Photo URL (Optional)"
+              placeholder="https://images.unsplash.com/... or web image link"
+              value={imageUrl}
+              onChangeText={setImageUrl}
+              autoCapitalize="none"
+              keyboardType="url"
+            />
+
+            {imageUrl.trim() ? (
+              <View style={styles.imagePreviewWrap}>
+                <Image
+                  source={{ uri: imageUrl.trim() }}
+                  style={styles.imagePreview}
+                  resizeMode="cover"
+                />
+                <TouchableOpacity
+                  onPress={() => setImageUrl('')}
+                  style={styles.imageClearBtn}
+                >
+                  <X size={14} color="#ffffff" />
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
             <View style={{ height: 20 }} />
           </ScrollView>
 
@@ -348,6 +379,30 @@ const styles = StyleSheet.create({
   dietaryText: {
     fontSize: 12,
     fontWeight: '700',
+  },
+  imagePreviewWrap: {
+    position: 'relative',
+    marginTop: 8,
+    marginBottom: 14,
+    width: 120,
+    height: 90,
+  },
+  imagePreview: {
+    width: 120,
+    height: 90,
+    borderRadius: 12,
+    backgroundColor: '#1c222b',
+  },
+  imageClearBtn: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   footer: {
     flexDirection: 'row',

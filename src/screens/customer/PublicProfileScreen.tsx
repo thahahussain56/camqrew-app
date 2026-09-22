@@ -557,14 +557,13 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                     const qty = menuSelections[dish.id] || 0;
                     const isGreen = dish.dietaryTags.some(t => t === 'Veg' || t === 'Jain' || t === 'Vegan');
                     return (
-                      <View key={dish.id} style={[styles.menuDishRow, { backgroundColor: colors.surfaceElevated }]}>
-                        <View style={{ flex: 1, marginRight: 12 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                            {/* Veg/Non-veg dot */}
-                            <View style={[styles.menuVegDot, { backgroundColor: isGreen ? '#16a34a' : '#dc2626', borderColor: isGreen ? '#16a34a' : '#dc2626' }]} />
-                            <Text style={[styles.menuDishName, { color: colors.textPrimary }]}>{dish.name}</Text>
-                          </View>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <View key={dish.id} style={[styles.menuDishCard, { backgroundColor: colors.surfaceCard, borderColor: colors.borderLight }]}>
+                        <View style={styles.menuDishInfoCol}>
+                          {/* Veg/Non-Veg FSSAI Symbol + Category */}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
+                            <View style={[styles.vegSymbolBox, { borderColor: isGreen ? '#16a34a' : '#dc2626' }]}>
+                              <View style={[styles.vegSymbolDot, { backgroundColor: isGreen ? '#16a34a' : '#dc2626' }]} />
+                            </View>
                             <View style={[styles.menuCatTag, { backgroundColor: colors.accentGlow }]}>
                               <Text style={[styles.menuCatTagText, { color: colors.accent }]}>{dish.category}</Text>
                             </View>
@@ -578,31 +577,65 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                               </View>
                             ))}
                           </View>
+
+                          {/* Dish Name */}
+                          <Text style={[styles.menuDishName, { color: colors.textPrimary }]}>{dish.name}</Text>
+
+                          {/* Price */}
+                          <Text style={[styles.menuDishPrice, { color: colors.textPrimary, marginTop: 4 }]}>
+                            ₹{dish.pricePerPlate.toLocaleString('en-IN')}
+                            <Text style={{ fontSize: 12, fontWeight: '500', color: colors.textSecondary }}> / plate</Text>
+                          </Text>
+
+                          {/* Description */}
                           {dish.description ? (
-                            <Text style={[styles.menuDishDesc, { color: colors.textSecondary }]} numberOfLines={1}>{dish.description}</Text>
+                            <Text style={[styles.menuDishDesc, { color: colors.textSecondary }]} numberOfLines={2}>
+                              {dish.description}
+                            </Text>
                           ) : null}
                         </View>
 
-                        <View style={{ alignItems: 'flex-end' }}>
-                          <Text style={[styles.menuDishPrice, { color: colors.accent }]}>
-                            ₹{dish.pricePerPlate.toLocaleString('en-IN')}
-                          </Text>
-                          <Text style={[styles.menuDishPriceUnit, { color: colors.textSecondary }]}>/plate</Text>
-                          {/* Quantity stepper */}
-                          <View style={styles.menuQtyStepper}>
-                            <TouchableOpacity
-                              onPress={() => adjustMenuQty(dish.id, -1)}
-                              style={[styles.menuQtyBtn, { backgroundColor: qty > 0 ? colors.surfaceCard : colors.surfaceElevated }]}
-                            >
-                              <Minus size={13} color={qty > 0 ? colors.textPrimary : colors.textFaint} />
-                            </TouchableOpacity>
-                            <Text style={[styles.menuQtyValue, { color: colors.textPrimary }]}>{qty}</Text>
-                            <TouchableOpacity
-                              onPress={() => adjustMenuQty(dish.id, 1)}
-                              style={[styles.menuQtyBtn, { backgroundColor: colors.accentGlow }]}
-                            >
-                              <Plus size={13} color={colors.accent} />
-                            </TouchableOpacity>
+                        {/* Visual Column / Swiggy-style Stepper */}
+                        <View style={styles.menuDishVisualCol}>
+                          {dish.imageUrl ? (
+                            <Image
+                              source={{ uri: dish.imageUrl }}
+                              style={styles.menuDishImage}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <View style={[styles.menuDishPlaceholder, { backgroundColor: colors.surfaceElevated }]}>
+                              <UtensilsCrossed size={28} color={colors.textFaint} />
+                            </View>
+                          )}
+
+                          {/* Anchored Swiggy ADD / Stepper Button */}
+                          <View style={styles.menuDishBtnAnchor}>
+                            {qty === 0 ? (
+                              <TouchableOpacity
+                                activeOpacity={0.8}
+                                onPress={() => adjustMenuQty(dish.id, 1)}
+                                style={[styles.menuAddBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.accent }]}
+                              >
+                                <Text style={[styles.menuAddBtnText, { color: colors.accent }]}>ADD +</Text>
+                              </TouchableOpacity>
+                            ) : (
+                              <View style={[styles.menuActiveStepper, { backgroundColor: colors.accent }]}>
+                                <TouchableOpacity
+                                  onPress={() => adjustMenuQty(dish.id, -1)}
+                                  style={styles.menuActiveStepBtn}
+                                >
+                                  <Minus size={13} color="#ffffff" />
+                                </TouchableOpacity>
+                                <Text style={styles.menuActiveStepVal}>{qty}</Text>
+                                <TouchableOpacity
+                                  onPress={() => adjustMenuQty(dish.id, 1)}
+                                  style={styles.menuActiveStepBtn}
+                                >
+                                  <Plus size={13} color="#ffffff" />
+                                </TouchableOpacity>
+                              </View>
+                            )}
                           </View>
                         </View>
                       </View>
@@ -2281,6 +2314,100 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
+  menuDishCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  menuDishInfoCol: {
+    flex: 1,
+    marginRight: 14,
+  },
+  menuDishVisualCol: {
+    width: 104,
+    alignItems: 'center',
+    position: 'relative',
+    paddingBottom: 14,
+  },
+  menuDishImage: {
+    width: 104,
+    height: 96,
+    borderRadius: 12,
+    backgroundColor: '#1c222b',
+  },
+  menuDishPlaceholder: {
+    width: 104,
+    height: 96,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuDishBtnAnchor: {
+    position: 'absolute',
+    bottom: 0,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  menuAddBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 78,
+  },
+  menuAddBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  menuActiveStepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    minWidth: 80,
+  },
+  menuActiveStepBtn: {
+    padding: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuActiveStepVal: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginHorizontal: 4,
+  },
+  vegSymbolBox: {
+    width: 13,
+    height: 13,
+    borderRadius: 2,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  vegSymbolDot: {
+    width: 5.5,
+    height: 5.5,
+    borderRadius: 2.75,
+  },
   menuDishRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2297,10 +2424,10 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   menuDishName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
     letterSpacing: -0.2,
-    flex: 1,
+    lineHeight: 20,
   },
   menuDishDesc: {
     fontSize: 12,
@@ -2327,9 +2454,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   menuDishPrice: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
   },
   menuDishPriceUnit: {
     fontSize: 11,

@@ -446,6 +446,17 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
                     const isGreen = dish.dietaryTags?.some(t => t === 'Veg' || t === 'Jain' || t === 'Vegan');
                     return (
                       <View key={dish.id} style={[styles.swiggyDishCard, { backgroundColor: colors.surfaceCard }]}>
+                        {dish.imageUrl ? (
+                          <Image
+                            source={{ uri: dish.imageUrl }}
+                            style={styles.swiggyDishThumb}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View style={[styles.swiggyDishThumb, { backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center' }]}>
+                            <UtensilsCrossed size={20} color={colors.textFaint} />
+                          </View>
+                        )}
                         <View style={{ flex: 1 }}>
                           {/* Veg/Non-Veg icon + name */}
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -956,6 +967,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 2,
+  },
+  swiggyDishThumb: {
+    width: 64,
+    height: 64,
+    borderRadius: 10,
+    backgroundColor: '#1c222b',
+    marginRight: 12,
   },
   swiggyDishName: {
     fontSize: 15,

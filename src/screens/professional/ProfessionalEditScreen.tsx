@@ -82,12 +82,14 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
     pricePerPlate: string;
     dietaryTags: MenuDishItem['dietaryTags'];
     description: string;
+    imageUrl: string;
   }>({
     name: '',
     category: 'Starter',
     pricePerPlate: '',
     dietaryTags: ['Veg'],
     description: '',
+    imageUrl: '',
   });
 
   useEffect(() => {
@@ -841,6 +843,13 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
               {/* Existing Dishes */}
               {menuItems.map((dish) => (
                 <View key={dish.id} style={[styles.srvBox, { borderColor: colors.borderLight, backgroundColor: colors.surfaceElevated }]}>
+                  {dish.imageUrl ? (
+                    <Image
+                      source={{ uri: dish.imageUrl }}
+                      style={{ width: 48, height: 48, borderRadius: 8, marginRight: 10 }}
+                      resizeMode="cover"
+                    />
+                  ) : null}
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <Text style={[styles.srvTitle, { color: colors.textPrimary }]}>{dish.name}</Text>
@@ -948,6 +957,14 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                   onChangeText={t => setNewDish({ ...newDish, description: t })}
                 />
 
+                <Input
+                  label="Dish Photo URL (optional)"
+                  placeholder="https://images.unsplash.com/... or web image link"
+                  value={newDish.imageUrl}
+                  onChangeText={t => setNewDish({ ...newDish, imageUrl: t })}
+                  autoCapitalize="none"
+                />
+
                 <Button
                   title="Add Dish to Menu"
                   variant="secondary"
@@ -962,10 +979,11 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
                       pricePerPlate: Number(newDish.pricePerPlate),
                       dietaryTags: newDish.dietaryTags.length > 0 ? newDish.dietaryTags : ['Veg'],
                       description: newDish.description.trim() || undefined,
+                      imageUrl: newDish.imageUrl.trim() || undefined,
                       isAvailable: true,
                     };
                     setMenuItems(prev => [...prev, dish]);
-                    setNewDish({ name: '', category: 'Starter', pricePerPlate: '', dietaryTags: ['Veg'], description: '' });
+                    setNewDish({ name: '', category: 'Starter', pricePerPlate: '', dietaryTags: ['Veg'], description: '', imageUrl: '' });
                     setToastMessage('Dish added to menu!');
                   }}
                   style={{ marginTop: 8 }}
