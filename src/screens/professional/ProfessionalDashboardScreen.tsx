@@ -38,7 +38,17 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
   const [toastMsg, setToastMsg] = useState('');
   const [activeTab, setActiveTab] = useState<DashTab>('overview');
 
+  const isBaker = Boolean(
+    profile?.categories?.some(c =>
+      c.toLowerCase().includes('baker') ||
+      c.toLowerCase().includes('bake') ||
+      c.toLowerCase().includes('cake') ||
+      c.toLowerCase().includes('pastry')
+    )
+  );
+
   const isCaterer = Boolean(
+    isBaker ||
     profile?.categories?.some(c =>
       c.toLowerCase().includes('cater') ||
       c.toLowerCase().includes('chef') ||
@@ -357,14 +367,14 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.swiggyBannerTitle, { color: colors.textPrimary }]}>
-                    Catering Menu & Dishes
+                    {isBaker ? 'Cakes, Bakes & Food Menu' : 'Catering Menu & Dishes'}
                   </Text>
                   <Text style={[styles.swiggyBannerSub, { color: colors.textSecondary }]}>
-                    {profile.menuItems?.length || 0} items • Real-time Swiggy style menu
+                    {profile.menuItems?.length || 0} items • {isBaker ? 'Real-time bakery menu' : 'Real-time Swiggy style menu'}
                   </Text>
                 </View>
                 <View style={styles.swiggyAddPill}>
-                  <Text style={styles.swiggyAddPillText}>+ Add Dish</Text>
+                  <Text style={styles.swiggyAddPillText}>{isBaker ? '+ Add Bake' : '+ Add Dish'}</Text>
                 </View>
               </TouchableOpacity>
 

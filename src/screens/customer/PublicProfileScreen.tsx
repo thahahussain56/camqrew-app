@@ -226,6 +226,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
   }
 
   const proArchetype = getArchetype(profile.categories);
+  const isBaker = proArchetype.archetype === 'home_baker';
 
   const safeServices = profile.services && profile.services.length > 0 ? profile.services : [
     {
@@ -489,8 +490,8 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
           </ScrollView>
         </View>
 
-        {/* ── Menu & Dishes (Caterers Only) ── */}
-        {proArchetype.archetype === 'catering' && profile.menuItems && profile.menuItems.filter(d => d.isAvailable).length > 0 && (
+        {/* ── Menu & Dishes (Caterers & Home Bakers) ── */}
+        {(proArchetype.archetype === 'catering' || proArchetype.archetype === 'home_baker') && profile.menuItems && profile.menuItems.filter(d => d.isAvailable).length > 0 && (
           <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
             {/* Accordion Header */}
             <TouchableOpacity
@@ -502,7 +503,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <UtensilsCrossed size={16} color={colors.accent} style={{ marginRight: 8 }} />
                   <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
-                    Menu & Dishes
+                    {isBaker ? 'Cakes, Bakes & Food Menu' : 'Menu & Dishes'}
                   </Text>
                   <View style={[styles.countBadge, { backgroundColor: colors.accentGlow, marginLeft: 8 }]}>
                     <Text style={[styles.countBadgeText, { color: colors.accent }]}>
@@ -512,7 +513,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                 </View>
                 {!menuExpanded && (
                   <Text style={[styles.accordionHintText, { color: colors.textSecondary }]}>
-                    Browse dishes • Select & get instant quotation
+                    {isBaker ? 'Fresh bakes & custom foods • Select for instant order pricing' : 'Browse dishes • Select & get instant quotation'}
                   </Text>
                 )}
               </View>
@@ -567,6 +568,11 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                             <View style={[styles.menuCatTag, { backgroundColor: colors.accentGlow }]}>
                               <Text style={[styles.menuCatTagText, { color: colors.accent }]}>{dish.category}</Text>
                             </View>
+                            {dish.minQuantity ? (
+                              <View style={[styles.menuDietTag, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.35)', borderWidth: 1 }]}>
+                                <Text style={[styles.menuDietTagText, { color: '#f59e0b', fontWeight: '700' }]}>Min: {dish.minQuantity}</Text>
+                              </View>
+                            ) : null}
                             {dish.dietaryTags.map(tag => (
                               <View key={tag} style={[styles.menuDietTag, {
                                 backgroundColor: (tag === 'Veg' || tag === 'Jain' || tag === 'Vegan') ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
@@ -584,7 +590,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                           {/* Price */}
                           <Text style={[styles.menuDishPrice, { color: colors.textPrimary, marginTop: 4 }]}>
                             ₹{dish.pricePerPlate.toLocaleString('en-IN')}
-                            <Text style={{ fontSize: 12, fontWeight: '500', color: colors.textSecondary }}> / plate</Text>
+                            <Text style={{ fontSize: 12, fontWeight: '500', color: colors.textSecondary }}> {dish.unit ? `/ ${dish.unit}` : (isBaker ? '/ kg' : '/ plate')}</Text>
                           </Text>
 
                           {/* Description */}
@@ -653,15 +659,21 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                       ratePerDay: profile.ratePerDay,
                       menuItems: profile.menuItems,
                       selections: menuSelections,
+                      isBaker,
+                      archetype: proArchetype.archetype,
                     })}
                     style={[styles.menuQuotationBar, { backgroundColor: colors.accent }]}
                   >
                     <View>
-                      <Text style={styles.menuQuotationBarLabel}>{menuItemCount} dish{menuItemCount > 1 ? 'es' : ''} selected</Text>
-                      <Text style={styles.menuQuotationBarTotal}>₹{menuTotal.toLocaleString('en-IN')} / plate</Text>
+                      <Text style={styles.menuQuotationBarLabel}>
+                        {menuItemCount} {isBaker ? 'item' : 'dish'}{menuItemCount > 1 ? (isBaker ? 's' : 'es') : ''} selected
+                      </Text>
+                      <Text style={styles.menuQuotationBarTotal}>
+                        {isBaker ? `₹${menuTotal.toLocaleString('en-IN')} total` : `₹${menuTotal.toLocaleString('en-IN')} / plate`}
+                      </Text>
                     </View>
                     <View style={styles.menuQuotationBarRight}>
-                      <Text style={styles.menuQuotationBarCta}>Get Quotation</Text>
+                      <Text style={styles.menuQuotationBarCta}>{isBaker ? 'Order Summary' : 'Get Quotation'}</Text>
                       <ChevronRight size={16} color="#ffffff" />
                     </View>
                   </TouchableOpacity>

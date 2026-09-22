@@ -34,6 +34,7 @@ export const QuotationSummaryScreen: React.FC<QuotationSummaryScreenProps> = ({ 
   const ratePerDay: number = route?.params?.ratePerDay || 0;
   const initialSelections: Record<string, number> = route?.params?.selections || {};
   const allItems: MenuDishItem[] = route?.params?.menuItems || [];
+  const isBaker: boolean = Boolean(route?.params?.isBaker || route?.params?.archetype === 'home_baker');
 
   const [quantities, setQuantities] = useState<Record<string, number>>(initialSelections);
   const [guestCount, setGuestCount] = useState(50);
@@ -53,7 +54,8 @@ export const QuotationSummaryScreen: React.FC<QuotationSummaryScreenProps> = ({ 
     [selectedItems, quantities],
   );
 
-  const grandTotal = totalPerGuest * guestCount;
+  // For home bakers: total is direct sum of items (no guest multiplier)
+  const grandTotal = isBaker ? subtotal : (totalPerGuest * guestCount);
 
   const adjust = (id: string, delta: number) => {
     setQuantities(prev => {
@@ -64,16 +66,18 @@ export const QuotationSummaryScreen: React.FC<QuotationSummaryScreenProps> = ({ 
 
   const handleProceedToBook = () => {
     const itemSummary = selectedItems
-      .map(d => `${d.name} ×${quantities[d.id]} (₹${d.pricePerPlate}/plate)`)
+      .map(d => `${d.name} ×${quantities[d.id]} (₹${d.pricePerPlate}${d.unit ? `/${d.unit}` : (isBaker ? '/kg' : '/plate')})`)
       .join(', ');
-    const notesText = `Menu Quotation — ${guestCount} guests\nItems: ${itemSummary}\nEstimated Total: ₹${grandTotal.toLocaleString('en-IN')}`;
+    const notesText = isBaker
+      ? `Bakery Order:\nItems: ${itemSummary}\nTotal Order Amount: ₹${grandTotal.toLocaleString('en-IN')}`
+      : `Menu Quotation — ${guestCount} guests\nItems: ${itemSummary}\nEstimated Total: ₹${grandTotal.toLocaleString('en-IN')}`;
 
     navigation.navigate('Booking', {
       professionalId,
       professionalName: catererName,
       professionalTitle: catererTitle,
       ratePerDay,
-      serviceTitle: `Catering Package — ${guestCount} Guests`,
+      serviceTitle: isBaker ? `Bakery Order — ${selectedItems.length} Items` : `Catering Package — ${guestCount} Guests`,
       notes: notesText,
     });
   };
@@ -89,7 +93,9 @@ export const QuotationSummaryScreen: React.FC<QuotationSummaryScreenProps> = ({ 
           <ChevronLeft size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Quotation Summary</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
+            {isBaker ? 'Order Summary' : 'Quotation Summary'}
+          </Text>
           <Text style={[styles.headerSub, { color: colors.textSecondary }]}>{catererName}</Text>
         </View>
         <View style={{ width: 38 }} />
@@ -99,36 +105,50 @@ export const QuotationSummaryScreen: React.FC<QuotationSummaryScreenProps> = ({ 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Guest Count Card */}
-        <View style={[styles.card, { backgroundColor: colors.surfaceCard }]}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.cardIconCircle, { backgroundColor: colors.accentGlow }]}>
-              <Users size={18} color={colors.accent} />
+        {/* Guest Count Card for Caterers OR Order Info Card for Home Bakers */}
+        {!isBaker ? (
+          <View style={[styles.card, { backgroundColor: colors.surfaceCard }]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIconCircle, { backgroundColor: colors.accentGlow }]}>
+                <Users size={18} color={colors.accent} />
+              </View>
+              <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Guest Count</Text>
             </View>
-            <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Guest Count</Text>
-          </View>
-          <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
-            Prices will be multiplied by the number of guests
-          </Text>
-          <View style={styles.stepperRow}>
-            <TouchableOpacity
-              style={[styles.stepperBtn, { backgroundColor: colors.surfaceElevated }]}
-              onPress={() => setGuestCount(g => Math.max(10, g - 10))}
-            >
-              <Minus size={18} color={colors.textPrimary} />
-            </TouchableOpacity>
-            <View style={styles.stepperValueWrap}>
-              <Text style={[styles.stepperValue, { color: colors.textPrimary }]}>{guestCount}</Text>
-              <Text style={[styles.stepperUnit, { color: colors.textSecondary }]}>guests</Text>
+            <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+              Prices will be multiplied by the number of guests
+            </Text>
+            <View style={styles.stepperRow}>
+              <TouchableOpacity
+                style={[styles.stepperBtn, { backgroundColor: colors.surfaceElevated }]}
+                onPress={() => setGuestCount(g => Math.max(10, g - 10))}
+              >
+                <Minus size={18} color={colors.textPrimary} />
+              </TouchableOpacity>
+              <View style={styles.stepperValueWrap}>
+                <Text style={[styles.stepperValue, { color: colors.textPrimary }]}>{guestCount}</Text>
+                <Text style={[styles.stepperUnit, { color: colors.textSecondary }]}>guests</Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.stepperBtn, { backgroundColor: colors.surfaceElevated }]}
+                onPress={() => setGuestCount(g => g + 10)}
+              >
+                <Plus size={18} color={colors.textPrimary} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={[styles.stepperBtn, { backgroundColor: colors.surfaceElevated }]}
-              onPress={() => setGuestCount(g => g + 10)}
-            >
-              <Plus size={18} color={colors.textPrimary} />
-            </TouchableOpacity>
           </View>
-        </View>
+        ) : (
+          <View style={[styles.card, { backgroundColor: colors.surfaceCard }]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIconCircle, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                <UtensilsCrossed size={18} color="#f59e0b" />
+              </View>
+              <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Bakery Order Details</Text>
+            </View>
+            <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+              Freshly baked to order. Calculated directly from individual item quantities without per-head rates.
+            </Text>
+          </View>
+        )}
 
         {/* Selected Dishes */}
         {selectedItems.length > 0 ? (
@@ -137,20 +157,26 @@ export const QuotationSummaryScreen: React.FC<QuotationSummaryScreenProps> = ({ 
               <View style={[styles.cardIconCircle, { backgroundColor: colors.accentGlow }]}>
                 <UtensilsCrossed size={18} color={colors.accent} />
               </View>
-              <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Selected Dishes</Text>
+              <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+                {isBaker ? 'Selected Bakes & Foods' : 'Selected Dishes'}
+              </Text>
             </View>
 
             {/* Column headers */}
             <View style={styles.tableHeaderRow}>
-              <Text style={[styles.tableColHeader, { color: colors.textSecondary, flex: 1 }]}>Dish</Text>
+              <Text style={[styles.tableColHeader, { color: colors.textSecondary, flex: 1 }]}>
+                {isBaker ? 'Item' : 'Dish'}
+              </Text>
               <Text style={[styles.tableColHeader, { color: colors.textSecondary, width: 60, textAlign: 'center' }]}>Qty</Text>
               <Text style={[styles.tableColHeader, { color: colors.textSecondary, width: 70, textAlign: 'right' }]}>Rate</Text>
-              <Text style={[styles.tableColHeader, { color: colors.textSecondary, width: 80, textAlign: 'right' }]}>Sub×Guests</Text>
+              <Text style={[styles.tableColHeader, { color: colors.textSecondary, width: 80, textAlign: 'right' }]}>
+                {isBaker ? 'Total' : 'Sub×Guests'}
+              </Text>
             </View>
 
             {selectedItems.map((dish, idx) => {
               const qty = quantities[dish.id] || 0;
-              const sub = dish.pricePerPlate * qty * guestCount;
+              const sub = isBaker ? (dish.pricePerPlate * qty) : (dish.pricePerPlate * qty * guestCount);
               const isGreen = dish.dietaryTags.some(t => t === 'Veg' || t === 'Jain' || t === 'Vegan');
               return (
                 <View key={dish.id} style={[styles.tableRow, idx < selectedItems.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.borderLight }]}>
@@ -185,7 +211,9 @@ export const QuotationSummaryScreen: React.FC<QuotationSummaryScreenProps> = ({ 
         ) : (
           <View style={[styles.card, { backgroundColor: colors.surfaceCard, alignItems: 'center', paddingVertical: 32 }]}>
             <UtensilsCrossed size={36} color={colors.textFaint} />
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No dishes selected</Text>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+              {isBaker ? 'No bakery items selected' : 'No dishes selected'}
+            </Text>
             <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 12 }}>
               <Text style={{ color: colors.accent, fontWeight: '700', fontSize: 14 }}>Browse Menu ↩</Text>
             </TouchableOpacity>
@@ -195,23 +223,38 @@ export const QuotationSummaryScreen: React.FC<QuotationSummaryScreenProps> = ({ 
         {/* Cost Breakdown */}
         {selectedItems.length > 0 && (
           <View style={[styles.card, { backgroundColor: colors.surfaceCard }]}>
-            <Text style={[styles.cardTitle, { color: colors.textPrimary, marginBottom: 14 }]}>Cost Breakdown</Text>
+            <Text style={[styles.cardTitle, { color: colors.textPrimary, marginBottom: 14 }]}>
+              {isBaker ? 'Order Breakdown' : 'Cost Breakdown'}
+            </Text>
 
-            <View style={styles.breakdownRow}>
-              <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>Per plate (per guest)</Text>
-              <Text style={[styles.breakdownValue, { color: colors.textPrimary }]}>
-                ₹{(subtotal).toLocaleString('en-IN')}
-              </Text>
-            </View>
-            <View style={styles.breakdownRow}>
-              <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>× {guestCount} guests</Text>
-              <Text style={[styles.breakdownValue, { color: colors.textPrimary }]}>= ₹{grandTotal.toLocaleString('en-IN')}</Text>
-            </View>
+            {!isBaker ? (
+              <>
+                <View style={styles.breakdownRow}>
+                  <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>Per plate (per guest)</Text>
+                  <Text style={[styles.breakdownValue, { color: colors.textPrimary }]}>
+                    ₹{(subtotal).toLocaleString('en-IN')}
+                  </Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>× {guestCount} guests</Text>
+                  <Text style={[styles.breakdownValue, { color: colors.textPrimary }]}>= ₹{grandTotal.toLocaleString('en-IN')}</Text>
+                </View>
+              </>
+            ) : (
+              <View style={styles.breakdownRow}>
+                <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>Total Selected Items</Text>
+                <Text style={[styles.breakdownValue, { color: colors.textPrimary }]}>
+                  {selectedItems.reduce((acc, d) => acc + (quantities[d.id] || 0), 0)} items
+                </Text>
+              </View>
+            )}
 
             <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
 
             <View style={styles.breakdownRow}>
-              <Text style={[styles.totalLabel, { color: colors.textPrimary }]}>Estimated Total</Text>
+              <Text style={[styles.totalLabel, { color: colors.textPrimary }]}>
+                {isBaker ? 'Order Total' : 'Estimated Total'}
+              </Text>
               <Text style={[styles.totalValue, { color: colors.accent }]}>
                 ₹{grandTotal.toLocaleString('en-IN')}
               </Text>
@@ -220,7 +263,7 @@ export const QuotationSummaryScreen: React.FC<QuotationSummaryScreenProps> = ({ 
             <View style={[styles.escrowBadge, { backgroundColor: colors.accentGlow }]}>
               <ShieldCheck size={13} color={colors.accent} />
               <Text style={[styles.escrowText, { color: colors.accent }]}>
-                Final price confirmed & protected by Escrow after booking
+                {isBaker ? 'Protected by Camcrew Escrow until order delivery' : 'Final price confirmed & protected by Escrow after booking'}
               </Text>
             </View>
           </View>
