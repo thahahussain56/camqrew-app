@@ -1,4 +1,4 @@
-import { useStripe } from '@stripe/stripe-react-native';
+import { useSafeStripe as useStripe } from '../utils/stripeWrapper';
 import { Alert } from 'react-native';
 
 export const usePayment = () => {
