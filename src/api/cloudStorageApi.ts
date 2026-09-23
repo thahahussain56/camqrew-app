@@ -64,46 +64,68 @@ export const cloudStorageApi = {
   ): Promise<UploadResponse> => {
     try {
       const ext = videoUri.split('.').pop()?.split('?')[0]?.toLowerCase() || 'mp4';
-      const filename = `reel_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const cleanExt = ext.replace(/[^a-z0-9]/g, '');
+      const filename = `reel_${Date.now()}_${Math.random().toString(36).slice(2)}.${cleanExt || 'mp4'}`;
 
-      let mimeType = `video/${ext}`;
-      if (ext === 'mov') mimeType = 'video/quicktime';
-      else if (ext === 'webm') mimeType = 'video/webm';
-      else if (ext === 'mkv') mimeType = 'video/x-matroska';
-      else if (ext === 'avi') mimeType = 'video/x-msvideo';
-      else if (ext === 'wmv') mimeType = 'video/x-ms-wmv';
-      else if (ext === 'flv') mimeType = 'video/x-flv';
-      else if (ext === '3gp') mimeType = 'video/3gpp';
-      else if (ext === 'm4v') mimeType = 'video/x-m4v';
-      else if (ext === 'ts') mimeType = 'video/mp2t';
-      else if (ext === 'ogv') mimeType = 'video/ogg';
-      else if (ext === 'mp4') mimeType = 'video/mp4';
+      let mimeType = `video/${cleanExt || 'mp4'}`;
+      if (cleanExt === 'mov') mimeType = 'video/quicktime';
+      else if (cleanExt === 'webm') mimeType = 'video/webm';
+      else if (cleanExt === 'mkv') mimeType = 'video/x-matroska';
+      else if (cleanExt === 'avi') mimeType = 'video/x-msvideo';
+      else if (cleanExt === 'wmv') mimeType = 'video/x-ms-wmv';
+      else if (cleanExt === 'flv') mimeType = 'video/x-flv';
+      else if (cleanExt === '3gp') mimeType = 'video/3gpp';
+      else if (cleanExt === 'm4v') mimeType = 'video/x-m4v';
+      else if (cleanExt === 'ts') mimeType = 'video/mp2t';
+      else if (cleanExt === 'ogv') mimeType = 'video/ogg';
+      else if (cleanExt === 'mp4') mimeType = 'video/mp4';
 
-      const formData = new FormData();
-      formData.append('file', {
-        uri: videoUri,
-        name: filename,
-        type: mimeType,
-      } as any);
+      let fileBody: any;
+      try {
+        const fileResponse = await fetch(videoUri);
+        fileBody = await fileResponse.blob();
+      } catch (blobErr) {
+        const formData = new FormData();
+        formData.append('file', {
+          uri: videoUri,
+          name: filename,
+          type: mimeType,
+        } as any);
+        fileBody = formData;
+      }
 
-      const { data, error } = await supabase.storage
-        .from(folder)
-        .upload(filename, formData, {
-          upsert: true,
+      let activeFolder = folder;
+      let uploadResult = await supabase.storage
+        .from(activeFolder)
+        .upload(filename, fileBody, {
+          upsert: false,
           contentType: mimeType,
         });
 
-      if (error) {
-        throw new Error(error.message);
+      if (uploadResult.error && activeFolder !== 'camcrew-media') {
+        const fallback = await supabase.storage
+          .from('camcrew-media')
+          .upload(`reels/${filename}`, fileBody, {
+            upsert: false,
+            contentType: mimeType,
+          });
+        if (!fallback.error && fallback.data) {
+          uploadResult = fallback;
+          activeFolder = 'camcrew-media';
+        }
+      }
+
+      if (uploadResult.error) {
+        throw new Error(uploadResult.error.message);
       }
 
       const { data: publicData } = supabase.storage
-        .from(folder)
-        .getPublicUrl(data.path);
+        .from(activeFolder)
+        .getPublicUrl(uploadResult.data.path);
 
       return {
         url: publicData.publicUrl,
-        publicId: data.path,
+        publicId: uploadResult.data.path,
         success: true,
       };
     } catch (e: any) {

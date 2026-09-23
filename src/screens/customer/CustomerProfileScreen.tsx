@@ -12,7 +12,7 @@ import { useAuthStore } from '../../store/authStore';
 import { bookingApi } from '../../api/bookingApi';
 import { orderApi } from '../../api/orderApi';
 import { jobApi } from '../../api/jobApi';
-import { professionalApi, parseVideoUrl } from '../../api/professionalApi';
+import { professionalApi } from '../../api/professionalApi';
 import { Booking } from '../../types/booking';
 import { Order } from '../../types/order';
 import { JobRequest } from '../../types/job';
@@ -71,7 +71,6 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
   const [selectedVideoName, setSelectedVideoName] = useState('');
   const [selectedVideoSize, setSelectedVideoSize] = useState('');
   const [selectedVideoReel, setSelectedVideoReel] = useState<VideoReelItem | null>(null);
-  const [newReelUrl, setNewReelUrl] = useState('');
   const [newReelTitle, setNewReelTitle] = useState('');
   const [newReelCategory, setNewReelCategory] = useState('Cinematography');
   const [newReelIsShort, setNewReelIsShort] = useState(true);
@@ -232,34 +231,20 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
   };
 
   const handlePostReel = async () => {
-    if (!selectedVideoUri && !newReelUrl.trim()) {
+    if (!selectedVideoUri) {
       Alert.alert('Missing Video', 'Please pick a video file from your gallery.');
       return;
     }
     setSubmittingReel(true);
     try {
-      let finalUrl = '';
-      let finalType: 'direct' | 'youtube' | 'vimeo' = 'direct';
-      let finalEmbedUrl = '';
-
-      if (selectedVideoUri) {
-        const uploadRes = await cloudStorageApi.uploadVideo(selectedVideoUri, 'reels');
-        finalUrl = uploadRes.url;
-        finalEmbedUrl = uploadRes.url;
-        finalType = 'direct';
-      } else if (newReelUrl.trim()) {
-        const parsed = parseVideoUrl(newReelUrl.trim());
-        finalUrl = newReelUrl.trim();
-        finalType = parsed.type;
-        finalEmbedUrl = parsed.embedUrl;
-      }
+      const uploadRes = await cloudStorageApi.uploadVideo(selectedVideoUri, 'reels');
 
       const newReel: VideoReelItem = {
         id: 'reel_' + Date.now(),
         title: newReelTitle.trim() || (selectedVideoName ? selectedVideoName.replace(/\.[^/.]+$/, '') : 'Video Reel'),
-        url: finalUrl,
-        type: finalType,
-        embedUrl: finalEmbedUrl,
+        url: uploadRes.url,
+        type: 'direct',
+        embedUrl: uploadRes.url,
         thumbnailUrl: '',
         category: newReelCategory,
         isShort: true,
