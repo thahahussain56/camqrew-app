@@ -647,11 +647,11 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
                   <PlusCircle size={24} color="#ffffff" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.listGearTitle}>Sell or Rent Your Gear</Text>
-                  <Text style={styles.listGearSub}>Post equipment to the Camqrew Store</Text>
+                  <Text style={styles.listGearTitle}>List Equipment for Rent</Text>
+                  <Text style={styles.listGearSub}>Earn daily rental income with escrow deposits</Text>
                 </View>
                 <View style={styles.listGearPill}>
-                  <Text style={styles.listGearPillText}>List Now +</Text>
+                  <Text style={styles.listGearPillText}>Rent Out +</Text>
                 </View>
               </TouchableOpacity>
 

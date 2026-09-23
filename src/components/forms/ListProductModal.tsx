@@ -14,15 +14,16 @@ interface ListProductModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: (message: string) => void;
+  initialType?: ProductType;
 }
 
 const CATEGORIES = ['Camera Bodies', 'Lenses', 'Lighting', 'Audio', 'Drones & Gimbals'];
 const CONDITIONS = ['New', 'Like New', 'Good', 'Fair'];
 
-export const ListProductModal: React.FC<ListProductModalProps> = ({ visible, onClose, onSuccess }) => {
+export const ListProductModal: React.FC<ListProductModalProps> = ({ visible, onClose, onSuccess, initialType = 'rental' }) => {
   const { colors } = useTheme();
   
-  const [type, setType] = useState<ProductType>('sale');
+  const [type, setType] = useState<ProductType>(initialType);
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
   const [category, setCategory] = useState(CATEGORIES[0]);

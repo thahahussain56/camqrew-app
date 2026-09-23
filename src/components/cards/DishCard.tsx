@@ -25,12 +25,6 @@ export const DishCard: React.FC<DishCardProps> = ({
 
   const subtotal = dish.pricePerPlate * quantity;
 
-  const unitText = dish.unit
-    ? (quantity === 1
-        ? (dish.unit.endsWith('s') && dish.unit.length > 2 ? dish.unit.slice(0, -1) : dish.unit)
-        : (dish.unit.endsWith('s') ? dish.unit : `${dish.unit}s`))
-    : (isBaker ? (quantity === 1 ? 'item' : 'items') : (quantity === 1 ? 'plate' : 'plates'));
-
   return (
     <View
       style={[
@@ -124,7 +118,7 @@ export const DishCard: React.FC<DishCardProps> = ({
           </Text>
         ) : null}
 
-        {/* Action Row: Soft Translucent Add Button OR Side-by-Side Stepper */}
+        {/* Action Row: Soft Translucent Add Button OR Full-width Stepper */}
         <View style={styles.actionRow}>
           {quantity === 0 ? (
             <TouchableOpacity
@@ -140,8 +134,8 @@ export const DishCard: React.FC<DishCardProps> = ({
           ) : (
             <View style={styles.selectedWrapper}>
               <View style={styles.qtyIndicatorBadge}>
-                <Text style={[styles.qtyIndicatorText, { color: colors.accent }]} numberOfLines={1}>
-                  ✓ {quantity} {unitText} (₹{subtotal.toLocaleString('en-IN')})
+                <Text style={[styles.qtyIndicatorText, { color: colors.accent }]}>
+                  ✓ {quantity} {dish.unit || (isBaker ? 'kg' : 'plate')}{quantity > 1 ? 's' : ''} (₹{subtotal.toLocaleString('en-IN')})
                 </Text>
               </View>
               <View style={[styles.stepperContainer, { backgroundColor: colors.accent }]}>
@@ -150,7 +144,7 @@ export const DishCard: React.FC<DishCardProps> = ({
                   onPress={() => onAdjustQty(-1)}
                   style={styles.stepperBtn}
                 >
-                  <Minus size={14} color="#ffffff" />
+                  <Minus size={15} color="#ffffff" />
                 </TouchableOpacity>
                 <Text style={styles.stepperVal}>{quantity}</Text>
                 <TouchableOpacity
@@ -158,7 +152,7 @@ export const DishCard: React.FC<DishCardProps> = ({
                   onPress={() => onAdjustQty(1)}
                   style={styles.stepperBtn}
                 >
-                  <Plus size={14} color="#ffffff" />
+                  <Plus size={15} color="#ffffff" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -343,47 +337,40 @@ const styles = StyleSheet.create({
   },
   selectedWrapper: {
     width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
+    gap: 6,
   },
   qtyIndicatorBadge: {
     backgroundColor: 'rgba(63, 182, 104, 0.12)',
-    height: 38,
+    paddingVertical: 5,
     paddingHorizontal: 8,
-    borderRadius: 12,
+    borderRadius: 8,
     alignItems: 'center',
-    justifyContent: 'center',
     borderWidth: 0,
-    flex: 1,
-    minWidth: 0,
   },
   qtyIndicatorText: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: '700',
   },
   stepperContainer: {
-    width: 88,
+    width: '100%',
     height: 38,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 6,
+    paddingHorizontal: 10,
     borderWidth: 0,
-    flexShrink: 0,
   },
   stepperBtn: {
-    width: 26,
-    height: 26,
+    width: 28,
+    height: 28,
     borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.22)',
   },
   stepperVal: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontWeight: '800',
     color: '#ffffff',
   },
