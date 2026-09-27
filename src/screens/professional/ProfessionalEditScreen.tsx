@@ -253,7 +253,7 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
         services,
         menuItems,
         videoReels,
-      });
+      }, user?.id);
       setToastMessage('Profile updated successfully!');
       setTimeout(() => {
         navigation.goBack();

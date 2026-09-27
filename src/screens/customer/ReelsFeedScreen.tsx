@@ -160,7 +160,7 @@ export const ReelsFeedScreen: React.FC = () => {
       };
 
       const updatedReels = [newReel, ...existingReels];
-      await professionalApi.updateProfile({ videoReels: updatedReels });
+      await professionalApi.updateProfile({ videoReels: updatedReels }, user.id);
 
       // 3. Reload feed to show new reel
       await loadReels();

@@ -1,4 +1,6 @@
 import { supabase } from './supabaseClient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuthStore } from '../store/authStore';
 import { ProfessionalProfile, ReviewItem, FeedReelItem, MenuDishItem } from '../types/professional';
 
 export interface GetProfessionalsFilter {
@@ -372,11 +374,42 @@ export const professionalApi = {
     };
   },
 
-  updateProfile: async (data: Partial<ProfessionalProfile>): Promise<ProfessionalProfile> => {
-    const { data: userData } = await supabase.auth.getUser();
-    const ownerId = userData?.user?.id;
-    
-    if (!ownerId) throw new Error('Not authenticated');
+  updateProfile: async (data: Partial<ProfessionalProfile>, explicitUserId?: string): Promise<ProfessionalProfile> => {
+    let ownerId = explicitUserId;
+
+    if (!ownerId) {
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        ownerId = userData?.user?.id;
+      } catch (e) {}
+    }
+
+    if (!ownerId) {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        ownerId = sessionData?.session?.user?.id;
+      } catch (e) {}
+    }
+
+    if (!ownerId) {
+      try {
+        ownerId = useAuthStore.getState().user?.id;
+      } catch (e) {}
+    }
+
+    if (!ownerId) {
+      try {
+        const storedStr = (await AsyncStorage.getItem('@camqrew_user')) || (await AsyncStorage.getItem('@camcrew_user'));
+        if (storedStr) {
+          const parsed = JSON.parse(storedStr);
+          ownerId = parsed?.id;
+        }
+      } catch (e) {}
+    }
+
+    if (!ownerId) {
+      throw new Error('Not authenticated. Please sign in to your creator account to upload reels.');
+    }
 
     const { name, avatar, bannerImage, portfolio, ...proFields } = data;
 
@@ -385,19 +418,23 @@ export const professionalApi = {
       if (name) userUpdate.name = name;
       if (avatar) userUpdate.avatar = avatar;
       if (bannerImage) userUpdate.banner_image = bannerImage;
-      await supabase.from('users').update(userUpdate).eq('id', ownerId);
+      try {
+        await supabase.from('users').update(userUpdate).eq('id', ownerId);
+      } catch (e) {}
     }
 
     if (portfolio) {
-      await supabase.from('portfolio_items').delete().eq('professional_id', ownerId);
-      if (portfolio.length > 0) {
-        const inserts = portfolio.map(url => ({
-          professional_id: ownerId,
-          media_url: url,
-          media_type: 'image',
-        }));
-        await supabase.from('portfolio_items').insert(inserts);
-      }
+      try {
+        await supabase.from('portfolio_items').delete().eq('professional_id', ownerId);
+        if (portfolio.length > 0) {
+          const inserts = portfolio.map(url => ({
+            professional_id: ownerId,
+            media_url: url,
+            media_type: 'image',
+          }));
+          await supabase.from('portfolio_items').insert(inserts);
+        }
+      } catch (e) {}
     }
 
     const updatePayload: any = {};
@@ -416,14 +453,44 @@ export const professionalApi = {
     if (proFields.videoReels !== undefined) updatePayload.video_reels = proFields.videoReels;
     if (proFields.menuItems !== undefined) updatePayload.menu_items = proFields.menuItems;
 
-    const { data: updated, error } = await supabase
+    // Check if professional_profiles row exists for ownerId
+    const { data: existingProfile } = await supabase
       .from('professional_profiles')
-      .update(updatePayload)
+      .select('id')
       .eq('id', ownerId)
-      .select(`*, users (name, avatar), portfolio_items (media_url)`)
-      .single();
-      
-    if (error) throw new Error(error.message);
+      .maybeSingle();
+
+    let updated: any;
+    if (!existingProfile) {
+      const initialInsert: any = {
+        id: ownerId,
+        title: proFields.title || 'Creator & Professional',
+        categories: proFields.categories || ['Photographers', 'Videographers'],
+        skills: proFields.certifications || [],
+        equipment: proFields.equipment || [],
+        video_reels: proFields.videoReels || [],
+        ...updatePayload,
+      };
+
+      const { data: inserted, error: insertError } = await supabase
+        .from('professional_profiles')
+        .insert([initialInsert])
+        .select(`*, users (name, avatar), portfolio_items (media_url)`)
+        .single();
+
+      if (insertError) throw new Error(insertError.message);
+      updated = inserted;
+    } else {
+      const { data: updatedData, error } = await supabase
+        .from('professional_profiles')
+        .update(updatePayload)
+        .eq('id', ownerId)
+        .select(`*, users (name, avatar), portfolio_items (media_url)`)
+        .single();
+        
+      if (error) throw new Error(error.message);
+      updated = updatedData;
+    }
 
     return mapPro(updated);
   },

@@ -102,16 +102,16 @@ export const cloudStorageApi = {
           contentType: mimeType,
         });
 
-      if (uploadResult.error && activeFolder !== 'camcrew-media') {
+      if (uploadResult.error && activeFolder !== 'portfolio') {
         const fallback = await supabase.storage
-          .from('camcrew-media')
+          .from('portfolio')
           .upload(`reels/${filename}`, fileBody, {
             upsert: false,
             contentType: mimeType,
           });
         if (!fallback.error && fallback.data) {
           uploadResult = fallback;
-          activeFolder = 'camcrew-media';
+          activeFolder = 'portfolio';
         }
       }
 

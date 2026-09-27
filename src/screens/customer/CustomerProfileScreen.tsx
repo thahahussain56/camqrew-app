@@ -255,7 +255,7 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
 
       setProProfile(prev => prev ? { ...prev, videoReels: updatedReels } : ({ videoReels: updatedReels } as any));
 
-      await professionalApi.updateProfile({ videoReels: updatedReels });
+      await professionalApi.updateProfile({ videoReels: updatedReels }, user?.id);
 
       setShowReelModal(false);
       setSelectedVideoUri(null);
@@ -315,7 +315,7 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
               const currentReels = proProfile?.videoReels || [];
               const updatedReels = currentReels.filter(r => r.id !== reelId);
               setProProfile(prev => prev ? { ...prev, videoReels: updatedReels } : null);
-              await professionalApi.updateProfile({ videoReels: updatedReels });
+              await professionalApi.updateProfile({ videoReels: updatedReels }, user?.id);
               setToastType('info');
               setToast('Video reel removed.');
             } catch (err: any) {
