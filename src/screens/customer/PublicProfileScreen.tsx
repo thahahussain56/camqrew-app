@@ -218,15 +218,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
     }
   };
 
-  if (loading || !profile) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={colors.accent} />
-      </View>
-    );
-  }
-
-  const proArchetype = getArchetype(profile.categories);
+  const proArchetype = getArchetype(profile?.categories);
   const isBaker = proArchetype.archetype === 'home_baker';
   const isCrafts = proArchetype.archetype === 'crafts_gifting';
   const isItemCatalog = isBaker || isCrafts;
@@ -253,6 +245,14 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
     }
     return [];
   }, [products, isCrafts, profile?.menuItems]);
+
+  if (loading || !profile) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.accent} />
+      </View>
+    );
+  }
 
   const safeServices = profile.services && profile.services.length > 0 ? profile.services : [
     {
