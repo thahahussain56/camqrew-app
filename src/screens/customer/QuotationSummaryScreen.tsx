@@ -17,6 +17,7 @@ import {
   UtensilsCrossed,
   ArrowRight,
   Users,
+  Gift,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -34,7 +35,9 @@ export const QuotationSummaryScreen: React.FC<QuotationSummaryScreenProps> = ({ 
   const ratePerDay: number = route?.params?.ratePerDay || 0;
   const initialSelections: Record<string, number> = route?.params?.selections || {};
   const allItems: MenuDishItem[] = route?.params?.menuItems || [];
-  const isBaker: boolean = Boolean(route?.params?.isBaker || route?.params?.archetype === 'home_baker');
+  const archetype: string = route?.params?.archetype || '';
+  const isCrafts: boolean = Boolean(archetype === 'crafts_gifting');
+  const isBaker: boolean = Boolean(route?.params?.isBaker || archetype === 'home_baker' || isCrafts);
 
   const [quantities, setQuantities] = useState<Record<string, number>>(initialSelections);
   const [guestCount, setGuestCount] = useState(50);
@@ -66,18 +69,22 @@ export const QuotationSummaryScreen: React.FC<QuotationSummaryScreenProps> = ({ 
 
   const handleProceedToBook = () => {
     const itemSummary = selectedItems
-      .map(d => `${d.name} ×${quantities[d.id]} (₹${d.pricePerPlate}${d.unit ? `/${d.unit}` : (isBaker ? '/kg' : '/plate')})`)
+      .map(d => `${d.name} ×${quantities[d.id]} (₹${d.pricePerPlate}${d.unit ? `/${d.unit}` : (isCrafts ? '/pc' : (isBaker ? '/kg' : '/plate'))})`)
       .join(', ');
-    const notesText = isBaker
-      ? `Bakery Order:\nItems: ${itemSummary}\nTotal Order Amount: ₹${grandTotal.toLocaleString('en-IN')}`
-      : `Menu Quotation — ${guestCount} guests\nItems: ${itemSummary}\nEstimated Total: ₹${grandTotal.toLocaleString('en-IN')}`;
+    const notesText = isCrafts
+      ? `Gifting & Crafts Order:\nItems: ${itemSummary}\nTotal Order Amount: ₹${grandTotal.toLocaleString('en-IN')}`
+      : (isBaker
+        ? `Bakery Order:\nItems: ${itemSummary}\nTotal Order Amount: ₹${grandTotal.toLocaleString('en-IN')}`
+        : `Menu Quotation — ${guestCount} guests\nItems: ${itemSummary}\nEstimated Total: ₹${grandTotal.toLocaleString('en-IN')}`);
 
     navigation.navigate('Booking', {
       professionalId,
       professionalName: catererName,
       professionalTitle: catererTitle,
       ratePerDay,
-      serviceTitle: isBaker ? `Bakery Order — ${selectedItems.length} Items` : `Catering Package — ${guestCount} Guests`,
+      serviceTitle: isCrafts
+        ? `Gifting Order — ${selectedItems.length} Items`
+        : (isBaker ? `Bakery Order — ${selectedItems.length} Items` : `Catering Package — ${guestCount} Guests`),
       notes: notesText,
     });
   };
@@ -139,13 +146,17 @@ export const QuotationSummaryScreen: React.FC<QuotationSummaryScreenProps> = ({ 
         ) : (
           <View style={[styles.card, { backgroundColor: colors.surfaceCard }]}>
             <View style={styles.cardHeader}>
-              <View style={[styles.cardIconCircle, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
-                <UtensilsCrossed size={18} color="#f59e0b" />
+              <View style={[styles.cardIconCircle, { backgroundColor: isCrafts ? 'rgba(236, 72, 153, 0.15)' : 'rgba(245, 158, 11, 0.15)' }]}>
+                {isCrafts ? <Gift size={18} color="#ec4899" /> : <UtensilsCrossed size={18} color="#f59e0b" />}
               </View>
-              <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Bakery Order Details</Text>
+              <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+                {isCrafts ? 'Gifting & Crafts Order Details' : 'Bakery Order Details'}
+              </Text>
             </View>
             <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
-              Freshly baked to order. Calculated directly from individual item quantities without per-head rates.
+              {isCrafts
+                ? 'Handcrafted hampers & custom gifts. Calculated directly from individual item quantities.'
+                : 'Freshly baked to order. Calculated directly from individual item quantities without per-head rates.'}
             </Text>
           </View>
         )}

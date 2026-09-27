@@ -15,7 +15,7 @@ import { Button } from '../../components/ui/Button';
 import { ProductCard } from '../../components/cards/ProductCard';
 import { DishCard } from '../../components/cards/DishCard';
 import { useCartStore } from '../../store/cartStore';
-import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, ThumbsUp, Check, Award, UtensilsCrossed, Plus, Minus, Clock } from 'lucide-react-native';
+import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, ThumbsUp, Check, Award, UtensilsCrossed, Plus, Minus, Clock, Gift } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import { getArchetype } from '../../constants/categories';
 
@@ -228,6 +228,8 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
 
   const proArchetype = getArchetype(profile.categories);
   const isBaker = proArchetype.archetype === 'home_baker';
+  const isCrafts = proArchetype.archetype === 'crafts_gifting';
+  const isItemCatalog = isBaker || isCrafts;
 
   const safeServices = profile.services && profile.services.length > 0 ? profile.services : [
     {
@@ -491,8 +493,8 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
           </ScrollView>
         </View>
 
-        {/* ── Menu & Dishes (Caterers & Home Bakers) ── */}
-        {(proArchetype.archetype === 'catering' || proArchetype.archetype === 'home_baker') && profile.menuItems && profile.menuItems.filter(d => d.isAvailable).length > 0 && (
+        {/* ── Menu, Bakes & Crafts Catalog (Caterers, Home Bakers & Crafts) ── */}
+        {(proArchetype.archetype === 'catering' || isItemCatalog) && profile.menuItems && profile.menuItems.filter(d => d.isAvailable).length > 0 && (
           <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
             {/* Accordion Header */}
             <TouchableOpacity
@@ -502,9 +504,13 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
             >
               <View style={styles.accordionTitleCol}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <UtensilsCrossed size={16} color={colors.accent} style={{ marginRight: 8 }} />
+                  {isCrafts ? (
+                    <Gift size={16} color={colors.accent} style={{ marginRight: 8 }} />
+                  ) : (
+                    <UtensilsCrossed size={16} color={colors.accent} style={{ marginRight: 8 }} />
+                  )}
                   <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
-                    {isBaker ? 'Cakes, Bakes & Food Menu' : 'Menu & Dishes'}
+                    {isCrafts ? 'Crafts, Hampers & Gift Catalog' : (isBaker ? 'Cakes, Bakes & Food Menu' : 'Menu & Dishes')}
                   </Text>
                   <View style={[styles.countBadge, { backgroundColor: colors.accentGlow, marginLeft: 8 }]}>
                     <Text style={[styles.countBadgeText, { color: colors.accent }]}>
@@ -514,7 +520,9 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                 </View>
                 {!menuExpanded && (
                   <Text style={[styles.accordionHintText, { color: colors.textSecondary }]}>
-                    {isBaker ? 'Fresh bakes & custom foods • Select for instant order pricing' : 'Browse dishes • Select & get instant quotation'}
+                    {isCrafts
+                      ? 'Handcrafted hampers & bespoke gifts • Select for instant order pricing'
+                      : (isBaker ? 'Fresh bakes & custom foods • Select for instant order pricing' : 'Browse dishes • Select & get instant quotation')}
                   </Text>
                 )}
               </View>
@@ -578,21 +586,21 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                       ratePerDay: profile.ratePerDay,
                       menuItems: profile.menuItems,
                       selections: menuSelections,
-                      isBaker,
+                      isBaker: isItemCatalog,
                       archetype: proArchetype.archetype,
                     })}
                     style={[styles.menuQuotationBar, { backgroundColor: colors.accent }]}
                   >
                     <View>
                       <Text style={styles.menuQuotationBarLabel}>
-                        {menuItemCount} {isBaker ? 'item' : 'dish'}{menuItemCount > 1 ? (isBaker ? 's' : 'es') : ''} selected
+                        {menuItemCount} {isItemCatalog ? 'item' : 'dish'}{menuItemCount > 1 ? (isItemCatalog ? 's' : 'es') : ''} selected
                       </Text>
                       <Text style={styles.menuQuotationBarTotal}>
-                        {isBaker ? `₹${menuTotal.toLocaleString('en-IN')} total` : `₹${menuTotal.toLocaleString('en-IN')} / plate`}
+                        {isItemCatalog ? `₹${menuTotal.toLocaleString('en-IN')} total` : `₹${menuTotal.toLocaleString('en-IN')} / plate`}
                       </Text>
                     </View>
                     <View style={styles.menuQuotationBarRight}>
-                      <Text style={styles.menuQuotationBarCta}>{isBaker ? 'Order Summary' : 'Get Quotation'}</Text>
+                      <Text style={styles.menuQuotationBarCta}>{isItemCatalog ? (isCrafts ? 'Order Gifting' : 'Order Summary') : 'Get Quotation'}</Text>
                       <ChevronRight size={16} color="#ffffff" />
                     </View>
                   </TouchableOpacity>

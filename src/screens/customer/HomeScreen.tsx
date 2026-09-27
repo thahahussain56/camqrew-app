@@ -51,6 +51,7 @@ const CREATOR_BUBBLES = [
   { id: 'cat_bakers', name: 'Home Bakers', icon: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?q=80&w=200' },
   { id: 'cat_3', name: 'Caterers', icon: 'https://images.unsplash.com/photo-1555244162-803834f70033?q=80&w=200' },
   { id: 'cat_4', name: 'Organisers', icon: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=200' },
+  { id: 'cat_crafts', name: 'Crafts & Gifting', icon: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=200' },
   { id: 'cat_travels', name: 'Travels', icon: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?q=80&w=200' },
   { id: 'cat_5', name: 'Makeup Artists', icon: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?q=80&w=200' },
   { id: 'cat_6', name: 'Mehendi Artists', icon: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=200' },

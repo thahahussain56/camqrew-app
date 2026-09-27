@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { PROFESSIONAL_CATEGORIES } from '../../constants/categories';
-import { ChevronDown, Search, X, Check, Briefcase, Camera, Film, User, Cake, Coffee, Calendar, Heart, Palette, Code, Car } from 'lucide-react-native';
+import { ChevronDown, Search, X, Check, Briefcase, Camera, Film, User, Cake, Coffee, Calendar, Heart, Palette, Code, Car, Gift } from 'lucide-react-native';
 
 interface CategoryDropdownProps {
   value: string;
@@ -43,6 +43,8 @@ const getCategoryIcon = (iconName: string, color: string, size = 18) => {
       return <Code size={size} color={color} />;
     case 'car':
       return <Car size={size} color={color} />;
+    case 'gift':
+      return <Gift size={size} color={color} />;
     default:
       return <Briefcase size={size} color={color} />;
   }

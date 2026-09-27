@@ -14,7 +14,7 @@ import { ChipInput } from '../../components/forms/ChipInput';
 import { LocationCascader } from '../../components/forms/LocationCascader';
 import { Toast } from '../../components/ui/Toast';
 import { PROFESSIONAL_CATEGORIES, getArchetype } from '../../constants/categories';
-import { ChevronDown, ChevronUp, Plus, Minus, Trash2, Save, Camera, Image as ImageIcon, Film, Play, UploadCloud, CheckCircle, Video, UtensilsCrossed } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Plus, Minus, Trash2, Save, Camera, Image as ImageIcon, Film, Play, UploadCloud, CheckCircle, Video, UtensilsCrossed, Gift } from 'lucide-react-native';
 
 export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors } = useTheme();
@@ -824,30 +824,38 @@ export const ProfessionalEditScreen: React.FC<{ navigation: any }> = ({ navigati
         )}
       </Card>
 
-      {/* 7. Menu & Dishes (Caterers & Home Bakers) */}
-      {(activeArchetype.archetype === 'catering' || activeArchetype.archetype === 'home_baker') && (
+      {/* 7. Menu, Bakes & Crafts (Caterers, Home Bakers & Crafts) */}
+      {(activeArchetype.archetype === 'catering' || activeArchetype.archetype === 'home_baker' || activeArchetype.archetype === 'crafts_gifting') && (
         <Card style={styles.accordionCard}>
           <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('menu')}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <UtensilsCrossed size={16} color="#3fb668" style={{ marginRight: 8 }} />
+              {activeArchetype.archetype === 'crafts_gifting' ? (
+                <Gift size={16} color="#ec4899" style={{ marginRight: 8 }} />
+              ) : (
+                <UtensilsCrossed size={16} color="#3fb668" style={{ marginRight: 8 }} />
+              )}
               <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>
-                {activeArchetype.archetype === 'home_baker' ? '7. Cakes, Bakes & Food Menu' : '7. Menu & Dishes'}
+                {activeArchetype.archetype === 'crafts_gifting'
+                  ? '7. Crafts, Hampers & Gift Items'
+                  : (activeArchetype.archetype === 'home_baker' ? '7. Cakes, Bakes & Food Menu' : '7. Menu & Dishes')}
               </Text>
               {menuItems.length > 0 && (
-                <View style={{ marginLeft: 8, backgroundColor: '#3fb668', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                <View style={{ marginLeft: 8, backgroundColor: activeArchetype.archetype === 'crafts_gifting' ? '#ec4899' : '#3fb668', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
                   <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{menuItems.length}</Text>
                 </View>
               )}
             </View>
-            {openSections.menu ? <ChevronUp size={20} color="#3fb668" /> : <ChevronDown size={20} color={colors.textSecondary} />}
+            {openSections.menu ? <ChevronUp size={20} color={activeArchetype.archetype === 'crafts_gifting' ? '#ec4899' : '#3fb668'} /> : <ChevronDown size={20} color={colors.textSecondary} />}
           </TouchableOpacity>
 
           {openSections.menu && (
             <View style={styles.accordionBody}>
               <Text style={[styles.subHeading, { color: colors.textSecondary, marginBottom: 12, fontWeight: '400' }]}>
-                {activeArchetype.archetype === 'home_baker'
-                  ? 'List your signature cakes, artisanal breads, and baked goods with rates and minimum order quantities.'
-                  : 'List your dishes so customers can browse, select items, and get an instant quotation before booking.'}
+                {activeArchetype.archetype === 'crafts_gifting'
+                  ? 'List your custom hampers, gift wraps, floral arrangements and craft items with prices and minimum order quantities.'
+                  : (activeArchetype.archetype === 'home_baker'
+                    ? 'List your signature cakes, artisanal breads, and baked goods with rates and minimum order quantities.'
+                    : 'List your dishes so customers can browse, select items, and get an instant quotation before booking.')}
               </Text>
 
               {/* Existing Dishes */}

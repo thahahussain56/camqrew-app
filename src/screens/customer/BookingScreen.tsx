@@ -28,6 +28,7 @@ const STEP_TITLES = ['Select Service', 'Schedule & Location', 'Review Package', 
 
 const CATEGORY_EVENT_TYPES: Record<string, string[]> = {
   home_baker: ['Birthday Cake', 'Wedding Cake', 'Anniversary', 'Dessert Table Grazing', 'Artisan Breads Box', 'Corporate Gifting'],
+  crafts_gifting: ['Luxury Gift Hamper', 'Wedding Trousseau Sagan', 'Floral Bouquet & Set', 'Fabric Gift Wrapping', 'Resin Art Keepsake', 'Corporate Bulk Gifting'],
   catering: ['Wedding Reception', 'Corporate Gala', 'Sangeet & Cocktail', 'Birthday Party', 'Pooja / Traditional'],
   modeling_talent: ['High-Fashion Runway', 'Bridal / Couture Lookbook', 'E-Commerce Catalog Fit', 'Commercial TVC', 'Editorial Magazine'],
   event_management: ['Luxury Wedding', 'Corporate Summit', 'Fashion Gala', 'Music Festival', 'Private Social'],
@@ -87,6 +88,13 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
   const [bakerCakeMessage, setBakerCakeMessage] = useState('');
   const [bakerCandlesKit, setBakerCandlesKit] = useState(true);
   const [bakerTimeSlot, setBakerTimeSlot] = useState('Afternoon (01:00 PM - 05:00 PM)');
+
+  // Crafts & Gifting
+  const [craftsGiftingType, setCraftsGiftingType] = useState('Luxury Gift Hamper');
+  const [craftsPackagingTheme, setCraftsPackagingTheme] = useState('Royal Velvet & Gold');
+  const [craftsCalligraphyNote, setCraftsCalligraphyNote] = useState('');
+  const [craftsFragileCare, setCraftsFragileCare] = useState(true);
+  const [craftsDeliverySlot, setCraftsDeliverySlot] = useState('Afternoon (01:00 PM - 05:00 PM)');
 
   // 2. Catering
   const [catererServingStyle, setCatererServingStyle] = useState('Buffet Setup');
@@ -161,6 +169,21 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
           contractSubject: 'Custom Bakery & Artisan Confectionery Order',
           notesPlaceholder: 'Specify cake flavor notes, color themes, lettering, and special packaging details...',
           rateUnitLabel: () => 'Custom Artisan Bake Order',
+        };
+      case 'crafts_gifting':
+        return {
+          headerTitle: 'Order Gifting',
+          serviceTitle: 'Customized Luxury Hamper & Craft Gifting Order',
+          packageSectionHeading: 'Select Gifting / Hamper Package',
+          dateLabel: 'Delivery / Pickup Date (DD/MM/YYYY)',
+          isSingleDate: true,
+          locationCascaderLabel: 'Delivery Locality (State → District → City/Town)',
+          locationAddressLabel: 'Delivery Address, Landmark & Pincode *',
+          locationAddressPlaceholder: 'e.g. Flat 402, Sea Green Apts, Bandra West, Mumbai (or Studio Pickup)',
+          contractTitle: '📜 CAMQREW ARTISAN GIFTING & CRAFTS ORDER AGREEMENT',
+          contractSubject: 'Handcrafted Hampers, Floral & Custom Gifting Order',
+          notesPlaceholder: 'Specify recipient name, handwritten greeting message, color palette, and fragile handling instructions...',
+          rateUnitLabel: () => 'Custom Artisan Gifting Order',
         };
       case 'catering':
         return {
@@ -358,6 +381,12 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
           { id: '2', title: 'Bake Ready Escrow (40%)', desc: 'Fresh baking & photo proof shared', percentage: 40, amount: wrapEscrow },
           { id: '3', title: 'Delivery Wrap Escrow (30%)', desc: 'Safe delivery & client confirmation', percentage: 30, amount: finalEscrow },
         ];
+      case 'crafts_gifting':
+        return [
+          { id: '1', title: 'Advance Escrow (30%)', desc: 'Order confirmation & craft material sourcing', percentage: 30, amount: advanceEscrow },
+          { id: '2', title: 'Crafting Ready Escrow (40%)', desc: 'Hamper packing, floral arrangement & photo proof shared', percentage: 40, amount: wrapEscrow },
+          { id: '3', title: 'Delivery Wrap Escrow (30%)', desc: 'Safe doorstep delivery & client confirmation', percentage: 30, amount: finalEscrow },
+        ];
       case 'catering':
         return [
           { id: '1', title: 'Advance Escrow (30%)', desc: 'Date lock & raw material procurement', percentage: 30, amount: advanceEscrow },
@@ -451,6 +480,12 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
           if (bakerCakeMessage.trim()) specsList.push(`[Message on Cake: "${bakerCakeMessage.trim()}"]`);
           specsList.push(`[Candle & Knife Kit: ${bakerCandlesKit ? 'Included' : 'Not Needed'}]`);
           specsList.push(`[Time Slot: ${bakerTimeSlot}]`);
+        } else if (archetype === 'crafts_gifting') {
+          specsList.push(`[Gifting Type: ${craftsGiftingType}]`);
+          specsList.push(`[Packaging Theme: ${craftsPackagingTheme}]`);
+          if (craftsCalligraphyNote.trim()) specsList.push(`[Handwritten Tag: "${craftsCalligraphyNote.trim()}"]`);
+          specsList.push(`[Fragile Express Delivery: ${craftsFragileCare ? 'Included' : 'Standard'}]`);
+          specsList.push(`[Time Slot: ${craftsDeliverySlot}]`);
         } else if (archetype === 'catering') {
           specsList.push(`[Serving Style: ${catererServingStyle}]`);
           specsList.push(`[Dietary: ${catererDietary}]`);
@@ -487,7 +522,7 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
           serviceTitle: selectedService?.title || (isStudio ? 'Studio Bay Rental' : categoryConfig.serviceTitle),
           startDate,
           endDate: categoryConfig.isSingleDate ? startDate : endDate,
-          startTime: archetype === 'home_baker' ? bakerTimeSlot : startTime,
+          startTime: archetype === 'home_baker' ? bakerTimeSlot : (archetype === 'crafts_gifting' ? craftsDeliverySlot : startTime),
           endTime,
           daysCount: categoryConfig.isSingleDate ? 1 : daysCount,
           location: resolvedLocation,
@@ -553,7 +588,7 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
               Service: <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>{selectedService?.title || (isStudio ? 'Studio Booking' : categoryConfig.serviceTitle)}</Text>
             </Text>
             <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 6 }}>
-              Date: <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>{startDate} {archetype === 'home_baker' ? `(${bakerTimeSlot})` : `(${startTime})`}</Text>
+              Date: <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>{startDate} {archetype === 'home_baker' ? `(${bakerTimeSlot})` : (archetype === 'crafts_gifting' ? `(${craftsDeliverySlot})` : `(${startTime})`)}</Text>
             </Text>
             <Text style={{ fontSize: 13, color: colors.textSecondary }}>
               Status: <Text style={{ color: colors.accent, fontWeight: '800' }}>⏳ Pending Approval & Escrow</Text>
@@ -634,15 +669,17 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
               {(selectedService && selectedService.id.startsWith('srv_broadcast_') ? [selectedService] : (profile.services && profile.services.length > 0 ? profile.services : [
                 {
                   id: 'srv_default',
-                  title: isStudio ? 'Full Day Studio Access' : (archetype === 'home_baker' ? 'Custom Artisan Cake Order' : 'Signature Professional Package'),
+                  title: isStudio ? 'Full Day Studio Access' : (archetype === 'crafts_gifting' ? 'Custom Luxury Gifting Package' : (archetype === 'home_baker' ? 'Custom Artisan Cake Order' : 'Signature Professional Package')),
                   category: isStudio ? 'Studio Rental' : (profile.categories[0] || 'Creative Service'),
                   rate: profile.ratePerDay || 15000,
-                  unit: archetype === 'home_baker' ? 'per order' : (archetype === 'catering' ? 'per event' : 'per day'),
+                  unit: archetype === 'crafts_gifting' ? 'per hamper' : (archetype === 'home_baker' ? 'per order' : (archetype === 'catering' ? 'per event' : 'per day')),
                   description: isStudio 
                     ? 'Includes full access to the studio bay, basic grip equipment, and green room.'
-                    : (archetype === 'home_baker'
-                      ? 'Handcrafted with premium ingredients, custom theme frosting, candle and knife kit included.'
-                      : 'Comprehensive coverage with premium deliverables and escrow protection.'),
+                    : (archetype === 'crafts_gifting'
+                      ? 'Bespoke hamper styling with luxury materials, floral accents, and handwritten calligraphy note.'
+                      : (archetype === 'home_baker'
+                        ? 'Handcrafted with premium ingredients, custom theme frosting, candle and knife kit included.'
+                        : 'Comprehensive coverage with premium deliverables and escrow protection.')),
                 }
               ])).map(srv => {
                 const isSelected = selectedService?.id === srv.id || (!selectedService && srv.id === 'srv_default');
@@ -713,17 +750,19 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
                 )}
               </View>
 
-              {/* Time Slots for Home Bakers */}
-              {archetype === 'home_baker' && (
+              {/* Time Slots for Home Bakers & Crafts */}
+              {(archetype === 'home_baker' || archetype === 'crafts_gifting') && (
                 <View style={{ marginTop: 8, marginBottom: 12 }}>
                   <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Delivery / Pickup Time Slot</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                     {['Morning (09 AM - 01 PM)', 'Afternoon (01 PM - 05 PM)', 'Evening (05 PM - 09 PM)', 'Studio Self-Pickup'].map(slot => {
-                      const isSel = bakerTimeSlot.startsWith(slot.substring(0, 7));
+                      const isSel = archetype === 'crafts_gifting'
+                        ? craftsDeliverySlot.startsWith(slot.substring(0, 7))
+                        : bakerTimeSlot.startsWith(slot.substring(0, 7));
                       return (
                         <TouchableOpacity
                           key={slot}
-                          onPress={() => setBakerTimeSlot(slot)}
+                          onPress={() => archetype === 'crafts_gifting' ? setCraftsDeliverySlot(slot) : setBakerTimeSlot(slot)}
                           style={[
                             styles.slotChip,
                             { backgroundColor: colors.surfaceElevated },
@@ -740,8 +779,8 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
                 </View>
               )}
 
-              {/* Standard Hours for Non-Bakers */}
-              {archetype !== 'home_baker' && (
+              {/* Standard Hours for Others */}
+              {(archetype !== 'home_baker' && archetype !== 'crafts_gifting') && (
                 <>
                   <Text style={[styles.inputLabel, { marginTop: 12, color: colors.textSecondary }]}>Service Time (Hours)</Text>
                   <View style={styles.pickerRow}>
@@ -809,7 +848,7 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
               {!isStudio && (
                 <>
                   <Text style={[styles.inputLabel, { marginTop: 16, color: colors.textSecondary }]}>
-                    {archetype === 'home_baker' ? 'Occasion / Cake Type' : (archetype === 'catering' ? 'Catering Event Type' : 'Event / Project Type')}
+                    {archetype === 'crafts_gifting' ? 'Occasion / Gifting Purpose' : (archetype === 'home_baker' ? 'Occasion / Cake Type' : (archetype === 'catering' ? 'Catering Event Type' : 'Event / Project Type'))}
                   </Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
                     {currentCategoryEventTypes.map(ev => {
@@ -878,6 +917,56 @@ export const BookingScreen: React.FC<{ navigation: any; route: any }> = ({ navig
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.toggleTitle, { color: colors.textPrimary }]}>Complimentary Candle & Eco-Knife Kit</Text>
                       <Text style={[styles.toggleSub, { color: colors.textSecondary }]}>Include premium sparkling candle and reusable serving knife</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Crafts & Gifting Customizations */}
+              {archetype === 'crafts_gifting' && (
+                <View style={[styles.customSpecsBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
+                  <Text style={[styles.specsTitle, { color: colors.accent }]}>🎁 Gifting Customization & Packaging Theme</Text>
+                  
+                  <Text style={[styles.inputLabel, { marginTop: 10, color: colors.textSecondary }]}>Packaging Theme & Material</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                    {['Royal Velvet & Gold', 'Pine Wood & Satin', 'Eco-Friendly Kraft', 'Pastel Minimalist', 'Fabric Furoshiki'].map(theme => {
+                      const isSel = craftsPackagingTheme === theme;
+                      return (
+                        <TouchableOpacity
+                          key={theme}
+                          onPress={() => setCraftsPackagingTheme(theme)}
+                          style={[
+                            styles.miniChip,
+                            { backgroundColor: colors.surfaceCard },
+                            isSel && { backgroundColor: colors.accentGlow, borderColor: colors.accent }
+                          ]}
+                        >
+                          <Text style={[styles.miniChipText, { color: colors.textSecondary }, isSel && { color: colors.accent, fontWeight: '800' }]}>
+                            {theme}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <Input
+                    label="Personalized Calligraphy Note (Optional)"
+                    placeholder="e.g. Wishing you joy & happiness! From Meera & Family 💐"
+                    value={craftsCalligraphyNote}
+                    onChangeText={setCraftsCalligraphyNote}
+                  />
+
+                  <TouchableOpacity
+                    style={styles.toggleRow}
+                    onPress={() => setCraftsFragileCare(!craftsFragileCare)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.checkbox, craftsFragileCare && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
+                      {craftsFragileCare && <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>✓</Text>}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.toggleTitle, { color: colors.textPrimary }]}>Fragile Express Care & Satin Bow Finish</Text>
+                      <Text style={[styles.toggleSub, { color: colors.textSecondary }]}>Include protective bubble wrap, luxury silk ribbon, and doorstep delivery handling</Text>
                     </View>
                   </TouchableOpacity>
                 </View>
