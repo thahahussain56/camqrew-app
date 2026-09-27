@@ -18,6 +18,7 @@ import { authApi } from '../../api/authApi';
 import { Button } from '../../components/ui/Button';
 import { Toast } from '../../components/ui/Toast';
 import { LocationCascader } from '../../components/forms/LocationCascader';
+import { CategoryDropdown } from '../../components/forms/CategoryDropdown';
 import { PROFESSIONAL_CATEGORIES, getArchetype } from '../../constants/categories';
 
 const { width } = Dimensions.get('window');
@@ -544,36 +545,10 @@ export const ProfessionalSignUpScreen: React.FC<{ navigation: any }> = ({ naviga
             <>
               <Text style={[proStyles.stepTitle, { color: colors.textPrimary }]}>Professional Category & Profile</Text>
               
-              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 8 }}>
-                PRIMARY INDUSTRY / CATEGORY *
-              </Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
-                {PROFESSIONAL_CATEGORIES.map(cat => {
-                  const isSelected = selectedCategory === cat.name;
-                  return (
-                    <TouchableOpacity
-                      key={cat.id}
-                      onPress={() => setSelectedCategory(cat.name)}
-                      style={{
-                        paddingHorizontal: 13,
-                        paddingVertical: 7,
-                        borderRadius: 16,
-                        backgroundColor: isSelected ? colors.accent : colors.inputBackground,
-                        borderWidth: 1,
-                        borderColor: isSelected ? colors.accent : colors.borderLight,
-                      }}
-                    >
-                      <Text style={{
-                        fontSize: 12,
-                        fontWeight: '800',
-                        color: isSelected ? '#ffffff' : colors.textPrimary,
-                      }}>
-                        {cat.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              <CategoryDropdown
+                value={selectedCategory}
+                onSelect={setSelectedCategory}
+              />
 
               <Field 
                 label="Professional Title *" 

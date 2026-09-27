@@ -261,7 +261,6 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
       setSelectedVideoUri(null);
       setSelectedVideoName('');
       setSelectedVideoSize('');
-      setNewReelUrl('');
       setNewReelTitle('');
       setNewReelCategory('Cinematography');
       setNewReelIsShort(true);
