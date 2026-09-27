@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Modal, Dimensions, ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform, Share, Linking, LayoutAnimation, UIManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
@@ -15,7 +15,7 @@ import { Button } from '../../components/ui/Button';
 import { ProductCard } from '../../components/cards/ProductCard';
 import { DishCard } from '../../components/cards/DishCard';
 import { useCartStore } from '../../store/cartStore';
-import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, ThumbsUp, Check, Award, UtensilsCrossed, Plus, Minus, Clock, Gift } from 'lucide-react-native';
+import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, ThumbsUp, Check, Award, UtensilsCrossed, Plus, Minus, Clock, Gift, ShoppingBag } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import { getArchetype } from '../../constants/categories';
 
@@ -230,6 +230,29 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
   const isBaker = proArchetype.archetype === 'home_baker';
   const isCrafts = proArchetype.archetype === 'crafts_gifting';
   const isItemCatalog = isBaker || isCrafts;
+
+  const displayProducts = useMemo(() => {
+    if (products.length > 0) return products;
+    if (isCrafts && profile?.menuItems && profile.menuItems.length > 0) {
+      return profile.menuItems.filter(m => m.isAvailable).map(m => ({
+        id: m.id,
+        name: m.name,
+        brand: 'Handcrafted',
+        category: m.category || 'Crafts & Gifting',
+        type: 'sale' as const,
+        price: m.pricePerPlate,
+        condition: 'New',
+        image: m.imageUrl || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=800',
+        gallery: m.imageUrl ? [m.imageUrl] : [],
+        description: m.description || '',
+        specs: {},
+        inStock: true,
+        rating: 4.9,
+        codEnabled: true,
+      }));
+    }
+    return [];
+  }, [products, isCrafts, profile?.menuItems]);
 
   const safeServices = profile.services && profile.services.length > 0 ? profile.services : [
     {
@@ -610,6 +633,44 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
           </View>
         )}
 
+        {/* ── Product Cards (Crafts, Hampers & Products for Sale) ── */}
+        {displayProducts && displayProducts.length > 0 && (
+          <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {isCrafts ? (
+                  <Gift size={16} color={colors.accent} style={{ marginRight: 8 }} />
+                ) : (
+                  <ShoppingBag size={16} color={colors.accent} style={{ marginRight: 8 }} />
+                )}
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
+                  {isCrafts ? 'Handcrafted Products & Hampers' : (isBaker ? 'Artisanal Bakes & Products' : 'Gear & Products for Sale')}
+                </Text>
+                <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated, marginLeft: 8 }]}>
+                  <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>{displayProducts.length}</Text>
+                </View>
+              </View>
+            </View>
+
+            <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4, marginBottom: 12 }}>
+              {isCrafts
+                ? 'Handcrafted hampers, bespoke gift wrapping, floral art & personalized gifts available for direct order.'
+                : 'Browse genuine equipment, accessories, and products offered by this creator.'}
+            </Text>
+
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              {displayProducts.map(prod => (
+                <ProductCard
+                  key={prod.id}
+                  product={prod}
+                  onPress={() => navigation.navigate('ProductDetail', { product: prod })}
+                  onAddToCart={() => addItem(prod)}
+                />
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* ── Capabilities / Production Logistics (Expandable Accordion) ── */}
         {profile.equipment && profile.equipment.length > 0 && (
           <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
@@ -981,28 +1042,6 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
             </View>
           )}
         </Card>
-
-        {/* ── Gear for Sale & Rent ── */}
-        {products && products.length > 0 && (
-          <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Gear for Sale & Rent</Text>
-              <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated }]}>
-                <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>{products.length}</Text>
-              </View>
-            </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 8 }}>
-              {products.map(prod => (
-                <ProductCard
-                  key={prod.id}
-                  product={prod}
-                  onPress={() => navigation.navigate('ProductDetail', { product: prod })}
-                  onAddToCart={() => addItem(prod)}
-                />
-              ))}
-            </View>
-          </View>
-        )}
       </ScrollView>
 
       {/* ── Persistent Bottom Action Dock ── */}

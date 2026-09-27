@@ -14,9 +14,11 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress, onAddToCart, style }) => {
   const { colors, isDark } = useTheme();
 
+  const isHandmade = product.brand === 'Handcrafted' || product.category === 'Crafts & Gifting' || product.category === 'Gift Hampers' || product.category === 'Floral Design' || product.category === 'Gift Wrapping';
+
   const specsText = product.specs && Object.keys(product.specs).length > 0
     ? Object.entries(product.specs).map(([k, v]) => `${v}`).join(' | ')
-    : '50 mm Lens | Charger';
+    : (isHandmade ? (product.description || 'Artisan handcrafted gift') : '50 mm Lens | Charger');
 
   // Determine styling based on DB source
   const isOfficial = product.brand === 'Camqrew Official' || product.brand === 'Camcrew Official';
@@ -28,12 +30,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress, onAd
   if (isOfficial) {
     badgeText = 'OFFICIAL';
     badgeColor = '#3fb668'; // Match Camqrew primary
+  } else if (isHandmade) {
+    badgeText = 'HANDMADE';
+    badgeColor = '#f43f5e'; // Dedicated handcrafted rose accent
   } else if (isUsed) {
     badgeText = 'PRO USED';
     badgeColor = '#3fb668'; // Match ProCard success green
   } else if (isRental) {
     badgeText = 'RENTAL';
     badgeColor = '#7C3AED'; 
+  } else if (product.condition === 'New') {
+    badgeText = 'BRAND NEW';
+    badgeColor = '#3fb668';
   }
 
   return (
@@ -77,7 +85,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress, onAd
           </View>
           
           <Text style={[styles.categoryText, { color: colors.textFaint }]}>
-            {product.category || 'Camera Gear'}
+            {product.category || (isHandmade ? 'Crafts & Gifting' : 'Camera Gear')}
           </Text>
 
           <Text style={[styles.specsText, { color: colors.textSecondary }]} numberOfLines={1}>
@@ -108,7 +116,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress, onAd
               disabled={!product.inStock}
             >
               <Text style={styles.buyNowBtnText}>
-                {isRental ? 'Rent' : 'Buy'}
+                {isRental ? 'Rent' : (isHandmade ? 'Order' : 'Buy')}
               </Text>
             </TouchableOpacity>
           </View>
