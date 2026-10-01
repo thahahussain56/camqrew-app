@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { Booking, BookingStatus } from '../types/booking';
 import { notificationService } from '../services/notificationService';
+import { computeCategoryMilestones } from '../utils/escrowUtils';
 
 const mapBooking = (b: any): Booking => {
   const loc = b.location_details?.address || b.location_details?.city || (typeof b.location_details === 'string' ? b.location_details : '') || '';
@@ -290,14 +291,39 @@ export const bookingApi = {
     if (!current) throw new Error('Booking not found');
 
     const tot = current.total_amount || 20000;
-    const advance = Math.round(tot * 0.3);
-    const shootWrap = Math.round(tot * 0.4);
-    const final = tot - advance - shootWrap; // Guarantee sum equals total
-    const milestonesToInsert = [
-      { booking_id: bookingId, title: 'Advance Escrow (30%)', amount: advance, status: 'paid' },
-      { booking_id: bookingId, title: 'Shoot Wrap Escrow (40%)', amount: shootWrap, status: 'pending' },
-      { booking_id: bookingId, title: 'Final Deliverables Escrow (30%)', amount: final, status: 'pending' },
-    ];
+
+    // Fetch professional categories if available to select correct escrow rules
+    let proCategories: string[] = [];
+    if (current.professional_id) {
+      try {
+        const { data: proData } = await supabase
+          .from('professional_profiles')
+          .select('categories')
+          .eq('id', current.professional_id)
+          .maybeSingle();
+        if (proData?.categories && Array.isArray(proData.categories)) {
+          proCategories = proData.categories;
+        }
+      } catch (e) {}
+    }
+
+    const categoryIdentifiers = [
+      current.service_title,
+      current.items?.serviceTitle,
+      current.items?.jobTitle,
+      current.items?.serviceCategory,
+      ...proCategories,
+    ].filter(Boolean);
+
+    const computed = computeCategoryMilestones(categoryIdentifiers, tot, bookingId);
+    const milestonesToInsert = computed.map(m => ({
+      booking_id: bookingId,
+      title: m.title,
+      amount: m.amount,
+      status: m.status,
+    }));
+
+    const advance = milestonesToInsert[0]?.amount || Math.round(tot * 0.3);
 
     // Check if milestones already exist to avoid duplicate inserts
     const { data: existingMilestones } = await supabase.from('booking_milestones').select('id').eq('booking_id', bookingId);
