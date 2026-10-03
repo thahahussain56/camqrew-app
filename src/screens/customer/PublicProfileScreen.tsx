@@ -6,7 +6,7 @@ import { useAuthStore } from '../../store/authStore';
 import { professionalApi } from '../../api/professionalApi';
 import { studioApi } from '../../api/studioApi';
 import { productApi } from '../../api/productApi';
-import { ProfessionalProfile, ReviewItem, VideoReelItem, MenuDishItem } from '../../types/professional';
+import { ProfessionalProfile, ReviewItem, VideoReelItem, MenuDishItem, ServiceItem } from '../../types/professional';
 import { Product } from '../../types/product';
 import { Avatar } from '../../components/ui/Avatar';
 import { Card } from '../../components/ui/Card';
@@ -14,8 +14,10 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { ProductCard } from '../../components/cards/ProductCard';
 import { DishCard } from '../../components/cards/DishCard';
+import { ServiceCard } from '../../components/cards/ServiceCard';
+import { getServiceImage } from '../../utils/serviceUtils';
 import { useCartStore } from '../../store/cartStore';
-import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, ThumbsUp, Check, Award, UtensilsCrossed, Plus, Minus, Clock, Gift, ShoppingBag } from 'lucide-react-native';
+import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, ThumbsUp, Check, Award, UtensilsCrossed, Plus, Minus, Clock, Gift, ShoppingBag, Sparkles, Eye } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import { getArchetype } from '../../constants/categories';
 
@@ -26,7 +28,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 const { width, height } = Dimensions.get('window');
 
 export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   
   const proId = route?.params?.id || route?.params?.professionalId;
   const bookingType = route?.params?.type || 'professionals';
@@ -37,8 +39,24 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
   const [loading, setLoading] = useState(true);
   const [selectedImgIndex, setSelectedImgIndex] = useState<number | null>(null);
   const [selectedVideoReel, setSelectedVideoReel] = useState<VideoReelItem | null>(null);
+  const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
   const { addItem } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
+
+  const handleBookService = (srv: ServiceItem) => {
+    if (!profile) return;
+    const cleanUnit = (srv.unit || 'event').toLowerCase().replace(/^per\s+/i, '').trim();
+    const notes = `Service: ${srv.title}\nCategory: ${srv.category}\nRate: ₹${(srv.rate || 15000).toLocaleString('en-IN')}/${cleanUnit}\nDescription: ${srv.description || ''}${srv.deliverables ? `\nDeliverables: ${srv.deliverables}` : ''}`;
+    navigation.navigate('Booking', {
+      proId: profile.id,
+      professionalId: profile.id,
+      professionalName: profile.name,
+      professionalTitle: profile.title,
+      ratePerDay: srv.rate,
+      serviceTitle: srv.title,
+      notes,
+    });
+  };
 
   // Accordion Expand/Collapse State
   const [capabilitiesExpanded, setCapabilitiesExpanded] = useState(true);
@@ -389,33 +407,38 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
           </Text>
         </View>
 
-        {/* ── Packages & Rates ── */}
-        <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Packages & Rates</Text>
-            <Text style={[styles.sectionCountText, { color: colors.textFaint }]}>
-              {safeServices.length} {safeServices.length === 1 ? 'option' : 'options'}
-            </Text>
-          </View>
-          {safeServices.map(srv => (
-            <View key={srv.id} style={[styles.serviceBox, { backgroundColor: colors.surfaceElevated }]}>
-              <View style={styles.serviceHeader}>
-                <Text style={[styles.serviceTitle, { color: colors.textPrimary }]}>{srv.title}</Text>
-                <Text style={[styles.serviceRate, { color: colors.accent }]}>
-                  ₹{(srv.rate || 15000).toLocaleString('en-IN')} <Text style={[styles.serviceUnit, { color: colors.textFaint }]}>/{srv.unit}</Text>
+        {/* ── Services & Packages Section (Product Card Layout) ── */}
+        <View style={styles.servicesSectionContainer}>
+          <View style={styles.servicesHeaderBox}>
+            <View style={styles.servicesTitleRow}>
+              <Sparkles size={19} color={colors.accent} style={{ marginRight: 8 }} />
+              <Text style={[styles.servicesHeading, { color: colors.textPrimary }]}>
+                Services & Packages
+              </Text>
+              <View style={[styles.servicesCountBadge, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)' }]}>
+                <Text style={[styles.servicesCountBadgeText, { color: colors.textSecondary }]}>
+                  {safeServices.length} {safeServices.length === 1 ? 'service' : 'services'}
                 </Text>
               </View>
-              {srv.description ? (
-                <Text style={[styles.serviceDesc, { color: colors.textSecondary }]}>{srv.description}</Text>
-              ) : null}
-              {srv.deliverables ? (
-                <View style={[styles.deliverablesBox, { backgroundColor: colors.background }]}>
-                  <Text style={[styles.deliverablesLabel, { color: colors.textPrimary }]}>Deliverables</Text>
-                  <Text style={[styles.deliverablesText, { color: colors.textSecondary }]}>{srv.deliverables}</Text>
-                </View>
-              ) : null}
             </View>
-          ))}
+            <Text style={[styles.servicesSubtitle, { color: colors.textSecondary }]}>
+              Standardized creative offerings and customizable packages with milestone escrow protection.
+            </Text>
+          </View>
+
+          <View style={styles.servicesCardsList}>
+            {safeServices.map(srv => (
+              <ServiceCard
+                key={srv.id}
+                service={srv}
+                creatorName={profile.name}
+                creatorRating={profile.rating || 5.0}
+                creatorBanner={profile.bannerImage}
+                onPressView={() => setSelectedService(srv)}
+                onPressBook={() => handleBookService(srv)}
+              />
+            ))}
+          </View>
         </View>
 
         {/* ── Showreels & Video Reels ── */}
@@ -1371,6 +1394,174 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ── Service / Package Details Modal ── */}
+      <Modal
+        visible={!!selectedService}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setSelectedService(null)}
+      >
+        <SafeAreaView style={[styles.serviceModalContainer, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+          {/* Header */}
+          <View style={[styles.serviceModalHeader, { borderBottomColor: colors.border }]}>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={[styles.serviceModalHeaderSub, { color: colors.accent }]} numberOfLines={1}>
+                {profile?.name ? profile.name.toUpperCase() : 'CREATOR SERVICE'}
+              </Text>
+              <Text style={[styles.serviceModalHeaderTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+                {selectedService?.title || 'Service Details'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.serviceModalCloseBtn, { backgroundColor: colors.surfaceElevated }]}
+              onPress={() => setSelectedService(null)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <X size={20} color={colors.textPrimary} />
+            </TouchableOpacity>
+          </View>
+
+          {selectedService && (
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={styles.serviceModalScroll}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Hero Image Banner */}
+              <View style={styles.serviceModalHero}>
+                <Image
+                  source={{ uri: getServiceImage(selectedService, profile?.bannerImage) }}
+                  style={styles.serviceModalHeroImg}
+                  resizeMode="cover"
+                />
+                <View style={styles.serviceModalHeroBadges}>
+                  <View style={styles.serviceModalTypeBadge}>
+                    <Text style={styles.serviceModalTypeBadgeText}>
+                      {selectedService.type === 'package' ? 'PACKAGE' : 'SERVICE'}
+                    </Text>
+                  </View>
+                  <View style={styles.serviceModalCatBadge}>
+                    <Text style={styles.serviceModalCatBadgeText} numberOfLines={1}>
+                      {selectedService.category || 'Production'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Title & Creator Info Card */}
+              <View style={[styles.serviceModalCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+                <View style={styles.serviceModalCreatorRow}>
+                  <Avatar
+                    source={profile?.avatar}
+                    size={38}
+                  />
+                  <View style={{ marginLeft: 10, flex: 1 }}>
+                    <Text style={[styles.serviceModalCreatorName, { color: colors.textPrimary }]} numberOfLines={1}>
+                      {profile?.name}
+                    </Text>
+                    <Text style={[styles.serviceModalCreatorTitle, { color: colors.textSecondary }]} numberOfLines={1}>
+                      {profile?.title || 'Creative Professional'}
+                    </Text>
+                  </View>
+                  <View style={styles.serviceModalRating}>
+                    <Star size={13} color="#F5A623" fill="#F5A623" />
+                    <Text style={[styles.serviceModalRatingText, { color: colors.textPrimary }]}>
+                      {(profile?.rating || 5.0).toFixed(1)}
+                    </Text>
+                  </View>
+                </View>
+
+                <Text style={[styles.serviceModalTitle, { color: colors.textPrimary }]}>
+                  {selectedService.title}
+                </Text>
+
+                <View style={styles.serviceModalPriceContainer}>
+                  <Text style={[styles.serviceModalPriceLabel, { color: colors.textSecondary }]}>
+                    Starting from
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 2 }}>
+                    <Text style={[styles.serviceModalPriceVal, { color: colors.accent }]}>
+                      ₹{(selectedService.rate || 15000).toLocaleString('en-IN')}
+                    </Text>
+                    <Text style={[styles.serviceModalPriceUnit, { color: colors.textSecondary }]}>
+                      {' '}/{(selectedService.unit || 'event').toLowerCase().replace(/^per\s+/i, '').trim()}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* 100% Milestone Escrow Guarantee Banner */}
+              <View style={[styles.serviceModalEscrowBanner, { backgroundColor: isDark ? 'rgba(63, 182, 104, 0.12)' : 'rgba(16, 185, 129, 0.1)', borderColor: isDark ? 'rgba(63, 182, 104, 0.3)' : 'rgba(16, 185, 129, 0.25)' }]}>
+                <ShieldCheck size={22} color={colors.accent} style={{ marginTop: 2, marginRight: 12 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.serviceModalEscrowTitle, { color: colors.accent }]}>
+                    100% Milestone Escrow Protected
+                  </Text>
+                  <Text style={[styles.serviceModalEscrowDesc, { color: colors.textSecondary }]}>
+                    Your advance payment is securely held in Camcrew Escrow and only released when deliverables meet your satisfaction.
+                  </Text>
+                </View>
+              </View>
+
+              {/* Service Scope & Description */}
+              {selectedService.description ? (
+                <View style={[styles.serviceModalCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+                  <Text style={[styles.serviceModalSectionTitle, { color: colors.textPrimary }]}>
+                    Scope of Service
+                  </Text>
+                  <Text style={[styles.serviceModalDescText, { color: colors.textSecondary }]}>
+                    {selectedService.description}
+                  </Text>
+                </View>
+              ) : null}
+
+              {/* Deliverables Checklist */}
+              {selectedService.deliverables ? (
+                <View style={[styles.serviceModalCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+                  <Text style={[styles.serviceModalSectionTitle, { color: colors.textPrimary }]}>
+                    Deliverables Included
+                  </Text>
+                  <View style={styles.serviceModalDeliverablesList}>
+                    {selectedService.deliverables.split('\n').filter(Boolean).map((item, idx) => (
+                      <View key={idx} style={styles.serviceModalDeliverableRow}>
+                        <CheckCircle size={16} color={colors.accent} style={{ marginTop: 2, marginRight: 8 }} />
+                        <Text style={[styles.serviceModalDeliverableText, { color: colors.textSecondary }]}>
+                          {item.replace(/^[•\-\*]\s*/, '').trim()}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+            </ScrollView>
+          )}
+
+          {/* Bottom Action Footer */}
+          {selectedService && (
+            <View style={[styles.serviceModalFooter, { backgroundColor: colors.surfaceCard, borderTopColor: colors.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.serviceModalFooterRateLabel, { color: colors.textSecondary }]}>Total Package</Text>
+                <Text style={[styles.serviceModalFooterRateVal, { color: colors.accent }]}>
+                  ₹{(selectedService.rate || 15000).toLocaleString('en-IN')}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.serviceModalBookCta, { backgroundColor: colors.accent }]}
+                activeOpacity={0.88}
+                onPress={() => {
+                  const srv = selectedService;
+                  setSelectedService(null);
+                  handleBookService(srv);
+                }}
+              >
+                <ShoppingBag size={17} color="#ffffff" style={{ marginRight: 8 }} />
+                <Text style={styles.serviceModalBookCtaText}>Book This Package</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </SafeAreaView>
       </Modal>
     </View>
   );
@@ -2496,5 +2687,261 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
+  },
+
+  // ── Redesigned Services & Packages Section Styles ──
+  servicesSectionContainer: {
+    paddingHorizontal: 16,
+    marginTop: 18,
+    marginBottom: 6,
+  },
+  servicesHeaderBox: {
+    marginBottom: 14,
+  },
+  servicesTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  servicesHeading: {
+    fontSize: 18.5,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+  },
+  servicesCountBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+  servicesCountBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  servicesSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  servicesCardsList: {
+    marginTop: 4,
+  },
+
+  // ── Service Details Modal Styles ──
+  serviceModalContainer: {
+    flex: 1,
+  },
+  serviceModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  serviceModalHeaderSub: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  serviceModalHeaderTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  serviceModalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  serviceModalScroll: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  serviceModalHero: {
+    width: '100%',
+    height: 220,
+    borderRadius: 18,
+    overflow: 'hidden',
+    position: 'relative',
+    marginBottom: 16,
+    backgroundColor: '#0a0d12',
+  },
+  serviceModalHeroImg: {
+    width: '100%',
+    height: '100%',
+  },
+  serviceModalHeroBadges: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    right: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  serviceModalTypeBadge: {
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    paddingHorizontal: 10,
+    paddingVertical: 4.5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  serviceModalTypeBadgeText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  serviceModalCatBadge: {
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    paddingHorizontal: 10,
+    paddingVertical: 4.5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    maxWidth: '55%',
+  },
+  serviceModalCatBadgeText: {
+    color: '#ffffff',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  serviceModalCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 14,
+  },
+  serviceModalCreatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(150,150,150,0.2)',
+  },
+  serviceModalCreatorName: {
+    fontSize: 14.5,
+    fontWeight: '800',
+  },
+  serviceModalCreatorTitle: {
+    fontSize: 12,
+    marginTop: 1,
+  },
+  serviceModalRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(245, 166, 35, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  serviceModalRatingText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  serviceModalTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    lineHeight: 26,
+    letterSpacing: -0.3,
+    marginBottom: 12,
+  },
+  serviceModalPriceContainer: {
+    marginTop: 4,
+  },
+  serviceModalPriceLabel: {
+    fontSize: 12.5,
+    fontWeight: '600',
+  },
+  serviceModalPriceVal: {
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  serviceModalPriceUnit: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  serviceModalEscrowBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 14,
+  },
+  serviceModalEscrowTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 3,
+  },
+  serviceModalEscrowDesc: {
+    fontSize: 12.5,
+    lineHeight: 18,
+  },
+  serviceModalSectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+    marginBottom: 10,
+  },
+  serviceModalDescText: {
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  serviceModalDeliverablesList: {
+    gap: 10,
+  },
+  serviceModalDeliverableRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  serviceModalDeliverableText: {
+    fontSize: 13.5,
+    lineHeight: 19,
+    flex: 1,
+  },
+  serviceModalFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    gap: 14,
+  },
+  serviceModalFooterRateLabel: {
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  serviceModalFooterRateVal: {
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: -0.4,
+  },
+  serviceModalBookCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 13,
+    borderRadius: 14,
+    shadowColor: '#3fb668',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  serviceModalBookCtaText: {
+    color: '#ffffff',
+    fontSize: 14.5,
+    fontWeight: '800',
   },
 });
