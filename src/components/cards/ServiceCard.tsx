@@ -142,7 +142,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
             onPress={onPressView}
           >
             <Text style={[styles.viewBtnText, { color: colors.textPrimary }]}>View</Text>
-            <Eye size={15} color={colors.textPrimary} style={{ marginLeft: 6 }} />
+            <Eye size={13} color={colors.textPrimary} style={{ marginLeft: 5 }} />
           </TouchableOpacity>
 
           {/* Book Button */}
@@ -151,7 +151,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
             style={[styles.bookBtn, { backgroundColor: colors.accent }]}
             onPress={onPressBook}
           >
-            <ShoppingBag size={15} color="#ffffff" style={{ marginRight: 6 }} />
+            <ShoppingBag size={13} color="#ffffff" style={{ marginRight: 5 }} />
             <Text style={styles.bookBtnText}>Book</Text>
           </TouchableOpacity>
         </View>
@@ -162,19 +162,19 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
 
 const styles = StyleSheet.create({
   cardOuter: {
-    borderRadius: 20,
+    borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1,
-    marginBottom: 16,
+    marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.16,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
   },
   imageContainer: {
     width: '100%',
-    height: 185,
+    height: 135,
     backgroundColor: '#0a0d12',
     position: 'relative',
   },
@@ -184,151 +184,151 @@ const styles = StyleSheet.create({
   },
   topBadgesRow: {
     position: 'absolute',
-    top: 12,
-    left: 12,
-    right: 12,
+    top: 8,
+    left: 8,
+    right: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     zIndex: 2,
   },
   serviceTypeBadge: {
-    backgroundColor: 'rgba(0, 0, 0, 0.68)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 14,
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.16)',
   },
   serviceTypeBadgeText: {
     color: '#ffffff',
-    fontSize: 10.5,
+    fontSize: 9.5,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
   },
   categoryBadge: {
-    backgroundColor: 'rgba(0, 0, 0, 0.68)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 14,
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.16)',
     maxWidth: '55%',
   },
   categoryBadgeText: {
     color: '#ffffff',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
   },
   contentBox: {
-    padding: 16,
+    padding: 12,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 5,
+    gap: 4,
   },
   creatorPill: {
-    paddingHorizontal: 7,
-    paddingVertical: 2.5,
-    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
     maxWidth: '48%',
   },
   creatorPillText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.3,
   },
   dotSeparator: {
-    fontSize: 10,
+    fontSize: 9,
   },
   ratingBox: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   ratingVal: {
-    fontSize: 11.5,
+    fontSize: 10.5,
     fontWeight: '800',
   },
   escrowNote: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '500',
   },
   availabilityText: {
-    fontSize: 11.5,
+    fontSize: 10.5,
     fontWeight: '700',
   },
   serviceTitle: {
-    fontSize: 17.5,
+    fontSize: 14.5,
     fontWeight: '800',
-    marginTop: 8,
-    lineHeight: 22,
+    marginTop: 6,
+    lineHeight: 19,
     letterSpacing: -0.2,
   },
   serviceSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    marginTop: 3,
+    marginTop: 2,
   },
   descriptionSnippet: {
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 6,
+    fontSize: 11.5,
+    lineHeight: 16,
+    marginTop: 4,
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginTop: 12,
-    marginBottom: 14,
+    marginTop: 8,
+    marginBottom: 10,
   },
   priceLabel: {
-    fontSize: 12.5,
+    fontSize: 11,
     fontWeight: '500',
   },
   priceValue: {
-    fontSize: 19,
+    fontSize: 16,
     fontWeight: '900',
     letterSpacing: -0.3,
   },
   priceUnit: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   viewBtn: {
     flex: 1,
-    height: 42,
-    borderRadius: 12,
+    height: 35,
+    borderRadius: 10,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   viewBtnText: {
-    fontSize: 13.5,
+    fontSize: 12,
     fontWeight: '700',
   },
   bookBtn: {
     flex: 1,
-    height: 42,
-    borderRadius: 12,
+    height: 35,
+    borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#3fb668',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0.22,
+    shadowRadius: 4,
+    elevation: 2,
   },
   bookBtnText: {
     color: '#ffffff',
-    fontSize: 13.5,
+    fontSize: 12,
     fontWeight: '800',
   },
 });
