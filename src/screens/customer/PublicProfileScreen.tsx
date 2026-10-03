@@ -17,7 +17,7 @@ import { DishCard } from '../../components/cards/DishCard';
 import { ServiceCard } from '../../components/cards/ServiceCard';
 import { getServiceImage } from '../../utils/serviceUtils';
 import { useCartStore } from '../../store/cartStore';
-import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, ThumbsUp, Check, Award, UtensilsCrossed, Plus, Minus, Clock, Gift, ShoppingBag, Sparkles, Eye } from 'lucide-react-native';
+import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Briefcase, CheckCircle, Send, MessageCircle, Share2, Film, Play, ExternalLink, ThumbsUp, Check, Award, UtensilsCrossed, Plus, Minus, Clock, Gift, ShoppingBag, Sparkles, Eye, Grid, Bell, MoreHorizontal, Link } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import { getArchetype } from '../../constants/categories';
 
@@ -40,6 +40,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
   const [selectedImgIndex, setSelectedImgIndex] = useState<number | null>(null);
   const [selectedVideoReel, setSelectedVideoReel] = useState<VideoReelItem | null>(null);
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
+  const [activeTab, setActiveTab] = useState<'grid' | 'reels' | 'services' | 'reviews'>('reels');
   const { addItem } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
 
@@ -314,484 +315,687 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* ── Top Floating Navigation Controls (Safe Notch Aware) ── */}
-      <SafeAreaView edges={['top']} style={styles.topControlSafeArea}>
-        <View style={styles.topControlRow}>
-          <TouchableOpacity 
-            style={[styles.roundControlBtn, { backgroundColor: 'rgba(0,0,0,0.45)' }]} 
+      {/* ── Top Navigation Bar (Instagram Header) ── */}
+      <SafeAreaView edges={['top']} style={[styles.topNavBar, { backgroundColor: colors.background, borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
+        <View style={styles.topNavContent}>
+          <TouchableOpacity
+            style={styles.topNavBackBtn}
             onPress={() => navigation.goBack()}
-            activeOpacity={0.8}
+            activeOpacity={0.7}
           >
-            <ArrowLeft size={20} color="#ffffff" />
+            <ChevronLeft size={28} color={colors.textPrimary} />
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.roundControlBtn, { backgroundColor: 'rgba(0,0,0,0.45)' }]} 
-            onPress={handleShareProfile} 
-            activeOpacity={0.8}
-          >
-            <Share2 size={18} color="#ffffff" />
-          </TouchableOpacity>
+
+          <Text style={[styles.topNavUsername, { color: colors.textPrimary }]} numberOfLines={1}>
+            {profile.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_
+          </Text>
+
+          <View style={styles.topNavRightActions}>
+            <TouchableOpacity
+              style={styles.topNavIconBtn}
+              onPress={() => Alert.alert('Notifications', `You are subscribed to alerts from ${profile.name}`)}
+              activeOpacity={0.7}
+            >
+              <Bell size={21} color={colors.textPrimary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.topNavIconBtn}
+              onPress={handleShareProfile}
+              activeOpacity={0.7}
+            >
+              <MoreHorizontal size={22} color={colors.textPrimary} />
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* ── Cinematic Hero Banner ── */}
-        <View style={styles.headerBanner}>
-          <Image source={{ uri: profile.bannerImage }} style={styles.banner} />
-          <View style={styles.bannerOverlay} />
-        </View>
-
-        {/* ── Profile Identity & Overview Sheet ── */}
-        <View style={[styles.profileSheet, { backgroundColor: colors.background }]}>
-          {/* Avatar and Quick Stats Row */}
-          <View style={styles.avatarHeaderRow}>
-            <View style={styles.avatarWrap}>
-              <Avatar source={profile.avatar} size={84} verified={profile.verified} />
-            </View>
-            <View style={styles.quickMetricsRow}>
-              <View style={[styles.metricPill, { backgroundColor: colors.surfaceCard }]}>
-                <Star size={13} color="#FFB800" fill="#FFB800" />
-                <Text style={[styles.metricVal, { color: colors.textPrimary }]}>{(profile.rating ?? 4.9).toFixed(1)}</Text>
-                <Text style={[styles.metricSub, { color: colors.textSecondary }]}>({profile.reviewCount ?? 18})</Text>
-              </View>
-              <View style={[styles.metricPill, { backgroundColor: colors.surfaceCard }]}>
-                <Briefcase size={13} color={colors.accent} />
-                <Text style={[styles.metricVal, { color: colors.textPrimary }]}>{profile.experienceYears || 2}+</Text>
-                <Text style={[styles.metricSub, { color: colors.textSecondary }]}>yrs</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Name & Title */}
-          <View style={styles.identityMeta}>
-            <View style={styles.nameRow}>
-              <Text style={[styles.name, { color: colors.textPrimary }]}>{profile.name}</Text>
-              {profile.verified && (
-                <View style={[styles.verifiedBadge, { backgroundColor: colors.accentGlow }]}>
-                  <ShieldCheck size={14} color={colors.accent} />
-                  <Text style={[styles.verifiedBadgeText, { color: colors.accent }]}>Verified</Text>
-                </View>
-              )}
+        {/* ── Profile Identity Section (Avatar + Name & Stats) ── */}
+        <View style={styles.profileHeaderSection}>
+          <View style={styles.avatarAndStatsRow}>
+            {/* Circular Avatar */}
+            <View style={[styles.avatarRing, { borderColor: isDark ? '#333333' : '#e5e7eb' }]}>
+              <Avatar source={profile.avatar} size={74} verified={profile.verified} />
             </View>
 
-            <Text style={[styles.title, { color: colors.accent }]}>
-              {isStudio ? 'Creative Studio Bay' : profile.title}
-            </Text>
-
-            {/* Location & Categories tags */}
-            <View style={styles.tagsRow}>
-              <View style={[styles.tagPill, { backgroundColor: colors.surfaceElevated }]}>
-                <MapPin size={12} color={colors.textSecondary} style={{ marginRight: 4 }} />
-                <Text style={[styles.tagText, { color: colors.textSecondary }]}>
-                  {profile.city}, {profile.state}
-                </Text>
-              </View>
-              {profile.categories && profile.categories.length > 0 && (
-                <View style={[styles.tagPill, { backgroundColor: colors.surfaceElevated }]}>
-                  <Text style={[styles.tagText, { color: colors.textSecondary }]}>
-                    {profile.categories[0]}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        </View>
-
-        {/* ── About Section ── */}
-        <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-            About {isStudio ? 'the Studio' : `the ${proArchetype.roleNoun}`}
-          </Text>
-          <Text style={[styles.bioText, { color: colors.textSecondary }]}>
-            {profile.bio}
-          </Text>
-        </View>
-
-        {/* ── Services & Packages Section (Product Card Layout) ── */}
-        <View style={styles.servicesSectionContainer}>
-          <View style={styles.servicesHeaderBox}>
-            <View style={styles.servicesTitleRow}>
-              <Sparkles size={19} color={colors.accent} style={{ marginRight: 8 }} />
-              <Text style={[styles.servicesHeading, { color: colors.textPrimary }]}>
-                Services & Packages
+            {/* Right Column: Name on Top + 3-Column Stats Below */}
+            <View style={styles.nameAndStatsCol}>
+              <Text style={[styles.profileDisplayName, { color: colors.textPrimary }]} numberOfLines={1}>
+                {profile.name.toUpperCase()}
               </Text>
-              <View style={[styles.servicesCountBadge, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)' }]}>
-                <Text style={[styles.servicesCountBadgeText, { color: colors.textSecondary }]}>
-                  {safeServices.length} {safeServices.length === 1 ? 'service' : 'services'}
-                </Text>
-              </View>
-            </View>
-            <Text style={[styles.servicesSubtitle, { color: colors.textSecondary }]}>
-              Standardized creative offerings and customizable packages with milestone escrow protection.
-            </Text>
-          </View>
 
-          <View style={styles.servicesCardsList}>
-            {safeServices.map(srv => (
-              <ServiceCard
-                key={srv.id}
-                service={srv}
-                creatorName={profile.name}
-                creatorRating={profile.rating || 5.0}
-                creatorBanner={profile.bannerImage}
-                onPressView={() => setSelectedService(srv)}
-                onPressBook={() => handleBookService(srv)}
-              />
-            ))}
-          </View>
-        </View>
-
-        {/* ── Showreels & Video Reels ── */}
-        {profile.videoReels && profile.videoReels.length > 0 && (
-          <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-            <View style={styles.sectionHeaderRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Film size={18} color={colors.accent} style={{ marginRight: 8 }} />
-                <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>Showreels & Video Reels</Text>
-              </View>
-              <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated }]}>
-                <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>{profile.videoReels.length}</Text>
-              </View>
-            </View>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20, marginTop: 14 }}>
-              <View style={{ width: 20 }} />
-              {profile.videoReels.map((reel) => {
-                const isShort = reel.isShort;
-                return (
-                  <TouchableOpacity
-                    key={reel.id}
-                    activeOpacity={0.88}
-                    onPress={() => {
-                      if (reel.url || reel.embedUrl) {
-                        setSelectedVideoReel(reel);
-                      }
-                    }}
-                    style={[
-                      styles.reelCard,
-                      isShort ? styles.reelCardVertical : styles.reelCardCinema,
-                      { backgroundColor: colors.surfaceElevated }
-                    ]}
-                  >
-                    {reel.thumbnailUrl ? (
-                      <Image source={{ uri: reel.thumbnailUrl }} style={styles.reelThumbnail} resizeMode="cover" />
-                    ) : (
-                      <View style={[styles.reelPlaceholder, { backgroundColor: '#111827' }]}>
-                        <Film size={32} color={colors.accent} />
-                      </View>
-                    )}
-                    <View style={styles.reelVignette} />
-
-                    {/* Play Button Badge */}
-                    <View style={[styles.reelPlayBtn, { backgroundColor: colors.accent }]}>
-                      <Play size={16} color="#ffffff" fill="#ffffff" style={{ marginLeft: 2 }} />
-                    </View>
-
-                    {/* Top Badges */}
-                    <View style={styles.reelTopBadges}>
-                      <View style={[styles.reelBadgePill, { backgroundColor: 'rgba(0,0,0,0.65)' }]}>
-                        <Text style={styles.reelBadgeText}>
-                          {isShort ? '9:16 REEL' : 'VIDEO'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Bottom Info */}
-                    <View style={styles.reelInfo}>
-                      {reel.category ? (
-                        <Text style={[styles.reelCategory, { color: colors.accent }]} numberOfLines={1}>
-                          {reel.category.toUpperCase()}
-                        </Text>
-                      ) : null}
-                      <Text style={styles.reelTitle} numberOfLines={2}>
-                        {reel.title}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-              <View style={{ width: 20 }} />
-            </ScrollView>
-          </View>
-        )}
-
-        {/* ── Cinematic Portfolio Gallery ── */}
-        <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Portfolio Highlights</Text>
-            <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated }]}>
-              <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>{safePortfolio.length}</Text>
-            </View>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20, marginTop: 4 }}>
-            <View style={{ width: 20 }} />
-            {safePortfolio.map((img, idx) => (
-              <TouchableOpacity 
-                key={idx} 
-                activeOpacity={0.88} 
-                onPress={() => setSelectedImgIndex(idx)} 
-                style={styles.portfolioItemCinematic}
-              >
-                <Image source={{ uri: img }} style={styles.portfolioImage} />
-              </TouchableOpacity>
-            ))}
-            <View style={{ width: 20 }} />
-          </ScrollView>
-        </View>
-
-        {/* ── Menu, Bakes & Crafts Catalog (Caterers, Home Bakers & Crafts) ── */}
-        {(proArchetype.archetype === 'catering' || isItemCatalog) && profile.menuItems && profile.menuItems.filter(d => d.isAvailable).length > 0 && (
-          <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-            {/* Accordion Header */}
-            <TouchableOpacity
-              activeOpacity={0.75}
-              onPress={() => setMenuExpanded(prev => !prev)}
-              style={styles.accordionHeaderBtn}
-            >
-              <View style={styles.accordionTitleCol}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  {isCrafts ? (
-                    <Gift size={16} color={colors.accent} style={{ marginRight: 8 }} />
-                  ) : (
-                    <UtensilsCrossed size={16} color={colors.accent} style={{ marginRight: 8 }} />
-                  )}
-                  <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
-                    {isCrafts ? 'Crafts, Hampers & Gift Catalog' : (isBaker ? 'Cakes, Bakes & Food Menu' : 'Menu & Dishes')}
+              <View style={styles.statsThreeColRow}>
+                {/* Posts */}
+                <TouchableOpacity
+                  style={styles.statItemCol}
+                  activeOpacity={0.7}
+                  onPress={() => setActiveTab('grid')}
+                >
+                  <Text style={[styles.statValText, { color: colors.textPrimary }]}>
+                    {safePortfolio.length + (profile.videoReels?.length || 0)}
                   </Text>
-                  <View style={[styles.countBadge, { backgroundColor: colors.accentGlow, marginLeft: 8 }]}>
-                    <Text style={[styles.countBadgeText, { color: colors.accent }]}>
-                      {profile.menuItems.filter(d => d.isAvailable).length}
-                    </Text>
-                  </View>
+                  <Text style={[styles.statLabelText, { color: colors.textSecondary }]}>posts</Text>
+                </TouchableOpacity>
+
+                {/* Rating / Followers */}
+                <TouchableOpacity
+                  style={styles.statItemCol}
+                  activeOpacity={0.7}
+                  onPress={() => setActiveTab('reviews')}
+                >
+                  <Text style={[styles.statValText, { color: colors.textPrimary }]}>
+                    {(profile.rating || 5.0).toFixed(1)} ★
+                  </Text>
+                  <Text style={[styles.statLabelText, { color: colors.textSecondary }]}>rating</Text>
+                </TouchableOpacity>
+
+                {/* Experience / Shoots */}
+                <View style={styles.statItemCol}>
+                  <Text style={[styles.statValText, { color: colors.textPrimary }]}>
+                    {profile.experienceYears || 3}+ yrs
+                  </Text>
+                  <Text style={[styles.statLabelText, { color: colors.textSecondary }]}>experience</Text>
                 </View>
-                {!menuExpanded && (
-                  <Text style={[styles.accordionHintText, { color: colors.textSecondary }]}>
-                    {isCrafts
-                      ? 'Handcrafted hampers & bespoke gifts • Select for instant order pricing'
-                      : (isBaker ? 'Fresh bakes & custom foods • Select for instant order pricing' : 'Browse dishes • Select & get instant quotation')}
-                  </Text>
-                )}
               </View>
-              <View style={[styles.accordionChevronCircle, { backgroundColor: colors.surfaceElevated }]}>
-                {menuExpanded ? (
-                  <ChevronUp size={18} color={colors.accent} />
-                ) : (
-                  <ChevronDown size={18} color={colors.textSecondary} />
-                )}
-              </View>
-            </TouchableOpacity>
+            </View>
+          </View>
 
-            {menuExpanded && (
-              <View style={styles.accordionBody}>
-                {/* Category Filter Tabs (Stroke-Free) */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-                  {MENU_CATEGORIES.filter(cat =>
-                    cat === 'All' || profile.menuItems!.some(d => d.isAvailable && d.category === cat)
-                  ).map(cat => (
-                    <TouchableOpacity
-                      key={cat}
-                      onPress={() => setMenuCategoryFilter(cat)}
-                      style={[
-                        styles.menuCatChip,
-                        {
-                          backgroundColor: menuCategoryFilter === cat
-                            ? 'rgba(63, 182, 104, 0.16)'
-                            : colors.surfaceElevated,
-                        },
-                      ]}
-                    >
-                      <Text style={[
-                        styles.menuCatChipText,
-                        { color: menuCategoryFilter === cat ? colors.accent : colors.textSecondary },
-                      ]}>{cat}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+          {/* Subtitle / Role */}
+          <Text style={[styles.profileCategorySubtitle, { color: colors.textSecondary }]}>
+            {isStudio ? 'Creative Studio' : (profile.title || 'Creative Professional')}
+          </Text>
 
-                {/* Dish Cards - Redesigned Top-Banner Floating Body Cards */}
-                {profile.menuItems
-                  .filter(d => d.isAvailable && (menuCategoryFilter === 'All' || d.category === menuCategoryFilter))
-                  .map(dish => (
-                    <DishCard
-                      key={dish.id}
-                      dish={dish}
-                      quantity={menuSelections[dish.id] || 0}
-                      onAdjustQty={(delta) => adjustMenuQty(dish.id, delta)}
-                      isBaker={isBaker}
-                    />
-                  ))}
+          {/* Bio Text */}
+          {profile.bio ? (
+            <Text style={[styles.profileBioText, { color: colors.textPrimary }]}>
+              {profile.bio}
+            </Text>
+          ) : null}
 
-                {/* Get Quotation floating summary bar */}
-                {menuItemCount > 0 && (
-                  <TouchableOpacity
-                    activeOpacity={0.88}
-                    onPress={() => navigation.navigate('QuotationSummary', {
-                      professionalId: proId,
-                      catererName: profile.name,
-                      catererTitle: profile.title,
-                      ratePerDay: profile.ratePerDay,
-                      menuItems: profile.menuItems,
-                      selections: menuSelections,
-                      isBaker: isItemCatalog,
-                      archetype: proArchetype.archetype,
-                    })}
-                    style={[styles.menuQuotationBar, { backgroundColor: colors.accent }]}
-                  >
-                    <View>
-                      <Text style={styles.menuQuotationBarLabel}>
-                        {menuItemCount} {isItemCatalog ? 'item' : 'dish'}{menuItemCount > 1 ? (isItemCatalog ? 's' : 'es') : ''} selected
-                      </Text>
-                      <Text style={styles.menuQuotationBarTotal}>
-                        {isItemCatalog ? `₹${menuTotal.toLocaleString('en-IN')} total` : `₹${menuTotal.toLocaleString('en-IN')} / plate`}
-                      </Text>
-                    </View>
-                    <View style={styles.menuQuotationBarRight}>
-                      <Text style={styles.menuQuotationBarCta}>{isItemCatalog ? (isCrafts ? 'Order Gifting' : 'Order Summary') : 'Get Quotation'}</Text>
-                      <ChevronRight size={16} color="#ffffff" />
-                    </View>
-                  </TouchableOpacity>
-                )}
+          {/* Link Row */}
+          <TouchableOpacity
+            style={styles.profileLinkRow}
+            onPress={handleShareProfile}
+            activeOpacity={0.7}
+          >
+            <Link size={13} color={colors.accent} style={{ marginRight: 5 }} />
+            <Text style={[styles.profileLinkText, { color: colors.accent }]} numberOfLines={1}>
+              camqrew.in/{profile.name.toLowerCase().replace(/[^a-z0-9]/g, '')}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Pill Chips (Instagram threads/community style) */}
+          <View style={styles.profileChipsRow}>
+            {profile.categories && profile.categories[0] && (
+              <View style={[styles.profileChip, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
+                <Text style={[styles.profileChipText, { color: colors.textPrimary }]}>
+                  @{profile.categories[0]}
+                </Text>
               </View>
             )}
+
+            <View style={[styles.profileChip, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
+              <Text style={[styles.profileChipText, { color: colors.textPrimary }]}>
+                📍 {profile.city || 'Kerala'}
+              </Text>
+            </View>
+
+            <View style={[styles.profileChip, { backgroundColor: isDark ? 'rgba(63, 182, 104, 0.12)' : 'rgba(16, 185, 129, 0.1)', borderColor: isDark ? 'rgba(63, 182, 104, 0.25)' : 'rgba(16, 185, 129, 0.2)' }]}>
+              <Text style={[styles.profileChipText, { color: colors.accent, fontWeight: '700' }]}>
+                🛡️ 100% Escrow
+              </Text>
+            </View>
+          </View>
+
+          {/* Social Proof Strip */}
+          <View style={styles.socialProofRow}>
+            <View style={styles.socialAvatarStack}>
+              <Image source={{ uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=120' }} style={[styles.microAvatar, { zIndex: 3 }]} />
+              <Image source={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=120' }} style={[styles.microAvatar, { marginLeft: -6, zIndex: 2 }]} />
+              <Image source={{ uri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=120' }} style={[styles.microAvatar, { marginLeft: -6, zIndex: 1 }]} />
+            </View>
+            <Text style={[styles.socialProofText, { color: colors.textSecondary }]}>
+              Booked by <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{profile.reviewCount || 18}+ verified clients</Text>
+            </Text>
+          </View>
+
+          {/* ── Compact Action Buttons Row ── */}
+          <View style={styles.actionButtonsRow}>
+            {/* Book Now Button */}
+            <TouchableOpacity
+              style={[styles.primaryActionBtn, { backgroundColor: colors.accent }]}
+              onPress={() => navigation.navigate('Booking', { proId: profile.id, type: bookingType })}
+              activeOpacity={0.85}
+            >
+              <ShoppingBag size={14} color="#ffffff" style={{ marginRight: 5 }} />
+              <Text style={styles.primaryActionBtnText}>Book Now</Text>
+            </TouchableOpacity>
+
+            {/* Message Button */}
+            <TouchableOpacity
+              style={[styles.secondaryActionBtn, { backgroundColor: isDark ? '#262626' : '#efefef' }]}
+              onPress={() => navigation.navigate('Chat', { otherUserId: profile.id, otherUserName: profile.name, otherUserAvatar: profile.avatar })}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.secondaryActionBtnText, { color: colors.textPrimary }]}>Message</Text>
+            </TouchableOpacity>
+
+            {/* Share Button */}
+            <TouchableOpacity
+              style={[styles.secondaryActionBtn, { backgroundColor: isDark ? '#262626' : '#efefef' }]}
+              onPress={handleShareProfile}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.secondaryActionBtnText, { color: colors.textPrimary }]}>Share</Text>
+            </TouchableOpacity>
+
+            {/* More / Dropdown Button */}
+            <TouchableOpacity
+              style={[styles.iconActionBtn, { backgroundColor: isDark ? '#262626' : '#efefef' }]}
+              onPress={handleShareProfile}
+              activeOpacity={0.8}
+            >
+              <ChevronDown size={16} color={colors.textPrimary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ── Story Highlights Carousel ── */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.highlightsScroll}
+        >
+          {/* Highlight 1: Works */}
+          <TouchableOpacity
+            style={styles.highlightItem}
+            activeOpacity={0.8}
+            onPress={() => setActiveTab('grid')}
+          >
+            <View style={[styles.highlightCircle, { borderColor: activeTab === 'grid' ? colors.accent : (isDark ? '#333333' : '#e5e7eb') }]}>
+              <Image source={{ uri: safePortfolio[0] || profile.avatar }} style={styles.highlightThumb} />
+            </View>
+            <Text style={[styles.highlightLabel, { color: colors.textPrimary }]} numberOfLines={1}>
+              🎓 Works
+            </Text>
+          </TouchableOpacity>
+
+          {/* Highlight 2: Reels */}
+          <TouchableOpacity
+            style={styles.highlightItem}
+            activeOpacity={0.8}
+            onPress={() => setActiveTab('reels')}
+          >
+            <View style={[styles.highlightCircle, { borderColor: activeTab === 'reels' ? colors.accent : (isDark ? '#333333' : '#e5e7eb') }]}>
+              <Image source={{ uri: profile.videoReels?.[0]?.thumbnailUrl || safePortfolio[1] || profile.avatar }} style={styles.highlightThumb} />
+            </View>
+            <Text style={[styles.highlightLabel, { color: colors.textPrimary }]} numberOfLines={1}>
+              🎬 Reels
+            </Text>
+          </TouchableOpacity>
+
+          {/* Highlight 3: Packages */}
+          <TouchableOpacity
+            style={styles.highlightItem}
+            activeOpacity={0.8}
+            onPress={() => setActiveTab('services')}
+          >
+            <View style={[styles.highlightCircle, { borderColor: activeTab === 'services' ? colors.accent : (isDark ? '#333333' : '#e5e7eb') }]}>
+              <Image source={{ uri: safeServices[0]?.imageUrl || safePortfolio[2] || profile.avatar }} style={styles.highlightThumb} />
+            </View>
+            <Text style={[styles.highlightLabel, { color: colors.textPrimary }]} numberOfLines={1}>
+              📦 Packages
+            </Text>
+          </TouchableOpacity>
+
+          {/* Highlight 4: Reviews */}
+          <TouchableOpacity
+            style={styles.highlightItem}
+            activeOpacity={0.8}
+            onPress={() => setActiveTab('reviews')}
+          >
+            <View style={[styles.highlightCircle, { borderColor: activeTab === 'reviews' ? colors.accent : (isDark ? '#333333' : '#e5e7eb') }]}>
+              <Image source={{ uri: safePortfolio[3] || profile.avatar }} style={styles.highlightThumb} />
+            </View>
+            <Text style={[styles.highlightLabel, { color: colors.textPrimary }]} numberOfLines={1}>
+              ⭐ Reviews
+            </Text>
+          </TouchableOpacity>
+
+          {/* Highlight 5: Gear */}
+          {profile.equipment && profile.equipment.length > 0 && (
+            <TouchableOpacity
+              style={styles.highlightItem}
+              activeOpacity={0.8}
+              onPress={() => setActiveTab('reviews')}
+            >
+              <View style={[styles.highlightCircle, { borderColor: isDark ? '#333333' : '#e5e7eb' }]}>
+                <Image source={{ uri: safePortfolio[4] || profile.bannerImage || profile.avatar }} style={styles.highlightThumb} />
+              </View>
+              <Text style={[styles.highlightLabel, { color: colors.textPrimary }]} numberOfLines={1}>
+                🛠️ Gear
+              </Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+
+        {/* ── Instagram-Style Tabs Bar ── */}
+        <View style={[styles.tabBar, { borderBottomColor: isDark ? '#262626' : '#e5e7eb', borderTopColor: isDark ? '#262626' : '#e5e7eb' }]}>
+          {/* Tab 1: Grid */}
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'grid' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('grid')}
+            activeOpacity={0.7}
+          >
+            <Grid size={22} color={activeTab === 'grid' ? (isDark ? '#ffffff' : '#000000') : colors.textFaint} />
+            {activeTab === 'grid' && <View style={[styles.tabIndicator, { backgroundColor: isDark ? '#ffffff' : '#000000' }]} />}
+          </TouchableOpacity>
+
+          {/* Tab 2: Reels */}
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'reels' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('reels')}
+            activeOpacity={0.7}
+          >
+            <Play size={22} color={activeTab === 'reels' ? (isDark ? '#ffffff' : '#000000') : colors.textFaint} />
+            {activeTab === 'reels' && <View style={[styles.tabIndicator, { backgroundColor: isDark ? '#ffffff' : '#000000' }]} />}
+          </TouchableOpacity>
+
+          {/* Tab 3: Services & Packages */}
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'services' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('services')}
+            activeOpacity={0.7}
+          >
+            <ShoppingBag size={21} color={activeTab === 'services' ? (isDark ? '#ffffff' : '#000000') : colors.textFaint} />
+            {activeTab === 'services' && <View style={[styles.tabIndicator, { backgroundColor: isDark ? '#ffffff' : '#000000' }]} />}
+          </TouchableOpacity>
+
+          {/* Tab 4: Reviews & Credentials */}
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'reviews' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('reviews')}
+            activeOpacity={0.7}
+          >
+            <Star size={21} color={activeTab === 'reviews' ? (isDark ? '#ffffff' : '#000000') : colors.textFaint} />
+            {activeTab === 'reviews' && <View style={[styles.tabIndicator, { backgroundColor: isDark ? '#ffffff' : '#000000' }]} />}
+          </TouchableOpacity>
+        </View>
+
+        {/* ── TAB 1: Grid (3-Column Square Portfolio) ── */}
+        {activeTab === 'grid' && (
+          <View style={styles.gridContainer}>
+            {safePortfolio.map((img, idx) => {
+              const itemSize = (width - 2) / 3;
+              return (
+                <TouchableOpacity
+                  key={idx}
+                  activeOpacity={0.88}
+                  onPress={() => setSelectedImgIndex(idx)}
+                  style={{ width: itemSize, height: itemSize, marginBottom: 1 }}
+                >
+                  <Image source={{ uri: img }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
 
-        {/* ── Product Cards (Crafts, Hampers & Products for Sale) ── */}
-        {displayProducts && displayProducts.length > 0 && (
-          <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-            <View style={styles.sectionHeaderRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                {isCrafts ? (
-                  <Gift size={16} color={colors.accent} style={{ marginRight: 8 }} />
-                ) : (
-                  <ShoppingBag size={16} color={colors.accent} style={{ marginRight: 8 }} />
-                )}
-                <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
-                  {isCrafts ? 'Handcrafted Products & Hampers' : (isBaker ? 'Artisanal Bakes & Products' : 'Gear & Products for Sale')}
+        {/* ── TAB 2: Reels (3-Column 9:16 Vertical Video Reels) ── */}
+        {activeTab === 'reels' && (
+          <View style={styles.reelsGridContainer}>
+            {(profile.videoReels && profile.videoReels.length > 0 ? profile.videoReels : [
+              { id: '1', title: 'Just watched', thumbnailUrl: safePortfolio[0], isShort: true },
+              { id: '2', title: 'Live everywhere. Automatically.', thumbnailUrl: safePortfolio[1], isShort: true },
+              { id: '3', title: 'AI agents. That answer calls 24/7.', thumbnailUrl: safePortfolio[2], isShort: true },
+            ]).map((reel: any, idx: number) => {
+              const reelWidth = (width - 4) / 3;
+              const reelHeight = reelWidth * 1.62;
+              return (
+                <TouchableOpacity
+                  key={reel.id || idx}
+                  activeOpacity={0.88}
+                  onPress={() => {
+                    if (reel.url || reel.embedUrl) {
+                      setSelectedVideoReel(reel);
+                    } else if (profile.videoReels?.[0]) {
+                      setSelectedVideoReel(profile.videoReels[0]);
+                    }
+                  }}
+                  style={{ width: reelWidth, height: reelHeight, position: 'relative', marginBottom: 2 }}
+                >
+                  {reel.thumbnailUrl ? (
+                    <Image source={{ uri: reel.thumbnailUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                  ) : (
+                    <View style={{ width: '100%', height: '100%', backgroundColor: '#111827', alignItems: 'center', justifyContent: 'center' }}>
+                      <Film size={24} color={colors.accent} />
+                    </View>
+                  )}
+
+                  {/* Vignette Overlay */}
+                  <View style={styles.reelThumbOverlay} />
+
+                  {/* Play count */}
+                  <View style={styles.reelViewTag}>
+                    <Play size={10} color="#ffffff" fill="#ffffff" style={{ marginRight: 3 }} />
+                    <Text style={styles.reelViewCount}>{idx === 0 ? '12.4k' : (idx === 1 ? '8.9k' : '5.1k')}</Text>
+                  </View>
+
+                  {/* Title snippet */}
+                  <Text style={styles.reelThumbTitle} numberOfLines={2}>
+                    {reel.title}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
+        {/* ── TAB 3: Services & Packages ── */}
+        {activeTab === 'services' && (
+          <View style={styles.tabSectionPadding}>
+            <View style={styles.servicesHeaderBox}>
+              <View style={styles.servicesTitleRow}>
+                <Sparkles size={17} color={colors.accent} style={{ marginRight: 6 }} />
+                <Text style={[styles.servicesHeading, { color: colors.textPrimary }]}>
+                  Services & Packages
                 </Text>
-                <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated, marginLeft: 8 }]}>
-                  <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>{displayProducts.length}</Text>
+                <View style={[styles.servicesCountBadge, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)' }]}>
+                  <Text style={[styles.servicesCountBadgeText, { color: colors.textSecondary }]}>
+                    {safeServices.length} {safeServices.length === 1 ? 'service' : 'services'}
+                  </Text>
                 </View>
               </View>
+              <Text style={[styles.servicesSubtitle, { color: colors.textSecondary }]}>
+                Standardized creative offerings and customizable packages with milestone escrow protection.
+              </Text>
             </View>
 
-            <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4, marginBottom: 12 }}>
-              {isCrafts
-                ? 'Handcrafted hampers, bespoke gift wrapping, floral art & personalized gifts available for direct order.'
-                : 'Browse genuine equipment, accessories, and products offered by this creator.'}
-            </Text>
-
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-              {displayProducts.map(prod => (
-                <ProductCard
-                  key={prod.id}
-                  product={prod}
-                  onPress={() => navigation.navigate('ProductDetail', { product: prod })}
-                  onAddToCart={() => addItem(prod)}
+            <View style={styles.servicesCardsList}>
+              {safeServices.map(srv => (
+                <ServiceCard
+                  key={srv.id}
+                  service={srv}
+                  creatorName={profile.name}
+                  creatorRating={profile.rating || 5.0}
+                  creatorBanner={profile.bannerImage}
+                  onPressView={() => setSelectedService(srv)}
+                  onPressBook={() => handleBookService(srv)}
                 />
               ))}
             </View>
-          </View>
-        )}
 
-        {/* ── Capabilities / Production Logistics (Expandable Accordion) ── */}
-        {profile.equipment && profile.equipment.length > 0 && (
-          <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-            <TouchableOpacity
-              activeOpacity={0.75}
-              onPress={toggleCapabilities}
-              style={styles.accordionHeaderBtn}
-            >
-              <View style={styles.accordionTitleCol}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
-                    {isStudio ? 'Studio Amenities' : proArchetype.equipmentSectionTitle}
-                  </Text>
-                  <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated, marginLeft: 8 }]}>
-                    <Text style={[styles.countBadgeText, { color: colors.accent }]}>
-                      {profile.equipment.length}
-                    </Text>
-                  </View>
-                </View>
-                {!capabilitiesExpanded && (
-                  <Text style={[styles.accordionHintText, { color: colors.textSecondary }]}>
-                    {profile.equipment.length} verified capabilities • Tap to expand
-                  </Text>
-                )}
-              </View>
-
-              <View style={[styles.accordionChevronCircle, { backgroundColor: colors.surfaceElevated }]}>
-                {capabilitiesExpanded ? (
-                  <ChevronUp size={18} color={colors.accent} />
-                ) : (
-                  <ChevronDown size={18} color={colors.textSecondary} />
-                )}
-              </View>
-            </TouchableOpacity>
-
-            {capabilitiesExpanded && (
-              <View style={styles.accordionBody}>
-                <View style={styles.capabilitiesList}>
-                  {profile.equipment.map((eq, i) => (
-                    <View key={i} style={[styles.capabilityItemRow, { backgroundColor: colors.surfaceElevated }]}>
-                      <View style={[styles.capabilityDot, { backgroundColor: colors.accentGlow }]}>
-                        <Check size={12} color={colors.accent} strokeWidth={2.5} />
-                      </View>
-                      <Text style={[styles.capabilityText, { color: colors.textPrimary }]}>{eq}</Text>
-                    </View>
+            {/* Products for Sale (if available) */}
+            {displayProducts && displayProducts.length > 0 && (
+              <View style={{ marginTop: 24 }}>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 8 }]}>
+                  {isCrafts ? 'Handcrafted Products & Hampers' : (isBaker ? 'Artisanal Bakes & Products' : 'Gear & Products for Sale')}
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                  {displayProducts.map(prod => (
+                    <ProductCard
+                      key={prod.id}
+                      product={prod}
+                      onPress={() => navigation.navigate('ProductDetail', { product: prod })}
+                      onAddToCart={() => addItem(prod)}
+                    />
                   ))}
                 </View>
+              </View>
+            )}
 
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={toggleCapabilities}
-                  style={styles.collapseInlineBtn}
-                >
-                  <Text style={[styles.collapseInlineBtnText, { color: colors.textSecondary }]}>Collapse Section</Text>
-                  <ChevronUp size={14} color={colors.textSecondary} style={{ marginLeft: 4 }} />
-                </TouchableOpacity>
+            {/* Catering Menu (if available) */}
+            {(proArchetype.archetype === 'catering' || isItemCatalog) && profile.menuItems && profile.menuItems.filter(d => d.isAvailable).length > 0 && (
+              <View style={{ marginTop: 24 }}>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 8 }]}>
+                  {isCrafts ? 'Crafts, Hampers & Gift Catalog' : (isBaker ? 'Cakes, Bakes & Food Menu' : 'Menu & Dishes')}
+                </Text>
+                {profile.menuItems.filter(d => d.isAvailable).map(dish => (
+                  <DishCard
+                    key={dish.id}
+                    dish={dish}
+                    quantity={menuSelections[dish.id] || 0}
+                    onAdjustQty={(delta) => adjustMenuQty(dish.id, delta)}
+                    isBaker={isBaker}
+                  />
+                ))}
               </View>
             )}
           </View>
         )}
 
-        {/* ── Certifications & Industry Affiliations (Expandable Accordion) ── */}
-        {profile.certifications && profile.certifications.length > 0 && (
-          <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-            <TouchableOpacity
-              activeOpacity={0.75}
-              onPress={toggleCertifications}
-              style={styles.accordionHeaderBtn}
-            >
-              <View style={styles.accordionTitleCol}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
-                    {proArchetype.skillsSectionTitle}
-                  </Text>
-                  <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated, marginLeft: 8 }]}>
-                    <Text style={[styles.countBadgeText, { color: colors.accent }]}>
-                      {profile.certifications.length}
-                    </Text>
-                  </View>
+        {/* ── TAB 4: Reviews, Ratings & Credentials ── */}
+        {activeTab === 'reviews' && (
+          <View style={styles.tabSectionPadding}>
+            {/* Header Row */}
+            <View style={styles.reviewsHeaderRow}>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 2 }]}>
+                  Client Reviews & Ratings
+                </Text>
+                <Text style={[styles.reviewsSubtitle, { color: colors.textSecondary }]}>
+                  Verified feedback from completed bookings
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.writeReviewBtn, { backgroundColor: colors.accentGlow, borderColor: colors.accent }]}
+                onPress={handleOpenReview}
+                activeOpacity={0.8}
+              >
+                <Star size={14} color={colors.accent} fill={colors.accent} style={{ marginRight: 6 }} />
+                <Text style={[styles.writeReviewBtnText, { color: colors.accent }]}>Write Review</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Hero Rating Summary Card (Score + 5-Bar Histogram) */}
+            <View style={[styles.heroRatingCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+              <View style={styles.heroScoreCol}>
+                <Text style={[styles.heroBigScore, { color: colors.textPrimary }]}>
+                  {(profile.rating ?? 5.0).toFixed(1)}
+                </Text>
+                <View style={styles.heroStarsRow}>
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star
+                      key={s}
+                      size={15}
+                      color="#FFB800"
+                      fill={s <= Math.round(profile.rating ?? 5.0) ? '#FFB800' : 'transparent'}
+                      style={{ marginHorizontal: 1 }}
+                    />
+                  ))}
                 </View>
-                {!certificationsExpanded && (
-                  <Text style={[styles.accordionHintText, { color: colors.textSecondary }]}>
-                    {profile.certifications.length} verified credentials • Tap to expand
-                  </Text>
-                )}
+                <Text style={[styles.heroRatingCount, { color: colors.textSecondary }]}>
+                  {reviews.length} {reviews.length === 1 ? 'verified review' : 'verified reviews'}
+                </Text>
+                <View style={[styles.escrowTrustTag, { backgroundColor: colors.accentGlow }]}>
+                  <ShieldCheck size={11} color={colors.accent} style={{ marginRight: 4 }} />
+                  <Text style={[styles.escrowTrustText, { color: colors.accent }]}>100% Escrow Verified</Text>
+                </View>
               </View>
 
-              <View style={[styles.accordionChevronCircle, { backgroundColor: colors.surfaceElevated }]}>
-                {certificationsExpanded ? (
-                  <ChevronUp size={18} color={colors.accent} />
-                ) : (
-                  <ChevronDown size={18} color={colors.textSecondary} />
-                )}
-              </View>
-            </TouchableOpacity>
+              <View style={[styles.heroDivider, { backgroundColor: colors.border }]} />
 
-            {certificationsExpanded && (
-              <View style={styles.accordionBody}>
+              {/* 5-Bar Histogram */}
+              <View style={styles.histogramCol}>
+                {starCounts.map(({ stars, count, percentage }) => (
+                  <TouchableOpacity
+                    key={stars}
+                    style={styles.histogramRow}
+                    onPress={() => setRatingFilter(ratingFilter === stars ? 'all' : stars)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.histogramStarLabel, { color: colors.textSecondary }]}>{stars}★</Text>
+                    <View style={[styles.histogramTrack, { backgroundColor: colors.border }]}>
+                      <View
+                        style={[
+                          styles.histogramFill,
+                          {
+                            width: `${Math.max(percentage, count > 0 ? 8 : 0)}%`,
+                            backgroundColor: ratingFilter === stars ? colors.accent : '#FFB800',
+                          }
+                        ]}
+                      />
+                    </View>
+                    <Text style={[styles.histogramCountLabel, { color: colors.textFaint }]}>{count}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Filter Chips Bar (when reviews > 0) */}
+            {reviews.length > 0 && (
+              <View style={styles.filterChipsContainer}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipsScroll}>
+                  {filterOptions
+                    .filter(opt => opt.value === 'all' || (opt.count ?? 0) > 0)
+                    .map((opt) => {
+                      const isActive = ratingFilter === opt.value;
+                      return (
+                        <TouchableOpacity
+                          key={String(opt.value)}
+                          style={[
+                            styles.filterChip,
+                            {
+                              backgroundColor: isActive ? colors.accent : colors.surfaceElevated,
+                              borderColor: isActive ? colors.accent : colors.border,
+                            }
+                          ]}
+                          onPress={() => setRatingFilter(opt.value)}
+                          activeOpacity={0.7}
+                        >
+                          <Text
+                            style={[
+                              styles.filterChipText,
+                              { color: isActive ? '#ffffff' : colors.textSecondary, fontWeight: isActive ? '800' : '600' }
+                            ]}
+                          >
+                            {opt.label} {opt.count !== undefined ? `(${opt.count})` : ''}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Reviews List */}
+            {reviews.length === 0 ? (
+              <View style={[styles.emptyReviewsBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                <View style={[styles.emptyIconCircle, { backgroundColor: colors.accentGlow }]}>
+                  <MessageCircle size={28} color={colors.accent} />
+                </View>
+                <Text style={[styles.emptyReviewsTitle, { color: colors.textPrimary }]}>No reviews yet</Text>
+                <Text style={[styles.emptyReviewsDesc, { color: colors.textSecondary }]}>
+                  Be the first to share your experience working with {profile.name}!
+                </Text>
+                <TouchableOpacity
+                  style={[styles.beFirstBtn, { backgroundColor: colors.accent }]}
+                  onPress={handleOpenReview}
+                  activeOpacity={0.8}
+                >
+                  <Star size={14} color="#ffffff" fill="#ffffff" style={{ marginRight: 6 }} />
+                  <Text style={styles.beFirstBtnText}>Rate & Review Now</Text>
+                </TouchableOpacity>
+              </View>
+            ) : filteredReviews.length === 0 ? (
+              <View style={[styles.emptyFilterBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                <Text style={[styles.emptyFilterText, { color: colors.textSecondary }]}>
+                  No reviews found with {ratingFilter}★ rating.
+                </Text>
+                <TouchableOpacity
+                  style={[styles.clearFilterBtn, { borderColor: colors.accent }]}
+                  onPress={() => setRatingFilter('all')}
+                >
+                  <Text style={[styles.clearFilterBtnText, { color: colors.accent }]}>Show All Reviews</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.reviewsListContainer}>
+                {filteredReviews.map((rev, i) => {
+                  const isHelpful = !!userVotedHelpful[rev.id];
+                  const helpfulCount = helpfulVotes[rev.id] || 0;
+                  return (
+                    <View
+                      key={rev.id || i}
+                      style={[
+                        styles.reviewItemCard,
+                        {
+                          backgroundColor: colors.surfaceElevated,
+                          borderColor: colors.border,
+                        }
+                      ]}
+                    >
+                      {/* Review Header */}
+                      <View style={styles.reviewAuthorRow}>
+                        <View style={styles.reviewerMeta}>
+                          {rev.clientAvatar ? (
+                            <Image source={{ uri: rev.clientAvatar }} style={styles.reviewerAvatar} />
+                          ) : (
+                            <View style={[styles.reviewerInitials, { backgroundColor: colors.accent }]}>
+                              <Text style={styles.reviewerInitialText}>
+                                {rev.clientName ? rev.clientName[0].toUpperCase() : 'C'}
+                              </Text>
+                            </View>
+                          )}
+                          <View>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                              <Text style={[styles.reviewerName, { color: colors.textPrimary }]}>{rev.clientName}</Text>
+                              <View style={styles.verifiedBadgeInline}>
+                                <CheckCircle size={11} color={colors.accent} />
+                                <Text style={[styles.verifiedBadgeInlineText, { color: colors.accent }]}>Verified</Text>
+                              </View>
+                            </View>
+                            <Text style={[styles.reviewDate, { color: colors.textFaint }]}>{rev.date}</Text>
+                          </View>
+                        </View>
+
+                        <View style={[styles.reviewStarsPill, { backgroundColor: 'rgba(255, 184, 0, 0.12)', borderColor: 'rgba(255, 184, 0, 0.25)' }]}>
+                          <Star size={13} color="#FFB800" fill="#FFB800" style={{ marginRight: 4 }} />
+                          <Text style={styles.reviewStarsPillText}>{Number(rev.rating).toFixed(1)}</Text>
+                        </View>
+                      </View>
+
+                      <Text style={[styles.reviewCommentText, { color: colors.textSecondary }]}>
+                        {rev.comment}
+                      </Text>
+
+                      <View style={[styles.reviewFooterRow, { borderTopColor: colors.border }]}>
+                        <View style={styles.escrowFooterBadge}>
+                          <ShieldCheck size={12} color={colors.accent} style={{ marginRight: 4 }} />
+                          <Text style={[styles.escrowFooterText, { color: colors.textSecondary }]}>Escrow Verified Booking</Text>
+                        </View>
+
+                        <TouchableOpacity
+                          style={[
+                            styles.helpfulBtn,
+                            {
+                              backgroundColor: isHelpful ? colors.accentGlow : 'transparent',
+                              borderColor: isHelpful ? colors.accent : colors.border,
+                            }
+                          ]}
+                          onPress={() => handleToggleHelpful(rev.id)}
+                          activeOpacity={0.7}
+                        >
+                          <ThumbsUp size={12} color={isHelpful ? colors.accent : colors.textSecondary} style={{ marginRight: 4 }} />
+                          <Text style={[styles.helpfulBtnText, { color: isHelpful ? colors.accent : colors.textSecondary }]}>
+                            Helpful {helpfulCount > 0 ? `(${helpfulCount})` : ''}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            {/* Credentials / Affiliations Accordion */}
+            {profile.certifications && profile.certifications.length > 0 && (
+              <View style={{ marginTop: 20 }}>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 8 }]}>
+                  {proArchetype.skillsSectionTitle}
+                </Text>
                 <View style={styles.credentialsList}>
                   {profile.certifications.map((cert, i) => (
                     <View key={i} style={[styles.credentialCard, { backgroundColor: colors.surfaceElevated }]}>
@@ -808,301 +1012,30 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                     </View>
                   ))}
                 </View>
+              </View>
+            )}
 
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={toggleCertifications}
-                  style={styles.collapseInlineBtn}
-                >
-                  <Text style={[styles.collapseInlineBtnText, { color: colors.textSecondary }]}>Collapse Section</Text>
-                  <ChevronUp size={14} color={colors.textSecondary} style={{ marginLeft: 4 }} />
-                </TouchableOpacity>
+            {/* Capabilities / Equipment */}
+            {profile.equipment && profile.equipment.length > 0 && (
+              <View style={{ marginTop: 20 }}>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 8 }]}>
+                  {isStudio ? 'Studio Amenities' : proArchetype.equipmentSectionTitle}
+                </Text>
+                <View style={styles.capabilitiesList}>
+                  {profile.equipment.map((eq, i) => (
+                    <View key={i} style={[styles.capabilityItemRow, { backgroundColor: colors.surfaceElevated }]}>
+                      <View style={[styles.capabilityDot, { backgroundColor: colors.accentGlow }]}>
+                        <Check size={12} color={colors.accent} strokeWidth={2.5} />
+                      </View>
+                      <Text style={[styles.capabilityText, { color: colors.textPrimary }]}>{eq}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             )}
           </View>
         )}
-
-        {/* ── Redesigned Client Reviews & Star Ratings Section ── */}
-        <Card style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
-          {/* Header Row */}
-          <View style={styles.reviewsHeaderRow}>
-            <View style={{ flex: 1, paddingRight: 8 }}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 2 }]}>
-                Client Reviews & Ratings
-              </Text>
-              <Text style={[styles.reviewsSubtitle, { color: colors.textSecondary }]}>
-                Verified feedback from completed bookings
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={[styles.writeReviewBtn, { backgroundColor: colors.accentGlow, borderColor: colors.accent }]}
-              onPress={handleOpenReview}
-              activeOpacity={0.8}
-            >
-              <Star size={14} color={colors.accent} fill={colors.accent} style={{ marginRight: 6 }} />
-              <Text style={[styles.writeReviewBtnText, { color: colors.accent }]}>Write Review</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Hero Rating Summary Card (Score + 5-Bar Histogram) */}
-          <View style={[styles.heroRatingCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-            <View style={styles.heroScoreCol}>
-              <Text style={[styles.heroBigScore, { color: colors.textPrimary }]}>
-                {(profile.rating ?? 5.0).toFixed(1)}
-              </Text>
-              <View style={styles.heroStarsRow}>
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star
-                    key={s}
-                    size={15}
-                    color="#FFB800"
-                    fill={s <= Math.round(profile.rating ?? 5.0) ? '#FFB800' : 'transparent'}
-                    style={{ marginHorizontal: 1 }}
-                  />
-                ))}
-              </View>
-              <Text style={[styles.heroRatingCount, { color: colors.textSecondary }]}>
-                {reviews.length} {reviews.length === 1 ? 'verified review' : 'verified reviews'}
-              </Text>
-              <View style={[styles.escrowTrustTag, { backgroundColor: colors.accentGlow }]}>
-                <ShieldCheck size={11} color={colors.accent} style={{ marginRight: 4 }} />
-                <Text style={[styles.escrowTrustText, { color: colors.accent }]}>100% Escrow Verified</Text>
-              </View>
-            </View>
-
-            <View style={[styles.heroDivider, { backgroundColor: colors.border }]} />
-
-            {/* 5-Bar Histogram */}
-            <View style={styles.histogramCol}>
-              {starCounts.map(({ stars, count, percentage }) => (
-                <TouchableOpacity
-                  key={stars}
-                  style={styles.histogramRow}
-                  onPress={() => setRatingFilter(ratingFilter === stars ? 'all' : stars)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.histogramStarLabel, { color: colors.textSecondary }]}>{stars}★</Text>
-                  <View style={[styles.histogramTrack, { backgroundColor: colors.border }]}>
-                    <View
-                      style={[
-                        styles.histogramFill,
-                        {
-                          width: `${Math.max(percentage, count > 0 ? 8 : 0)}%`,
-                          backgroundColor: ratingFilter === stars ? colors.accent : '#FFB800',
-                        }
-                      ]}
-                    />
-                  </View>
-                  <Text style={[styles.histogramCountLabel, { color: colors.textFaint }]}>{count}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Trust Badges Strip */}
-          <View style={styles.trustBadgesStrip}>
-            <View style={[styles.trustPill, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-              <CheckCircle size={11} color={colors.accent} style={{ marginRight: 4 }} />
-              <Text style={[styles.trustPillText, { color: colors.textSecondary }]}>Verified Bookings</Text>
-            </View>
-            <View style={[styles.trustPill, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-              <ShieldCheck size={11} color="#00dbe9" style={{ marginRight: 4 }} />
-              <Text style={[styles.trustPillText, { color: colors.textSecondary }]}>Escrow Protection</Text>
-            </View>
-            <View style={[styles.trustPill, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-              <Award size={11} color="#FFB800" style={{ marginRight: 4 }} />
-              <Text style={[styles.trustPillText, { color: colors.textSecondary }]}>Authentic Clients</Text>
-            </View>
-          </View>
-
-          {/* Filter Chips Bar (when reviews > 0) */}
-          {reviews.length > 0 && (
-            <View style={styles.filterChipsContainer}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipsScroll}>
-                {filterOptions
-                  .filter(opt => opt.value === 'all' || (opt.count ?? 0) > 0)
-                  .map((opt) => {
-                    const isActive = ratingFilter === opt.value;
-                    return (
-                      <TouchableOpacity
-                        key={String(opt.value)}
-                        style={[
-                          styles.filterChip,
-                          {
-                            backgroundColor: isActive ? colors.accent : colors.surfaceElevated,
-                            borderColor: isActive ? colors.accent : colors.border,
-                          }
-                        ]}
-                        onPress={() => setRatingFilter(opt.value)}
-                        activeOpacity={0.7}
-                      >
-                        <Text
-                          style={[
-                            styles.filterChipText,
-                            { color: isActive ? '#ffffff' : colors.textSecondary, fontWeight: isActive ? '800' : '600' }
-                          ]}
-                        >
-                          {opt.label} {opt.count !== undefined ? `(${opt.count})` : ''}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Reviews List or Empty State */}
-          {reviews.length === 0 ? (
-            <View style={[styles.emptyReviewsBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-              <View style={[styles.emptyIconCircle, { backgroundColor: colors.accentGlow }]}>
-                <MessageCircle size={28} color={colors.accent} />
-              </View>
-              <Text style={[styles.emptyReviewsTitle, { color: colors.textPrimary }]}>No reviews yet</Text>
-              <Text style={[styles.emptyReviewsDesc, { color: colors.textSecondary }]}>
-                Be the first to share your experience working with {profile.name}!
-              </Text>
-              <TouchableOpacity
-                style={[styles.beFirstBtn, { backgroundColor: colors.accent }]}
-                onPress={handleOpenReview}
-                activeOpacity={0.8}
-              >
-                <Star size={14} color="#ffffff" fill="#ffffff" style={{ marginRight: 6 }} />
-                <Text style={styles.beFirstBtnText}>Rate & Review Now</Text>
-              </TouchableOpacity>
-            </View>
-          ) : filteredReviews.length === 0 ? (
-            <View style={[styles.emptyFilterBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-              <Text style={[styles.emptyFilterText, { color: colors.textSecondary }]}>
-                No reviews found with {ratingFilter}★ rating.
-              </Text>
-              <TouchableOpacity
-                style={[styles.clearFilterBtn, { borderColor: colors.accent }]}
-                onPress={() => setRatingFilter('all')}
-              >
-                <Text style={[styles.clearFilterBtnText, { color: colors.accent }]}>Show All Reviews</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.reviewsListContainer}>
-              {filteredReviews.map((rev, i) => {
-                const isHelpful = !!userVotedHelpful[rev.id];
-                const helpfulCount = helpfulVotes[rev.id] || 0;
-                return (
-                  <View
-                    key={rev.id || i}
-                    style={[
-                      styles.reviewItemCard,
-                      {
-                        backgroundColor: colors.surfaceElevated,
-                        borderColor: colors.border,
-                      }
-                    ]}
-                  >
-                    {/* Review Header: Reviewer Info + Rating Pill */}
-                    <View style={styles.reviewAuthorRow}>
-                      <View style={styles.reviewerMeta}>
-                        {rev.clientAvatar ? (
-                          <Image source={{ uri: rev.clientAvatar }} style={styles.reviewerAvatar} />
-                        ) : (
-                          <View style={[styles.reviewerInitials, { backgroundColor: colors.accent }]}>
-                            <Text style={styles.reviewerInitialText}>
-                              {rev.clientName ? rev.clientName[0].toUpperCase() : 'C'}
-                            </Text>
-                          </View>
-                        )}
-                        <View>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text style={[styles.reviewerName, { color: colors.textPrimary }]}>{rev.clientName}</Text>
-                            <View style={styles.verifiedBadgeInline}>
-                              <CheckCircle size={11} color={colors.accent} />
-                              <Text style={[styles.verifiedBadgeInlineText, { color: colors.accent }]}>Verified</Text>
-                            </View>
-                          </View>
-                          <Text style={[styles.reviewDate, { color: colors.textFaint }]}>{rev.date}</Text>
-                        </View>
-                      </View>
-
-                      {/* Amber Rating Pill */}
-                      <View style={[styles.reviewStarsPill, { backgroundColor: 'rgba(255, 184, 0, 0.12)', borderColor: 'rgba(255, 184, 0, 0.25)' }]}>
-                        <Star size={13} color="#FFB800" fill="#FFB800" style={{ marginRight: 4 }} />
-                        <Text style={styles.reviewStarsPillText}>{Number(rev.rating).toFixed(1)}</Text>
-                      </View>
-                    </View>
-
-                    {/* Review Comment Body */}
-                    <Text style={[styles.reviewCommentText, { color: colors.textSecondary }]}>
-                      {rev.comment}
-                    </Text>
-
-                    {/* Review Card Footer: Escrow Tag & Helpful Button */}
-                    <View style={[styles.reviewFooterRow, { borderTopColor: colors.border }]}>
-                      <View style={styles.escrowFooterBadge}>
-                        <ShieldCheck size={12} color={colors.accent} style={{ marginRight: 4 }} />
-                        <Text style={[styles.escrowFooterText, { color: colors.textSecondary }]}>Escrow Verified Booking</Text>
-                      </View>
-
-                      <TouchableOpacity
-                        style={[
-                          styles.helpfulBtn,
-                          {
-                            backgroundColor: isHelpful ? colors.accentGlow : 'transparent',
-                            borderColor: isHelpful ? colors.accent : colors.border,
-                          }
-                        ]}
-                        onPress={() => handleToggleHelpful(rev.id)}
-                        activeOpacity={0.7}
-                      >
-                        <ThumbsUp size={12} color={isHelpful ? colors.accent : colors.textSecondary} style={{ marginRight: 4 }} />
-                        <Text style={[styles.helpfulBtnText, { color: isHelpful ? colors.accent : colors.textSecondary }]}>
-                          Helpful {helpfulCount > 0 ? `(${helpfulCount})` : ''}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-        </Card>
       </ScrollView>
-
-      {/* ── Persistent Bottom Action Dock ── */}
-      <View style={[styles.bottomDock, { backgroundColor: colors.surfaceCard }]}>
-        <SafeAreaView edges={['bottom']} style={styles.bottomDockSafe}>
-          <View style={styles.bottomDockContent}>
-            <View style={styles.bottomPriceCol}>
-              <Text style={[styles.bottomPriceLabel, { color: colors.textSecondary }]}>Starting from</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-                <Text style={[styles.bottomPriceVal, { color: colors.accent }]}>
-                  ₹{(profile.ratePerDay || 15000).toLocaleString('en-IN')}
-                </Text>
-                <Text style={[styles.bottomPriceUnit, { color: colors.textFaint }]}>
-                  /{proArchetype.rateUnitDefault.toLowerCase()}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.bottomActionsRow}>
-              <TouchableOpacity
-                style={[styles.bottomMessageBtn, { backgroundColor: colors.surfaceElevated }]}
-                onPress={() => navigation.navigate('Chat', { otherUserId: profile.id, otherUserName: profile.name, otherUserAvatar: profile.avatar })}
-                activeOpacity={0.8}
-              >
-                <MessageSquare size={18} color={colors.textPrimary} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.bottomBookBtn, { backgroundColor: colors.accent }]}
-                onPress={() => navigation.navigate('Booking', { proId: profile.id, type: bookingType })}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.bottomBookBtnText}>{proArchetype.bookingCtaPrefix}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </SafeAreaView>
-      </View>
 
       {/* Lightbox Modal */}
       <Modal visible={selectedImgIndex !== null} transparent animationType="fade" onRequestClose={() => setSelectedImgIndex(null)}>
@@ -2943,5 +2876,267 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14.5,
     fontWeight: '800',
+  },
+
+  // ── Instagram Layout Styles ──
+  topNavBar: {
+    borderBottomWidth: 1,
+  },
+  topNavContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    height: 44,
+  },
+  topNavBackBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  topNavUsername: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  topNavRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  topNavIconBtn: {
+    padding: 4,
+  },
+  profileHeaderSection: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
+  },
+  avatarAndStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarRing: {
+    padding: 2.5,
+    borderRadius: 50,
+    borderWidth: 1,
+  },
+  nameAndStatsCol: {
+    flex: 1,
+    marginLeft: 18,
+  },
+  profileDisplayName: {
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    marginBottom: 8,
+  },
+  statsThreeColRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  statItemCol: {
+    alignItems: 'center',
+    minWidth: 50,
+  },
+  statValText: {
+    fontSize: 15.5,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  statLabelText: {
+    fontSize: 11.5,
+    marginTop: 1,
+    fontWeight: '500',
+  },
+  profileCategorySubtitle: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    marginTop: 10,
+    letterSpacing: -0.1,
+  },
+  profileBioText: {
+    fontSize: 13,
+    lineHeight: 18.5,
+    marginTop: 4,
+  },
+  profileLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  profileLinkText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  profileChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  profileChip: {
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  profileChipText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  socialProofRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  socialAvatarStack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  microAvatar: {
+    width: 19,
+    height: 19,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#000000',
+  },
+  socialProofText: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 14,
+  },
+  primaryActionBtn: {
+    flex: 1.25,
+    height: 35,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryActionBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  secondaryActionBtn: {
+    flex: 1,
+    height: 35,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryActionBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  iconActionBtn: {
+    width: 35,
+    height: 35,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  highlightsScroll: {
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 12,
+    gap: 12,
+  },
+  highlightItem: {
+    alignItems: 'center',
+    width: 62,
+  },
+  highlightCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1.5,
+    padding: 2.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  highlightThumb: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 26,
+  },
+  highlightLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  tabBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    height: 44,
+  },
+  tabButton: {
+    flex: 1,
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  tabButtonActive: {
+    opacity: 1,
+  },
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 1.5,
+  },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 1,
+  },
+  reelsGridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 2,
+  },
+  reelThumbOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.18)',
+  },
+  reelViewTag: {
+    position: 'absolute',
+    bottom: 22,
+    left: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reelViewCount: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  reelThumbTitle: {
+    position: 'absolute',
+    bottom: 5,
+    left: 6,
+    right: 6,
+    color: '#ffffff',
+    fontSize: 10.5,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowRadius: 3,
+  },
+  tabSectionPadding: {
+    padding: 16,
   },
 });
