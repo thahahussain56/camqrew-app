@@ -21,6 +21,8 @@ import { Star, MapPin, X, ArrowLeft, ShieldCheck, ChevronLeft, ChevronRight, Che
 import { WebView } from 'react-native-webview';
 import { getArchetype } from '../../constants/categories';
 
+type ProfileTab = 'images' | 'videos' | 'services' | 'reviews';
+
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
@@ -37,10 +39,10 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
   const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<ProfileTab>('images');
   const [selectedImgIndex, setSelectedImgIndex] = useState<number | null>(null);
   const [selectedVideoReel, setSelectedVideoReel] = useState<VideoReelItem | null>(null);
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
-  const [activeTab, setActiveTab] = useState<'images' | 'videos' | 'services' | 'rating' | 'products' | 'menu'>('images');
   const { addItem } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
 
@@ -313,33 +315,6 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
     { label: '1 ★', value: 1, count: reviews.filter(r => Math.round(r.rating) === 1).length },
   ];
 
-  type SectionTabKey = 'images' | 'videos' | 'services' | 'rating' | 'products' | 'menu';
-  const sectionTabs = useMemo(() => {
-    const tabs: { key: SectionTabKey; label: string; icon: any; count: number | string }[] = [
-      { key: 'images', label: 'Images', icon: Camera, count: safePortfolio.length },
-      { key: 'videos', label: 'Videos', icon: Film, count: (profile?.videoReels || []).length },
-      { key: 'services', label: 'Services & Packages', icon: Sparkles, count: safeServices.length },
-      { key: 'rating', label: 'Rating', icon: Star, count: (profile?.rating ?? 5.0).toFixed(1) },
-    ];
-    if (displayProducts && displayProducts.length > 0) {
-      tabs.push({
-        key: 'products',
-        label: isCrafts ? 'Hampers' : 'Products',
-        icon: ShoppingBag,
-        count: displayProducts.length,
-      });
-    }
-    if ((proArchetype.archetype === 'catering' || isItemCatalog) && profile?.menuItems && profile.menuItems.filter(d => d.isAvailable).length > 0) {
-      tabs.push({
-        key: 'menu',
-        label: isCrafts ? 'Gifts' : (isBaker ? 'Bakes' : 'Menu'),
-        icon: UtensilsCrossed,
-        count: profile.menuItems.filter(d => d.isAvailable).length,
-      });
-    }
-    return tabs;
-  }, [safePortfolio.length, profile?.videoReels, safeServices.length, profile?.rating, displayProducts, isCrafts, proArchetype.archetype, isItemCatalog, profile?.menuItems, isBaker]);
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* ── Top Floating Navigation Controls (Safe Notch Aware) ── */}
@@ -374,16 +349,16 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
           {/* Avatar and Quick Stats Row */}
           <View style={styles.avatarHeaderRow}>
             <View style={styles.avatarWrap}>
-              <Avatar source={profile.avatar} size={62} verified={profile.verified} />
+              <Avatar source={profile.avatar} size={64} verified={profile.verified} />
             </View>
             <View style={styles.quickMetricsRow}>
               <View style={[styles.metricPill, { backgroundColor: colors.surfaceCard }]}>
-                <Star size={11} color="#FFB800" fill="#FFB800" />
+                <Star size={13} color="#FFB800" fill="#FFB800" />
                 <Text style={[styles.metricVal, { color: colors.textPrimary }]}>{(profile.rating ?? 4.9).toFixed(1)}</Text>
                 <Text style={[styles.metricSub, { color: colors.textSecondary }]}>({profile.reviewCount ?? 18})</Text>
               </View>
               <View style={[styles.metricPill, { backgroundColor: colors.surfaceCard }]}>
-                <Briefcase size={11} color={colors.accent} />
+                <Briefcase size={13} color={colors.accent} />
                 <Text style={[styles.metricVal, { color: colors.textPrimary }]}>{profile.experienceYears || 2}+</Text>
                 <Text style={[styles.metricSub, { color: colors.textSecondary }]}>yrs</Text>
               </View>
@@ -396,7 +371,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
               <Text style={[styles.name, { color: colors.textPrimary }]}>{profile.name}</Text>
               {profile.verified && (
                 <View style={[styles.verifiedBadge, { backgroundColor: colors.accentGlow }]}>
-                  <ShieldCheck size={11} color={colors.accent} />
+                  <ShieldCheck size={14} color={colors.accent} />
                   <Text style={[styles.verifiedBadgeText, { color: colors.accent }]}>Verified</Text>
                 </View>
               )}
@@ -409,7 +384,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
             {/* Location & Categories tags */}
             <View style={styles.tagsRow}>
               <View style={[styles.tagPill, { backgroundColor: colors.surfaceElevated }]}>
-                <MapPin size={11} color={colors.textSecondary} style={{ marginRight: 3 }} />
+                <MapPin size={12} color={colors.textSecondary} style={{ marginRight: 4 }} />
                 <Text style={[styles.tagText, { color: colors.textSecondary }]}>
                   {profile.city}, {profile.state}
                 </Text>
@@ -425,7 +400,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
           </View>
         </View>
 
-        {/* ── About Section (Compact & Minimal) ── */}
+        {/* ── About Section ── */}
         <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
             About {isStudio ? 'the Studio' : `the ${proArchetype.roleNoun}`}
@@ -433,252 +408,462 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
           <Text style={[styles.bioText, { color: colors.textSecondary }]}>
             {profile.bio}
           </Text>
-
-          {/* Quick Verified Capabilities & Credentials Pills */}
-          {((profile.equipment && profile.equipment.length > 0) || (profile.certifications && profile.certifications.length > 0)) && (
-            <View style={styles.aboutPillsWrap}>
-              {profile.equipment?.slice(0, 3).map((eq, i) => (
-                <View key={`eq-${i}`} style={[styles.aboutMiniPill, { backgroundColor: colors.surfaceElevated }]}>
-                  <Check size={10} color={colors.accent} strokeWidth={2.5} style={{ marginRight: 4 }} />
-                  <Text style={[styles.aboutMiniPillText, { color: colors.textSecondary }]} numberOfLines={1}>{eq}</Text>
-                </View>
-              ))}
-              {profile.certifications?.slice(0, 2).map((cert, i) => (
-                <View key={`cert-${i}`} style={[styles.aboutMiniPill, { backgroundColor: colors.surfaceElevated }]}>
-                  <Award size={10} color={colors.accent} style={{ marginRight: 4 }} />
-                  <Text style={[styles.aboutMiniPillText, { color: colors.textSecondary }]} numberOfLines={1}>{cert}</Text>
-                </View>
-              ))}
-            </View>
-          )}
         </View>
 
-        {/* ── Switchable Section Tab Bar (Images -> Videos -> Services & Packages -> Rating) ── */}
-        <View style={styles.tabBarWrapper}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tabBarScrollContent}
-          >
-            {sectionTabs.map((tab) => {
-              const isActive = activeTab === tab.key;
-              const IconComp = tab.icon;
-              return (
-                <TouchableOpacity
-                  key={tab.key}
-                  style={[
-                    styles.tabPill,
-                    {
-                      backgroundColor: isActive 
-                        ? (isDark ? 'rgba(63, 182, 104, 0.22)' : 'rgba(16, 185, 129, 0.14)') 
-                        : (isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)'),
-                      borderColor: isActive ? colors.accent : colors.border,
-                    },
-                  ]}
-                  onPress={() => {
-                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                    setActiveTab(tab.key);
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <IconComp
-                    size={12.5}
-                    color={isActive ? colors.accent : colors.textSecondary}
-                    fill={tab.key === 'rating' && isActive ? colors.accent : 'transparent'}
-                    style={{ marginRight: 5 }}
-                  />
-                  <Text
-                    style={[
-                      styles.tabPillText,
-                      {
-                        color: isActive ? colors.accent : colors.textSecondary,
-                        fontWeight: isActive ? '800' : '600',
-                      },
-                    ]}
-                  >
-                    {tab.label}
-                  </Text>
-                  <View
-                    style={[
-                      styles.tabCountBadge,
-                      {
-                        backgroundColor: isActive 
-                          ? colors.accent 
-                          : (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'),
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.tabCountBadgeText,
-                        { color: isActive ? '#ffffff' : colors.textSecondary },
-                      ]}
-                    >
-                      {tab.count}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+        {/* ── Switchable Section Tabs (Homepage Design System: Stroke-Free Pills) ── */}
+        <View style={styles.tabBarSection}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabBarScroll}>
+            {/* 1. Images */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={[
+                styles.tabPill,
+                { backgroundColor: activeTab === 'images' ? (isDark ? 'rgba(63, 182, 104, 0.2)' : 'rgba(16, 185, 129, 0.14)') : colors.surfaceCard }
+              ]}
+              onPress={() => setActiveTab('images')}
+            >
+              <Camera size={14} color={activeTab === 'images' ? colors.accent : colors.textSecondary} style={{ marginRight: 6 }} />
+              <Text style={[styles.tabPillText, { color: activeTab === 'images' ? colors.accent : colors.textPrimary }]}>
+                Images
+              </Text>
+              <View style={[styles.tabCountPill, { backgroundColor: activeTab === 'images' ? colors.accent : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)') }]}>
+                <Text style={[styles.tabCountPillText, { color: activeTab === 'images' ? '#ffffff' : colors.textSecondary }]}>
+                  {safePortfolio.length}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* 2. Videos */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={[
+                styles.tabPill,
+                { backgroundColor: activeTab === 'videos' ? (isDark ? 'rgba(63, 182, 104, 0.2)' : 'rgba(16, 185, 129, 0.14)') : colors.surfaceCard }
+              ]}
+              onPress={() => setActiveTab('videos')}
+            >
+              <Film size={14} color={activeTab === 'videos' ? colors.accent : colors.textSecondary} style={{ marginRight: 6 }} />
+              <Text style={[styles.tabPillText, { color: activeTab === 'videos' ? colors.accent : colors.textPrimary }]}>
+                Videos
+              </Text>
+              <View style={[styles.tabCountPill, { backgroundColor: activeTab === 'videos' ? colors.accent : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)') }]}>
+                <Text style={[styles.tabCountPillText, { color: activeTab === 'videos' ? '#ffffff' : colors.textSecondary }]}>
+                  {profile.videoReels?.length || 0}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* 3. Services & Packages */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={[
+                styles.tabPill,
+                { backgroundColor: activeTab === 'services' ? (isDark ? 'rgba(63, 182, 104, 0.2)' : 'rgba(16, 185, 129, 0.14)') : colors.surfaceCard }
+              ]}
+              onPress={() => setActiveTab('services')}
+            >
+              <Sparkles size={14} color={activeTab === 'services' ? colors.accent : colors.textSecondary} style={{ marginRight: 6 }} />
+              <Text style={[styles.tabPillText, { color: activeTab === 'services' ? colors.accent : colors.textPrimary }]}>
+                Services & Packages
+              </Text>
+              <View style={[styles.tabCountPill, { backgroundColor: activeTab === 'services' ? colors.accent : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)') }]}>
+                <Text style={[styles.tabCountPillText, { color: activeTab === 'services' ? '#ffffff' : colors.textSecondary }]}>
+                  {safeServices.length}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* 4. Rating */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={[
+                styles.tabPill,
+                { backgroundColor: activeTab === 'reviews' ? (isDark ? 'rgba(63, 182, 104, 0.2)' : 'rgba(16, 185, 129, 0.14)') : colors.surfaceCard }
+              ]}
+              onPress={() => setActiveTab('reviews')}
+            >
+              <Star size={14} color={activeTab === 'reviews' ? colors.accent : colors.textSecondary} style={{ marginRight: 6 }} />
+              <Text style={[styles.tabPillText, { color: activeTab === 'reviews' ? colors.accent : colors.textPrimary }]}>
+                Rating
+              </Text>
+              <View style={[styles.tabCountPill, { backgroundColor: activeTab === 'reviews' ? colors.accent : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)') }]}>
+                <Text style={[styles.tabCountPillText, { color: activeTab === 'reviews' ? '#ffffff' : colors.textSecondary }]}>
+                  {(profile.rating ?? 5.0).toFixed(1)}
+                </Text>
+              </View>
+            </TouchableOpacity>
           </ScrollView>
         </View>
 
-        {/* ── 1. SECTION: IMAGES (First) ── */}
+        {/* ── TAB 1: IMAGES (PORTFOLIO GALLERY) ── */}
         {activeTab === 'images' && (
-          <View style={styles.tabSectionContainer}>
-            <View style={styles.tabSectionHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Camera size={15} color={colors.accent} style={{ marginRight: 6 }} />
-                <Text style={[styles.tabSectionHeading, { color: colors.textPrimary }]}>
-                  Portfolio Gallery
-                </Text>
+          <View style={styles.tabContentContainer}>
+            <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Portfolio Gallery</Text>
+                <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated }]}>
+                  <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>{safePortfolio.length} photos</Text>
+                </View>
               </View>
-              <View style={[styles.countBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}>
-                <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>
-                  {safePortfolio.length} {safePortfolio.length === 1 ? 'photo' : 'photos'}
-                </Text>
+
+              <View style={styles.portfolioGrid}>
+                {safePortfolio.map((img, idx) => (
+                  <TouchableOpacity 
+                    key={idx} 
+                    activeOpacity={0.88} 
+                    onPress={() => setSelectedImgIndex(idx)} 
+                    style={styles.portfolioGridItem}
+                  >
+                    <Image source={{ uri: img }} style={styles.portfolioGridImage} resizeMode="cover" />
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
 
-            {safePortfolio.length === 0 ? (
-              <View style={[styles.emptyTabCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
-                <Camera size={26} color={colors.textFaint} style={{ marginBottom: 6 }} />
-                <Text style={[styles.emptyTabTitle, { color: colors.textPrimary }]}>No Images Uploaded</Text>
-                <Text style={[styles.emptyTabSubtitle, { color: colors.textSecondary }]}>
-                  This creator has not added portfolio photos yet.
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.portfolioGrid}>
-                {safePortfolio.map((img, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    activeOpacity={0.88}
-                    onPress={() => setSelectedImgIndex(idx)}
-                    style={[styles.portfolioGridItem, { backgroundColor: colors.surfaceElevated }]}
-                  >
-                    <Image source={{ uri: img }} style={styles.portfolioGridImg} resizeMode="cover" />
-                    <View style={styles.portfolioGridBadge}>
-                      <Text style={styles.portfolioGridBadgeText}>#{idx + 1}</Text>
+            {/* Menu, Bakes & Crafts Catalog (if applicable) */}
+            {(proArchetype.archetype === 'catering' || isItemCatalog) && profile.menuItems && profile.menuItems.filter(d => d.isAvailable).length > 0 && (
+              <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+                <TouchableOpacity
+                  activeOpacity={0.75}
+                  onPress={() => setMenuExpanded(prev => !prev)}
+                  style={styles.accordionHeaderBtn}
+                >
+                  <View style={styles.accordionTitleCol}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      {isCrafts ? (
+                        <Gift size={16} color={colors.accent} style={{ marginRight: 8 }} />
+                      ) : (
+                        <UtensilsCrossed size={16} color={colors.accent} style={{ marginRight: 8 }} />
+                      )}
+                      <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
+                        {isCrafts ? 'Crafts, Hampers & Gift Catalog' : (isBaker ? 'Cakes, Bakes & Food Menu' : 'Menu & Dishes')}
+                      </Text>
+                      <View style={[styles.countBadge, { backgroundColor: colors.accentGlow, marginLeft: 8 }]}>
+                        <Text style={[styles.countBadgeText, { color: colors.accent }]}>
+                          {profile.menuItems.filter(d => d.isAvailable).length}
+                        </Text>
+                      </View>
                     </View>
-                  </TouchableOpacity>
-                ))}
+                  </View>
+                  <View style={[styles.accordionChevronCircle, { backgroundColor: colors.surfaceElevated }]}>
+                    {menuExpanded ? (
+                      <ChevronUp size={18} color={colors.accent} />
+                    ) : (
+                      <ChevronDown size={18} color={colors.textSecondary} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+
+                {menuExpanded && (
+                  <View style={styles.accordionBody}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                      {MENU_CATEGORIES.filter(cat =>
+                        cat === 'All' || profile.menuItems!.some(d => d.isAvailable && d.category === cat)
+                      ).map(cat => (
+                        <TouchableOpacity
+                          key={cat}
+                          onPress={() => setMenuCategoryFilter(cat)}
+                          style={[
+                            styles.menuCatChip,
+                            {
+                              backgroundColor: menuCategoryFilter === cat
+                                ? 'rgba(63, 182, 104, 0.16)'
+                                : colors.surfaceElevated,
+                            },
+                          ]}
+                        >
+                          <Text style={[
+                            styles.menuCatChipText,
+                            { color: menuCategoryFilter === cat ? colors.accent : colors.textSecondary },
+                          ]}>{cat}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+
+                    {profile.menuItems
+                      .filter(d => d.isAvailable && (menuCategoryFilter === 'All' || d.category === menuCategoryFilter))
+                      .map(dish => (
+                        <DishCard
+                          key={dish.id}
+                          dish={dish}
+                          quantity={menuSelections[dish.id] || 0}
+                          onAdjustQty={(delta) => adjustMenuQty(dish.id, delta)}
+                          isBaker={isBaker}
+                        />
+                      ))}
+
+                    {menuItemCount > 0 && (
+                      <TouchableOpacity
+                        activeOpacity={0.88}
+                        onPress={() => navigation.navigate('QuotationSummary', {
+                          professionalId: proId,
+                          catererName: profile.name,
+                          catererTitle: profile.title,
+                          ratePerDay: profile.ratePerDay,
+                          menuItems: profile.menuItems,
+                          selections: menuSelections,
+                          isBaker: isItemCatalog,
+                          archetype: proArchetype.archetype,
+                        })}
+                        style={[styles.menuQuotationBar, { backgroundColor: colors.accent }]}
+                      >
+                        <View>
+                          <Text style={styles.menuQuotationBarLabel}>
+                            {menuItemCount} {isItemCatalog ? 'item' : 'dish'}{menuItemCount > 1 ? (isItemCatalog ? 's' : 'es') : ''} selected
+                          </Text>
+                          <Text style={styles.menuQuotationBarTotal}>
+                            {isItemCatalog ? `₹${menuTotal.toLocaleString('en-IN')} total` : `₹${menuTotal.toLocaleString('en-IN')} / plate`}
+                          </Text>
+                        </View>
+                        <View style={styles.menuQuotationBarRight}>
+                          <Text style={styles.menuQuotationBarCta}>{isItemCatalog ? (isCrafts ? 'Order Gifting' : 'Order Summary') : 'Get Quotation'}</Text>
+                          <ChevronRight size={16} color="#ffffff" />
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Product Cards (Crafts, Hampers & Products for Sale) */}
+            {displayProducts && displayProducts.length > 0 && (
+              <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+                <View style={styles.sectionHeaderRow}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    {isCrafts ? (
+                      <Gift size={16} color={colors.accent} style={{ marginRight: 8 }} />
+                    ) : (
+                      <ShoppingBag size={16} color={colors.accent} style={{ marginRight: 8 }} />
+                    )}
+                    <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
+                      {isCrafts ? 'Handcrafted Products & Hampers' : (isBaker ? 'Artisanal Bakes & Products' : 'Gear & Products for Sale')}
+                    </Text>
+                    <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated, marginLeft: 8 }]}>
+                      <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>{displayProducts.length}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                  {displayProducts.map(prod => (
+                    <ProductCard
+                      key={prod.id}
+                      product={prod}
+                      onPress={() => navigation.navigate('ProductDetail', { product: prod })}
+                      onAddToCart={() => addItem(prod)}
+                    />
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Capabilities / Equipment (Expandable Accordion) */}
+            {profile.equipment && profile.equipment.length > 0 && (
+              <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+                <TouchableOpacity
+                  activeOpacity={0.75}
+                  onPress={toggleCapabilities}
+                  style={styles.accordionHeaderBtn}
+                >
+                  <View style={styles.accordionTitleCol}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
+                        {isStudio ? 'Studio Amenities' : proArchetype.equipmentSectionTitle}
+                      </Text>
+                      <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated, marginLeft: 8 }]}>
+                        <Text style={[styles.countBadgeText, { color: colors.accent }]}>
+                          {profile.equipment.length}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={[styles.accordionChevronCircle, { backgroundColor: colors.surfaceElevated }]}>
+                    {capabilitiesExpanded ? (
+                      <ChevronUp size={18} color={colors.accent} />
+                    ) : (
+                      <ChevronDown size={18} color={colors.textSecondary} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+
+                {capabilitiesExpanded && (
+                  <View style={styles.accordionBody}>
+                    <View style={styles.capabilitiesList}>
+                      {profile.equipment.map((eq, i) => (
+                        <View key={i} style={[styles.capabilityItemRow, { backgroundColor: colors.surfaceElevated }]}>
+                          <View style={[styles.capabilityDot, { backgroundColor: colors.accentGlow }]}>
+                            <Check size={12} color={colors.accent} strokeWidth={2.5} />
+                          </View>
+                          <Text style={[styles.capabilityText, { color: colors.textPrimary }]}>{eq}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Certifications & Industry Affiliations */}
+            {profile.certifications && profile.certifications.length > 0 && (
+              <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+                <TouchableOpacity
+                  activeOpacity={0.75}
+                  onPress={toggleCertifications}
+                  style={styles.accordionHeaderBtn}
+                >
+                  <View style={styles.accordionTitleCol}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
+                        {proArchetype.skillsSectionTitle}
+                      </Text>
+                      <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated, marginLeft: 8 }]}>
+                        <Text style={[styles.countBadgeText, { color: colors.accent }]}>
+                          {profile.certifications.length}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={[styles.accordionChevronCircle, { backgroundColor: colors.surfaceElevated }]}>
+                    {certificationsExpanded ? (
+                      <ChevronUp size={18} color={colors.accent} />
+                    ) : (
+                      <ChevronDown size={18} color={colors.textSecondary} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+
+                {certificationsExpanded && (
+                  <View style={styles.accordionBody}>
+                    <View style={styles.credentialsList}>
+                      {profile.certifications.map((cert, i) => (
+                        <View key={i} style={[styles.credentialCard, { backgroundColor: colors.surfaceElevated }]}>
+                          <View style={[styles.credentialIconCircle, { backgroundColor: colors.accentGlow }]}>
+                            <Award size={16} color={colors.accent} />
+                          </View>
+                          <View style={{ flex: 1, marginLeft: 12 }}>
+                            <Text style={[styles.credentialTitle, { color: colors.textPrimary }]}>{cert}</Text>
+                            <View style={styles.credentialVerifiedRow}>
+                              <ShieldCheck size={11} color={colors.accent} style={{ marginRight: 4 }} />
+                              <Text style={[styles.credentialVerifiedText, { color: colors.accent }]}>Verified Credential</Text>
+                            </View>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
               </View>
             )}
           </View>
         )}
 
-        {/* ── 2. SECTION: VIDEOS (Then Videos) ── */}
+        {/* ── TAB 2: VIDEOS (SHOWREELS & REELS) ── */}
         {activeTab === 'videos' && (
-          <View style={styles.tabSectionContainer}>
-            <View style={styles.tabSectionHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Film size={15} color={colors.accent} style={{ marginRight: 6 }} />
-                <Text style={[styles.tabSectionHeading, { color: colors.textPrimary }]}>
-                  Showreels & Video Reels
-                </Text>
+          <View style={styles.tabContentContainer}>
+            <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
+              <View style={styles.sectionHeaderRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Film size={16} color={colors.accent} style={{ marginRight: 8 }} />
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>Showreels & Video Reels</Text>
+                </View>
+                <View style={[styles.countBadge, { backgroundColor: colors.surfaceElevated }]}>
+                  <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>{profile.videoReels?.length || 0}</Text>
+                </View>
               </View>
-              <View style={[styles.countBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}>
-                <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>
-                  {(profile.videoReels || []).length} reels
-                </Text>
-              </View>
-            </View>
 
-            {(!profile.videoReels || profile.videoReels.length === 0) ? (
-              <View style={[styles.emptyTabCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
-                <Film size={26} color={colors.textFaint} style={{ marginBottom: 6 }} />
-                <Text style={[styles.emptyTabTitle, { color: colors.textPrimary }]}>No Video Reels Yet</Text>
-                <Text style={[styles.emptyTabSubtitle, { color: colors.textSecondary }]}>
-                  Video showreels and clips will appear here once published.
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.videosGrid}>
-                {profile.videoReels.map((reel) => {
-                  const isShort = reel.isShort;
-                  return (
-                    <TouchableOpacity
-                      key={reel.id}
-                      activeOpacity={0.88}
-                      onPress={() => {
-                        if (reel.url || reel.embedUrl) {
-                          setSelectedVideoReel(reel);
-                        }
-                      }}
-                      style={[
-                        styles.compactReelCard,
-                        { backgroundColor: colors.surfaceCard, borderColor: colors.border }
-                      ]}
-                    >
-                      <View style={styles.compactReelThumbnailBox}>
+              {(!profile.videoReels || profile.videoReels.length === 0) ? (
+                <View style={styles.emptyTabBox}>
+                  <Film size={32} color={colors.textFaint} />
+                  <Text style={[styles.emptyTabText, { color: colors.textSecondary }]}>No video reels uploaded yet.</Text>
+                </View>
+              ) : (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -14, marginTop: 10 }}>
+                  <View style={{ width: 14 }} />
+                  {profile.videoReels.map((reel) => {
+                    const isShort = reel.isShort;
+                    return (
+                      <TouchableOpacity
+                        key={reel.id}
+                        activeOpacity={0.88}
+                        onPress={() => {
+                          if (reel.url || reel.embedUrl) {
+                            setSelectedVideoReel(reel);
+                          }
+                        }}
+                        style={[
+                          styles.reelCard,
+                          isShort ? styles.reelCardVertical : styles.reelCardCinema,
+                          { backgroundColor: colors.surfaceElevated }
+                        ]}
+                      >
                         {reel.thumbnailUrl ? (
                           <Image source={{ uri: reel.thumbnailUrl }} style={styles.reelThumbnail} resizeMode="cover" />
                         ) : (
                           <View style={[styles.reelPlaceholder, { backgroundColor: '#111827' }]}>
-                            <Film size={22} color={colors.accent} />
+                            <Film size={26} color={colors.accent} />
                           </View>
                         )}
                         <View style={styles.reelVignette} />
-                        <View style={[styles.compactReelPlayBtn, { backgroundColor: colors.accent }]}>
-                          <Play size={11} color="#ffffff" fill="#ffffff" style={{ marginLeft: 2 }} />
+
+                        {/* Play Button Badge */}
+                        <View style={[styles.reelPlayBtn, { backgroundColor: colors.accent }]}>
+                          <Play size={13} color="#ffffff" fill="#ffffff" style={{ marginLeft: 2 }} />
                         </View>
+
+                        {/* Top Badges */}
                         <View style={styles.reelTopBadges}>
-                          <View style={[styles.reelBadgePill, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
-                            <Text style={styles.compactReelBadgeText}>
+                          <View style={[styles.reelBadgePill, { backgroundColor: 'rgba(0,0,0,0.65)' }]}>
+                            <Text style={styles.reelBadgeText}>
                               {isShort ? '9:16 REEL' : 'VIDEO'}
                             </Text>
                           </View>
                         </View>
-                      </View>
-                      <View style={styles.compactReelInfo}>
-                        {reel.category ? (
-                          <Text style={[styles.compactReelCategory, { color: colors.accent }]} numberOfLines={1}>
-                            {reel.category.toUpperCase()}
+
+                        {/* Bottom Info */}
+                        <View style={styles.reelInfo}>
+                          {reel.category ? (
+                            <Text style={[styles.reelCategory, { color: colors.accent }]} numberOfLines={1}>
+                              {reel.category.toUpperCase()}
+                            </Text>
+                          ) : null}
+                          <Text style={styles.reelTitle} numberOfLines={2}>
+                            {reel.title}
                           </Text>
-                        ) : null}
-                        <Text style={[styles.compactReelTitle, { color: colors.textPrimary }]} numberOfLines={2}>
-                          {reel.title}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                  <View style={{ width: 14 }} />
+                </ScrollView>
+              )}
+            </View>
           </View>
         )}
 
-        {/* ── 3. SECTION: SERVICES & PACKAGES (Then Services & Packages) ── */}
+        {/* ── TAB 3: SERVICES & PACKAGES (PRODUCT CARDS) ── */}
         {activeTab === 'services' && (
-          <View style={styles.tabSectionContainer}>
-            <View style={styles.tabSectionHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Sparkles size={15} color={colors.accent} style={{ marginRight: 6 }} />
-                <Text style={[styles.tabSectionHeading, { color: colors.textPrimary }]}>
-                  Services & Packages
+          <View style={styles.tabContentContainer}>
+            <View style={styles.servicesSectionContainer}>
+              <View style={styles.servicesHeaderBox}>
+                <View style={styles.servicesTitleRow}>
+                  <Sparkles size={16} color={colors.accent} style={{ marginRight: 6 }} />
+                  <Text style={[styles.servicesHeading, { color: colors.textPrimary }]}>
+                    Services & Packages
+                  </Text>
+                  <View style={[styles.servicesCountBadge, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)' }]}>
+                    <Text style={[styles.servicesCountBadgeText, { color: colors.textSecondary }]}>
+                      {safeServices.length} {safeServices.length === 1 ? 'service' : 'services'}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={[styles.servicesSubtitle, { color: colors.textSecondary }]}>
+                  Standardized creative offerings and customizable packages with milestone escrow protection.
                 </Text>
               </View>
-              <View style={[styles.countBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}>
-                <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>
-                  {safeServices.length} {safeServices.length === 1 ? 'service' : 'services'}
-                </Text>
-              </View>
-            </View>
 
-            <Text style={[styles.tabSectionSubtitle, { color: colors.textSecondary }]}>
-              Standardized creative offerings and customizable packages with milestone escrow protection.
-            </Text>
-
-            {safeServices.length === 0 ? (
-              <View style={[styles.emptyTabCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
-                <Sparkles size={26} color={colors.textFaint} style={{ marginBottom: 6 }} />
-                <Text style={[styles.emptyTabTitle, { color: colors.textPrimary }]}>No Services Available</Text>
-                <Text style={[styles.emptyTabSubtitle, { color: colors.textSecondary }]}>
-                  This creator has not listed standard packages yet.
-                </Text>
-              </View>
-            ) : (
               <View style={styles.servicesCardsList}>
                 {safeServices.map(srv => (
                   <ServiceCard
@@ -692,18 +877,18 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                   />
                 ))}
               </View>
-            )}
+            </View>
           </View>
         )}
 
-        {/* ── 4. SECTION: RATING (Then Rating) ── */}
-        {activeTab === 'rating' && (
-          <View style={styles.tabSectionContainer}>
-            <Card style={[styles.compactRatingSectionCard, { backgroundColor: colors.surfaceCard }]}>
+        {/* ── TAB 4: RATING (REVIEWS & RATINGS) ── */}
+        {activeTab === 'reviews' && (
+          <View style={styles.tabContentContainer}>
+            <View style={[styles.sectionCard, { backgroundColor: colors.surfaceCard }]}>
               {/* Header Row */}
               <View style={styles.reviewsHeaderRow}>
                 <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Text style={[styles.tabSectionHeading, { color: colors.textPrimary, marginBottom: 2 }]}>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 2 }]}>
                     Client Reviews & Ratings
                   </Text>
                   <Text style={[styles.reviewsSubtitle, { color: colors.textSecondary }]}>
@@ -712,17 +897,17 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                 </View>
 
                 <TouchableOpacity
-                  style={[styles.writeReviewBtn, { backgroundColor: colors.accentGlow, borderColor: colors.accent }]}
+                  style={[styles.writeReviewBtn, { backgroundColor: colors.accentGlow }]}
                   onPress={handleOpenReview}
                   activeOpacity={0.8}
                 >
-                  <Star size={12} color={colors.accent} fill={colors.accent} style={{ marginRight: 4 }} />
+                  <Star size={13} color={colors.accent} fill={colors.accent} style={{ marginRight: 5 }} />
                   <Text style={[styles.writeReviewBtnText, { color: colors.accent }]}>Write Review</Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Compact Hero Rating Summary Card */}
-              <View style={[styles.heroRatingCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+              {/* Hero Rating Summary Card (Score + 5-Bar Histogram) */}
+              <View style={[styles.heroRatingCard, { backgroundColor: colors.surfaceElevated }]}>
                 <View style={styles.heroScoreCol}>
                   <Text style={[styles.heroBigScore, { color: colors.textPrimary }]}>
                     {(profile.rating ?? 5.0).toFixed(1)}
@@ -731,7 +916,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                     {[1, 2, 3, 4, 5].map((s) => (
                       <Star
                         key={s}
-                        size={12}
+                        size={13}
                         color="#FFB800"
                         fill={s <= Math.round(profile.rating ?? 5.0) ? '#FFB800' : 'transparent'}
                         style={{ marginHorizontal: 1 }}
@@ -742,12 +927,12 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                     {reviews.length} {reviews.length === 1 ? 'verified review' : 'verified reviews'}
                   </Text>
                   <View style={[styles.escrowTrustTag, { backgroundColor: colors.accentGlow }]}>
-                    <ShieldCheck size={10} color={colors.accent} style={{ marginRight: 3 }} />
-                    <Text style={[styles.escrowTrustText, { color: colors.accent }]}>Escrow Verified</Text>
+                    <ShieldCheck size={11} color={colors.accent} style={{ marginRight: 4 }} />
+                    <Text style={[styles.escrowTrustText, { color: colors.accent }]}>100% Escrow</Text>
                   </View>
                 </View>
 
-                <View style={[styles.heroDivider, { backgroundColor: colors.border }]} />
+                <View style={[styles.heroDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }]} />
 
                 {/* 5-Bar Histogram */}
                 <View style={styles.histogramCol}>
@@ -759,7 +944,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                       activeOpacity={0.7}
                     >
                       <Text style={[styles.histogramStarLabel, { color: colors.textSecondary }]}>{stars}★</Text>
-                      <View style={[styles.histogramTrack, { backgroundColor: colors.border }]}>
+                      <View style={[styles.histogramTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }]}>
                         <View
                           style={[
                             styles.histogramFill,
@@ -776,18 +961,18 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                 </View>
               </View>
 
-              {/* Trust Badges Strip */}
+              {/* Trust Badges Strip (Stroke-Free) */}
               <View style={styles.trustBadgesStrip}>
-                <View style={[styles.trustPill, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-                  <CheckCircle size={10} color={colors.accent} style={{ marginRight: 3 }} />
+                <View style={[styles.trustPill, { backgroundColor: colors.surfaceElevated }]}>
+                  <CheckCircle size={10} color={colors.accent} style={{ marginRight: 4 }} />
                   <Text style={[styles.trustPillText, { color: colors.textSecondary }]}>Verified Bookings</Text>
                 </View>
-                <View style={[styles.trustPill, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-                  <ShieldCheck size={10} color="#00dbe9" style={{ marginRight: 3 }} />
+                <View style={[styles.trustPill, { backgroundColor: colors.surfaceElevated }]}>
+                  <ShieldCheck size={10} color="#00dbe9" style={{ marginRight: 4 }} />
                   <Text style={[styles.trustPillText, { color: colors.textSecondary }]}>Escrow Protection</Text>
                 </View>
-                <View style={[styles.trustPill, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-                  <Award size={10} color="#FFB800" style={{ marginRight: 3 }} />
+                <View style={[styles.trustPill, { backgroundColor: colors.surfaceElevated }]}>
+                  <Award size={10} color="#FFB800" style={{ marginRight: 4 }} />
                   <Text style={[styles.trustPillText, { color: colors.textSecondary }]}>Authentic Clients</Text>
                 </View>
               </View>
@@ -807,7 +992,6 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                               styles.filterChip,
                               {
                                 backgroundColor: isActive ? colors.accent : colors.surfaceElevated,
-                                borderColor: isActive ? colors.accent : colors.border,
                               }
                             ]}
                             onPress={() => setRatingFilter(opt.value)}
@@ -830,9 +1014,9 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
 
               {/* Reviews List or Empty State */}
               {reviews.length === 0 ? (
-                <View style={[styles.emptyReviewsBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                <View style={[styles.emptyReviewsBox, { backgroundColor: colors.surfaceElevated }]}>
                   <View style={[styles.emptyIconCircle, { backgroundColor: colors.accentGlow }]}>
-                    <MessageCircle size={22} color={colors.accent} />
+                    <MessageCircle size={24} color={colors.accent} />
                   </View>
                   <Text style={[styles.emptyReviewsTitle, { color: colors.textPrimary }]}>No reviews yet</Text>
                   <Text style={[styles.emptyReviewsDesc, { color: colors.textSecondary }]}>
@@ -843,17 +1027,17 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                     onPress={handleOpenReview}
                     activeOpacity={0.8}
                   >
-                    <Star size={12} color="#ffffff" fill="#ffffff" style={{ marginRight: 5 }} />
+                    <Star size={13} color="#ffffff" fill="#ffffff" style={{ marginRight: 5 }} />
                     <Text style={styles.beFirstBtnText}>Rate & Review Now</Text>
                   </TouchableOpacity>
                 </View>
               ) : filteredReviews.length === 0 ? (
-                <View style={[styles.emptyFilterBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                <View style={[styles.emptyFilterBox, { backgroundColor: colors.surfaceElevated }]}>
                   <Text style={[styles.emptyFilterText, { color: colors.textSecondary }]}>
                     No reviews found with {ratingFilter}★ rating.
                   </Text>
                   <TouchableOpacity
-                    style={[styles.clearFilterBtn, { borderColor: colors.accent }]}
+                    style={[styles.clearFilterBtn, { backgroundColor: colors.accentGlow }]}
                     onPress={() => setRatingFilter('all')}
                   >
                     <Text style={[styles.clearFilterBtnText, { color: colors.accent }]}>Show All Reviews</Text>
@@ -871,7 +1055,6 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                           styles.reviewItemCard,
                           {
                             backgroundColor: colors.surfaceElevated,
-                            borderColor: colors.border,
                           }
                         ]}
                       >
@@ -888,7 +1071,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                               </View>
                             )}
                             <View>
-                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                                 <Text style={[styles.reviewerName, { color: colors.textPrimary }]}>{rev.clientName}</Text>
                                 <View style={styles.verifiedBadgeInline}>
                                   <CheckCircle size={10} color={colors.accent} />
@@ -900,8 +1083,8 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                           </View>
 
                           {/* Amber Rating Pill */}
-                          <View style={[styles.reviewStarsPill, { backgroundColor: 'rgba(255, 184, 0, 0.12)', borderColor: 'rgba(255, 184, 0, 0.25)' }]}>
-                            <Star size={11} color="#FFB800" fill="#FFB800" style={{ marginRight: 3 }} />
+                          <View style={[styles.reviewStarsPill, { backgroundColor: 'rgba(255, 184, 0, 0.12)' }]}>
+                            <Star size={12} color="#FFB800" fill="#FFB800" style={{ marginRight: 3 }} />
                             <Text style={styles.reviewStarsPillText}>{Number(rev.rating).toFixed(1)}</Text>
                           </View>
                         </View>
@@ -912,9 +1095,9 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                         </Text>
 
                         {/* Review Card Footer: Escrow Tag & Helpful Button */}
-                        <View style={[styles.reviewFooterRow, { borderTopColor: colors.border }]}>
+                        <View style={styles.reviewFooterRow}>
                           <View style={styles.escrowFooterBadge}>
-                            <ShieldCheck size={11} color={colors.accent} style={{ marginRight: 3 }} />
+                            <ShieldCheck size={11} color={colors.accent} style={{ marginRight: 4 }} />
                             <Text style={[styles.escrowFooterText, { color: colors.textSecondary }]}>Escrow Verified</Text>
                           </View>
 
@@ -922,8 +1105,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                             style={[
                               styles.helpfulBtn,
                               {
-                                backgroundColor: isHelpful ? colors.accentGlow : 'transparent',
-                                borderColor: isHelpful ? colors.accent : colors.border,
+                                backgroundColor: isHelpful ? colors.accentGlow : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
                               }
                             ]}
                             onPress={() => handleToggleHelpful(rev.id)}
@@ -940,123 +1122,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                   })}
                 </View>
               )}
-            </Card>
-          </View>
-        )}
-
-        {/* ── 5. OPTIONAL: STORE PRODUCTS ── */}
-        {activeTab === 'products' && displayProducts && displayProducts.length > 0 && (
-          <View style={styles.tabSectionContainer}>
-            <View style={styles.tabSectionHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <ShoppingBag size={15} color={colors.accent} style={{ marginRight: 6 }} />
-                <Text style={[styles.tabSectionHeading, { color: colors.textPrimary }]}>
-                  {isCrafts ? 'Handcrafted Products & Hampers' : (isBaker ? 'Artisanal Bakes & Products' : 'Gear & Products for Sale')}
-                </Text>
-              </View>
-              <View style={[styles.countBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}>
-                <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>{displayProducts.length}</Text>
-              </View>
             </View>
-
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 8 }}>
-              {displayProducts.map(prod => (
-                <ProductCard
-                  key={prod.id}
-                  product={prod}
-                  onPress={() => navigation.navigate('ProductDetail', { product: prod })}
-                  onAddToCart={() => addItem(prod)}
-                />
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* ── 6. OPTIONAL: MENU & DISHES ── */}
-        {activeTab === 'menu' && (proArchetype.archetype === 'catering' || isItemCatalog) && profile.menuItems && profile.menuItems.filter(d => d.isAvailable).length > 0 && (
-          <View style={styles.tabSectionContainer}>
-            <View style={styles.tabSectionHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <UtensilsCrossed size={15} color={colors.accent} style={{ marginRight: 6 }} />
-                <Text style={[styles.tabSectionHeading, { color: colors.textPrimary }]}>
-                  {isCrafts ? 'Crafts, Hampers & Gift Catalog' : (isBaker ? 'Cakes, Bakes & Food Menu' : 'Menu & Dishes')}
-                </Text>
-              </View>
-              <View style={[styles.countBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}>
-                <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>
-                  {profile.menuItems.filter(d => d.isAvailable).length}
-                </Text>
-              </View>
-            </View>
-
-            {/* Category Filter Tabs */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12, marginTop: 4 }}>
-              {MENU_CATEGORIES.filter(cat =>
-                cat === 'All' || profile.menuItems!.some(d => d.isAvailable && d.category === cat)
-              ).map(cat => (
-                <TouchableOpacity
-                  key={cat}
-                  onPress={() => setMenuCategoryFilter(cat)}
-                  style={[
-                    styles.menuCatChip,
-                    {
-                      backgroundColor: menuCategoryFilter === cat
-                        ? 'rgba(63, 182, 104, 0.16)'
-                        : colors.surfaceElevated,
-                    },
-                  ]}
-                >
-                  <Text style={[
-                    styles.menuCatChipText,
-                    { color: menuCategoryFilter === cat ? colors.accent : colors.textSecondary },
-                  ]}>{cat}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            {/* Dish Cards */}
-            {profile.menuItems
-              .filter(d => d.isAvailable && (menuCategoryFilter === 'All' || d.category === menuCategoryFilter))
-              .map(dish => (
-                <DishCard
-                  key={dish.id}
-                  dish={dish}
-                  quantity={menuSelections[dish.id] || 0}
-                  onAdjustQty={(delta) => adjustMenuQty(dish.id, delta)}
-                  isBaker={isBaker}
-                />
-              ))}
-
-            {/* Get Quotation floating summary bar */}
-            {menuItemCount > 0 && (
-              <TouchableOpacity
-                activeOpacity={0.88}
-                onPress={() => navigation.navigate('QuotationSummary', {
-                  professionalId: proId,
-                  catererName: profile.name,
-                  catererTitle: profile.title,
-                  ratePerDay: profile.ratePerDay,
-                  menuItems: profile.menuItems,
-                  selections: menuSelections,
-                  isBaker: isItemCatalog,
-                  archetype: proArchetype.archetype,
-                })}
-                style={[styles.menuQuotationBar, { backgroundColor: colors.accent }]}
-              >
-                <View>
-                  <Text style={styles.menuQuotationBarLabel}>
-                    {menuItemCount} {isItemCatalog ? 'item' : 'dish'}{menuItemCount > 1 ? (isItemCatalog ? 's' : 'es') : ''} selected
-                  </Text>
-                  <Text style={styles.menuQuotationBarTotal}>
-                    {isItemCatalog ? `₹${menuTotal.toLocaleString('en-IN')} total` : `₹${menuTotal.toLocaleString('en-IN')} / plate`}
-                  </Text>
-                </View>
-                <View style={styles.menuQuotationBarRight}>
-                  <Text style={styles.menuQuotationBarCta}>{isItemCatalog ? (isCrafts ? 'Order Gifting' : 'Order Summary') : 'Get Quotation'}</Text>
-                  <ChevronRight size={14} color="#ffffff" />
-                </View>
-              </TouchableOpacity>
-            )}
           </View>
         )}
       </ScrollView>
@@ -1250,7 +1316,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.reviewModalOverlay}
         >
-          <View style={[styles.reviewModalCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border, borderWidth: 1 }]}>
+          <View style={[styles.reviewModalCard, { backgroundColor: colors.surfaceCard }]}>
             {/* Modal Header */}
             <View style={styles.reviewModalHeader}>
               <View style={{ flex: 1, paddingRight: 8 }}>
@@ -1309,7 +1375,6 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                           styles.quickTagChip,
                           {
                             backgroundColor: isSelected ? colors.accentGlow : colors.surfaceElevated,
-                            borderColor: isSelected ? colors.accent : colors.border,
                           }
                         ]}
                         onPress={() => {
@@ -1345,7 +1410,6 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                     styles.commentTextInput,
                     {
                       backgroundColor: colors.inputBackground,
-                      borderColor: colors.border,
                       color: colors.textPrimary,
                     }
                   ]}
@@ -1362,7 +1426,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
               {/* Action Buttons */}
               <View style={styles.reviewModalActions}>
                 <TouchableOpacity
-                  style={[styles.reviewCancelBtn, { borderColor: colors.border, backgroundColor: colors.surfaceElevated }]}
+                  style={[styles.reviewCancelBtn, { backgroundColor: colors.surfaceElevated }]}
                   onPress={() => setShowReviewModal(false)}
                   disabled={submittingReview}
                 >
@@ -1399,7 +1463,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
       >
         <SafeAreaView style={[styles.serviceModalContainer, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
           {/* Header */}
-          <View style={[styles.serviceModalHeader, { borderBottomColor: colors.border }]}>
+          <View style={[styles.serviceModalHeader]}>
             <View style={{ flex: 1, paddingRight: 8 }}>
               <Text style={[styles.serviceModalHeaderSub, { color: colors.accent }]} numberOfLines={1}>
                 {profile?.name ? profile.name.toUpperCase() : 'CREATOR SERVICE'}
@@ -1445,7 +1509,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
               </View>
 
               {/* Title & Creator Info Card */}
-              <View style={[styles.serviceModalCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+              <View style={[styles.serviceModalCard, { backgroundColor: colors.surfaceCard }]}>
                 <View style={styles.serviceModalCreatorRow}>
                   <Avatar
                     source={profile?.avatar}
@@ -1487,7 +1551,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
               </View>
 
               {/* 100% Milestone Escrow Guarantee Banner */}
-              <View style={[styles.serviceModalEscrowBanner, { backgroundColor: isDark ? 'rgba(63, 182, 104, 0.12)' : 'rgba(16, 185, 129, 0.1)', borderColor: isDark ? 'rgba(63, 182, 104, 0.3)' : 'rgba(16, 185, 129, 0.25)' }]}>
+              <View style={[styles.serviceModalEscrowBanner, { backgroundColor: isDark ? 'rgba(63, 182, 104, 0.12)' : 'rgba(16, 185, 129, 0.1)' }]}>
                 <ShieldCheck size={22} color={colors.accent} style={{ marginTop: 2, marginRight: 12 }} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.serviceModalEscrowTitle, { color: colors.accent }]}>
@@ -1501,7 +1565,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
 
               {/* Service Scope & Description */}
               {selectedService.description ? (
-                <View style={[styles.serviceModalCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+                <View style={[styles.serviceModalCard, { backgroundColor: colors.surfaceCard }]}>
                   <Text style={[styles.serviceModalSectionTitle, { color: colors.textPrimary }]}>
                     Scope of Service
                   </Text>
@@ -1513,7 +1577,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
 
               {/* Deliverables Checklist */}
               {selectedService.deliverables ? (
-                <View style={[styles.serviceModalCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+                <View style={[styles.serviceModalCard, { backgroundColor: colors.surfaceCard }]}>
                   <Text style={[styles.serviceModalSectionTitle, { color: colors.textPrimary }]}>
                     Deliverables Included
                   </Text>
@@ -1534,7 +1598,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
 
           {/* Bottom Action Footer */}
           {selectedService && (
-            <View style={[styles.serviceModalFooter, { backgroundColor: colors.surfaceCard, borderTopColor: colors.border }]}>
+            <View style={[styles.serviceModalFooter, { backgroundColor: colors.surfaceCard }]}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.serviceModalFooterRateLabel, { color: colors.textSecondary }]}>Total Package</Text>
                 <Text style={[styles.serviceModalFooterRateVal, { color: colors.accent }]}>
@@ -1589,9 +1653,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Cinematic Banner (Compact & Sleek)
+  // Cinematic Banner
   headerBanner: {
-    height: 155,
+    height: 165,
     position: 'relative',
     backgroundColor: '#000000',
   },
@@ -1601,25 +1665,25 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
   },
 
-  // Profile Identity & Overview Sheet (Compact)
+  // Profile Identity & Overview Sheet
   profileSheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     marginTop: -20,
     paddingHorizontal: 14,
-    paddingTop: 10,
+    paddingTop: 12,
     paddingBottom: 10,
   },
   avatarHeaderRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   avatarWrap: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.16,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -1630,265 +1694,115 @@ const styles = StyleSheet.create({
   metricPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
     borderRadius: 10,
     gap: 4,
   },
-  metricVal: { fontSize: 11.5, fontWeight: '800' },
-  metricSub: { fontSize: 10, fontWeight: '600' },
+  metricVal: { fontSize: 12, fontWeight: '800' },
+  metricSub: { fontSize: 10.5, fontWeight: '600' },
 
-  identityMeta: { marginTop: 1 },
+  identityMeta: { marginTop: 2 },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: 6,
   },
-  name: { fontSize: 18, fontWeight: '800', letterSpacing: -0.2 },
+  name: { fontSize: 20, fontWeight: '900', letterSpacing: -0.3 },
   verifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingVertical: 2.5,
     borderRadius: 6,
     gap: 3,
   },
   verifiedBadgeText: { fontSize: 10, fontWeight: '800' },
-  title: { fontSize: 12.5, fontWeight: '600', marginTop: 2 },
+  title: { fontSize: 13, fontWeight: '700', marginTop: 3 },
   tagsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: 6,
-    marginTop: 6,
+    marginTop: 7,
   },
   tagPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
     borderRadius: 8,
   },
   tagText: { fontSize: 11, fontWeight: '600' },
 
-  // Section Cards (Compact & Minimal)
-  sectionCard: {
-    marginHorizontal: 12,
-    marginBottom: 8,
+  // Switchable Section Tabs (Homepage Design System: Stroke-Free Pills)
+  tabBarSection: {
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  tabBarScroll: {
+    paddingHorizontal: 14,
+    gap: 8,
+  },
+  tabPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 14,
-    padding: 12,
-    borderWidth: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
     elevation: 1,
+  },
+  tabPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  tabCountPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 8,
+    marginLeft: 5,
+  },
+  tabCountPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  tabContentContainer: {
+    marginTop: 0,
+  },
+
+  // Section Cards (Home Screen Design System: borderless, soft elevation)
+  sectionCard: {
+    marginHorizontal: 14,
+    marginBottom: 10,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  sectionTitle: { fontSize: 14.5, fontWeight: '800', letterSpacing: -0.2 },
-  sectionCountText: { fontSize: 11, fontWeight: '600' },
+  sectionTitle: { fontSize: 15.5, fontWeight: '900', letterSpacing: -0.2 },
+  sectionCountText: { fontSize: 11.5, fontWeight: '600' },
   countBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
     borderRadius: 8,
   },
   countBadgeText: { fontSize: 10.5, fontWeight: '700' },
   bioText: { fontSize: 12.5, lineHeight: 18, fontWeight: '500' },
-
-  // About Verified Highlights Pills
-  aboutPillsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 8,
-  },
-  aboutMiniPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  aboutMiniPillText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-
-  // ── Switchable Section Tab Bar Styles ──
-  tabBarWrapper: {
-    paddingHorizontal: 12,
-    marginTop: 2,
-    marginBottom: 8,
-  },
-  tabBarScrollContent: {
-    gap: 6,
-    paddingVertical: 2,
-  },
-  tabPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 18,
-    borderWidth: 1,
-  },
-  tabPillText: {
-    fontSize: 11.5,
-  },
-  tabCountBadge: {
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 8,
-    marginLeft: 5,
-  },
-  tabCountBadgeText: {
-    fontSize: 9.5,
-    fontWeight: '800',
-  },
-
-  // Tab Section General Layout
-  tabSectionContainer: {
-    paddingHorizontal: 12,
-    marginBottom: 10,
-  },
-  tabSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  tabSectionHeading: {
-    fontSize: 14.5,
-    fontWeight: '800',
-    letterSpacing: -0.2,
-  },
-  tabSectionSubtitle: {
-    fontSize: 11.5,
-    lineHeight: 16,
-    marginBottom: 8,
-  },
-  emptyTabCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-  },
-  emptyTabTitle: {
-    fontSize: 13.5,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-  emptyTabSubtitle: {
-    fontSize: 11.5,
-    textAlign: 'center',
-    marginTop: 2,
-  },
-
-  // Images Portfolio 2-Column Grid
-  portfolioGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 2,
-  },
-  portfolioGridItem: {
-    width: (width - 32) / 2,
-    height: 115,
-    borderRadius: 12,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  portfolioGridImg: {
-    width: '100%',
-    height: '100%',
-  },
-  portfolioGridBadge: {
-    position: 'absolute',
-    bottom: 5,
-    right: 5,
-    backgroundColor: 'rgba(0,0,0,0.65)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  portfolioGridBadgeText: {
-    color: '#ffffff',
-    fontSize: 9.5,
-    fontWeight: '700',
-  },
-
-  // Videos Grid & Compact Cards
-  videosGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 2,
-  },
-  compactReelCard: {
-    width: (width - 32) / 2,
-    borderRadius: 12,
-    borderWidth: 1,
-    overflow: 'hidden',
-    marginBottom: 2,
-  },
-  compactReelThumbnailBox: {
-    width: '100%',
-    height: 110,
-    position: 'relative',
-    backgroundColor: '#000000',
-  },
-  compactReelPlayBtn: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    marginTop: -13,
-    marginLeft: -13,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  compactReelBadgeText: {
-    color: '#ffffff',
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-  },
-  compactReelInfo: {
-    padding: 8,
-  },
-  compactReelCategory: {
-    fontSize: 9,
-    fontWeight: '800',
-    marginBottom: 2,
-    letterSpacing: 0.4,
-  },
-  compactReelTitle: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    lineHeight: 15,
-  },
-
-  // Compact Rating Section Card
-  compactRatingSectionCard: {
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 1,
-  },
 
   // Packages & Rates
   serviceBox: {
@@ -1905,15 +1819,33 @@ const styles = StyleSheet.create({
   deliverablesLabel: { fontSize: 11.5, fontWeight: '700', marginBottom: 3 },
   deliverablesText: { fontSize: 12.5, lineHeight: 18 },
 
-  // Portfolio
-  portfolioItemCinematic: {
-    width: 250,
-    height: 170,
-    borderRadius: 18,
-    overflow: 'hidden',
-    marginRight: 12,
+  // Portfolio Grid (2-Column clean layout)
+  portfolioGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
   },
-  portfolioImage: { width: '100%', height: '100%' },
+  portfolioGridItem: {
+    width: (width - 44) / 2,
+    height: 115,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  portfolioGridImage: {
+    width: '100%',
+    height: '100%',
+  },
+  emptyTabBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+    gap: 8,
+  },
+  emptyTabText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+  },
 
   // Accordion Header & Layout
   accordionHeaderBtn: {
@@ -2020,85 +1952,83 @@ const styles = StyleSheet.create({
   lightboxCounter: { color: '#ffffff', fontSize: 16, fontWeight: '800', position: 'absolute', top: 60, alignSelf: 'center' },
   fullImage: { width: '100%', height: '70%' },
   slideshowControls: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingHorizontal: 16, zIndex: 15 },
-  navArrow: { backgroundColor: 'rgba(0, 0, 0, 0.5)', width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  navArrow: { backgroundColor: 'rgba(0, 0, 0, 0.6)', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
 
   // Redesigned Reviews Section Styles
   reviewsHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 10,
   },
   reviewsSubtitle: {
-    fontSize: 12,
+    fontSize: 11.5,
     marginTop: 2,
   },
   writeReviewBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 20,
-    borderWidth: 1,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
   writeReviewBtnText: {
-    fontSize: 13,
+    fontSize: 11.5,
     fontWeight: '700',
   },
 
   // Hero Rating Summary & Histogram
   heroRatingCard: {
     flexDirection: 'row',
-    padding: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    marginBottom: 16,
+    padding: 12,
+    borderRadius: 14,
+    marginBottom: 12,
     alignItems: 'center',
   },
   heroScoreCol: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingRight: 16,
-    minWidth: 110,
+    paddingRight: 12,
+    minWidth: 95,
   },
   heroBigScore: {
-    fontSize: 38,
+    fontSize: 28,
     fontWeight: '900',
-    letterSpacing: -1,
-    lineHeight: 44,
+    letterSpacing: -0.5,
+    lineHeight: 32,
   },
   heroStarsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 4,
+    marginVertical: 3,
   },
   heroRatingCount: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   escrowTrustTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   escrowTrustText: {
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: '800',
     letterSpacing: 0.3,
   },
   heroDivider: {
     width: 1,
-    height: '85%',
-    marginRight: 16,
+    height: '80%',
+    marginRight: 12,
   },
   histogramCol: {
     flex: 1,
     justifyContent: 'center',
-    gap: 6,
+    gap: 4,
   },
   histogramRow: {
     flexDirection: 'row',
@@ -2106,25 +2036,25 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
   },
   histogramStarLabel: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '700',
-    width: 22,
+    width: 20,
   },
   histogramTrack: {
     flex: 1,
-    height: 7,
-    borderRadius: 4,
-    marginHorizontal: 8,
+    height: 5,
+    borderRadius: 3,
+    marginHorizontal: 6,
     overflow: 'hidden',
   },
   histogramFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 3,
   },
   histogramCountLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
-    width: 18,
+    width: 16,
     textAlign: 'right',
   },
 
@@ -2132,141 +2062,135 @@ const styles = StyleSheet.create({
   trustBadgesStrip: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
+    gap: 6,
+    marginBottom: 12,
   },
   trustPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   trustPillText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
   },
 
   // Filter Chips
   filterChipsContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   filterChipsScroll: {
-    gap: 8,
+    gap: 6,
   },
   filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 16,
-    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
   filterChipText: {
-    fontSize: 12,
+    fontSize: 11,
   },
 
   // Empty States
   emptyReviewsBox: {
-    padding: 24,
-    borderRadius: 16,
-    borderWidth: 1,
+    padding: 18,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
+    marginTop: 2,
   },
   emptyIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   emptyReviewsTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '800',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   emptyReviewsDesc: {
-    fontSize: 13,
+    fontSize: 12,
     textAlign: 'center',
-    lineHeight: 19,
-    marginBottom: 18,
-    maxWidth: 260,
+    lineHeight: 17,
+    marginBottom: 14,
+    maxWidth: 240,
   },
   beFirstBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 11,
-    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
   },
   beFirstBtnText: {
     color: '#ffffff',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
   },
   emptyFilterBox: {
-    padding: 20,
-    borderRadius: 14,
-    borderWidth: 1,
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyFilterText: {
-    fontSize: 13,
-    marginBottom: 10,
+    fontSize: 12,
+    marginBottom: 8,
   },
   clearFilterBtn: {
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
   clearFilterBtnText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
 
   // Review List & Cards
   reviewsListContainer: {
-    gap: 12,
+    gap: 8,
   },
   reviewItemCard: {
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
+    padding: 12,
+    borderRadius: 14,
   },
   reviewAuthorRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   reviewerMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   reviewerAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   reviewerInitials: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   reviewerInitialText: {
     color: '#ffffff',
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '900',
   },
   reviewerName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
   },
   verifiedBadgeInline: {
@@ -2275,56 +2199,53 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   verifiedBadgeInlineText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
   },
   reviewDate: {
-    fontSize: 11,
-    marginTop: 2,
+    fontSize: 10,
+    marginTop: 1,
   },
   reviewStarsPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 8,
   },
   reviewStarsPillText: {
-    fontSize: 13,
+    fontSize: 11.5,
     fontWeight: '800',
     color: '#FFB800',
   },
   reviewCommentText: {
-    fontSize: 13,
-    lineHeight: 20,
-    marginBottom: 12,
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 8,
   },
   reviewFooterRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 10,
-    borderTopWidth: 1,
+    paddingTop: 6,
   },
   escrowFooterBadge: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   escrowFooterText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
   },
   helpfulBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 8,
   },
   helpfulBtnText: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '700',
   },
 
@@ -2336,121 +2257,118 @@ const styles = StyleSheet.create({
     padding: 18,
   },
   reviewModalCard: {
-    borderRadius: 24,
-    padding: 22,
+    borderRadius: 20,
+    padding: 18,
     maxHeight: '88%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
   },
   reviewModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   reviewModalTitle: {
-    fontSize: 19,
+    fontSize: 17,
     fontWeight: '900',
   },
   reviewModalSub: {
-    fontSize: 13,
-    marginTop: 3,
+    fontSize: 12,
+    marginTop: 2,
   },
   reviewCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
   ratingPickerSection: {
     alignItems: 'center',
-    marginBottom: 18,
-    paddingVertical: 6,
+    marginBottom: 14,
+    paddingVertical: 4,
   },
   pickerLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   starPickerRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 10,
-    marginVertical: 10,
+    gap: 8,
+    marginVertical: 8,
   },
   starTouchItem: {
-    padding: 4,
+    padding: 3,
   },
   starRatingLabel: {
     textAlign: 'center',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
-    marginTop: 4,
+    marginTop: 3,
   },
   quickTagsSection: {
-    marginBottom: 18,
+    marginBottom: 14,
   },
   quickTagsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   quickTagChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 14,
-    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
   quickTagText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   commentSection: {
-    marginBottom: 20,
+    marginBottom: 14,
   },
   commentTextInput: {
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 14,
-    fontSize: 14,
-    minHeight: 110,
-    lineHeight: 20,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 13,
+    minHeight: 85,
+    lineHeight: 18,
   },
   reviewModalActions: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
-    marginBottom: 8,
+    gap: 10,
+    marginTop: 2,
+    marginBottom: 6,
   },
   reviewCancelBtn: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 13,
+    borderRadius: 12,
+    paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   reviewCancelBtnText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
   },
   reviewSubmitBtn: {
     flex: 1.8,
-    borderRadius: 14,
-    paddingVertical: 13,
+    borderRadius: 12,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   reviewSubmitBtnText: {
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
   },
   reelsHeaderRow: {
@@ -2459,18 +2377,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   reelCard: {
-    borderRadius: 18,
+    borderRadius: 14,
     overflow: 'hidden',
-    marginRight: 14,
+    marginRight: 10,
     position: 'relative',
   },
   reelCardVertical: {
-    width: 160,
-    height: 250,
+    width: 140,
+    height: 215,
   },
   reelCardCinema: {
-    width: 250,
-    height: 165,
+    width: 220,
+    height: 145,
   },
   reelThumbnail: {
     width: '100%',
@@ -2490,33 +2408,33 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '42%',
     left: '50%',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginLeft: -20,
-    marginTop: -20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginLeft: -18,
+    marginTop: -18,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 4,
   },
   reelTopBadges: {
     position: 'absolute',
-    top: 10,
-    left: 10,
+    top: 8,
+    left: 8,
     flexDirection: 'row',
   },
   reelBadgePill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 6,
   },
   reelBadgeText: {
     color: '#ffffff',
-    fontSize: 9.5,
+    fontSize: 9,
     fontWeight: '700',
   },
   reelInfo: {
@@ -2524,20 +2442,20 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 10,
+    padding: 8,
     backgroundColor: 'rgba(0,0,0,0.65)',
   },
   reelCategory: {
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: '800',
     letterSpacing: 0.5,
     marginBottom: 2,
   },
   reelTitle: {
     color: '#ffffff',
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: '700',
-    lineHeight: 15,
+    lineHeight: 14,
   },
 
   // Persistent Bottom Action Dock
@@ -2547,10 +2465,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 6,
   },
   bottomDockSafe: {
     width: '100%',
@@ -2592,7 +2510,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bottomBookBtn: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     height: 38,
     borderRadius: 10,
     alignItems: 'center',
@@ -2670,10 +2588,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -2714,13 +2632,13 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   menuAddBtn: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 8,
-    borderWidth: 1.5,
+    borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 78,
+    minWidth: 72,
   },
   menuAddBtnText: {
     fontSize: 12,
@@ -2887,30 +2805,30 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   servicesHeading: {
-    fontSize: 18.5,
-    fontWeight: '900',
+    fontSize: 16,
+    fontWeight: '800',
     letterSpacing: -0.3,
   },
   servicesCountBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2.5,
-    borderRadius: 10,
-    marginLeft: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 6,
   },
   servicesCountBadgeText: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: '700',
   },
   servicesSubtitle: {
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 3,
   },
   servicesCardsList: {
     marginTop: 4,
   },
 
-  // ── Service Details Modal Styles ──
+  // ── Service Details Modal Styles (Stroke-Free, Minimized) ──
   serviceModalContainer: {
     flex: 1,
   },
@@ -2918,39 +2836,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   serviceModalHeaderSub: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
     letterSpacing: 0.5,
     marginBottom: 2,
   },
   serviceModalHeaderTitle: {
-    fontSize: 17,
+    fontSize: 15.5,
     fontWeight: '800',
     letterSpacing: -0.2,
   },
   serviceModalCloseBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   serviceModalScroll: {
-    padding: 16,
-    paddingBottom: 40,
+    padding: 14,
+    paddingBottom: 36,
   },
   serviceModalHero: {
     width: '100%',
-    height: 220,
-    borderRadius: 18,
+    height: 180,
+    borderRadius: 14,
     overflow: 'hidden',
     position: 'relative',
-    marginBottom: 16,
+    marginBottom: 12,
     backgroundColor: '#0a0d12',
   },
   serviceModalHeroImg: {
@@ -2959,153 +2876,144 @@ const styles = StyleSheet.create({
   },
   serviceModalHeroBadges: {
     position: 'absolute',
-    top: 14,
-    left: 14,
-    right: 14,
+    top: 10,
+    left: 10,
+    right: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   serviceModalTypeBadge: {
     backgroundColor: 'rgba(0,0,0,0.72)',
-    paddingHorizontal: 10,
-    paddingVertical: 4.5,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   serviceModalTypeBadgeText: {
     color: '#ffffff',
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
   },
   serviceModalCatBadge: {
     backgroundColor: 'rgba(0,0,0,0.72)',
-    paddingHorizontal: 10,
-    paddingVertical: 4.5,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
     maxWidth: '55%',
   },
   serviceModalCatBadgeText: {
     color: '#ffffff',
-    fontSize: 11.5,
+    fontSize: 10.5,
     fontWeight: '700',
   },
   serviceModalCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 18,
-    marginBottom: 14,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
   },
   serviceModalCreatorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(150,150,150,0.2)',
+    marginBottom: 10,
+    paddingBottom: 8,
   },
   serviceModalCreatorName: {
-    fontSize: 14.5,
+    fontSize: 13.5,
     fontWeight: '800',
   },
   serviceModalCreatorTitle: {
-    fontSize: 12,
+    fontSize: 11.5,
     marginTop: 1,
   },
   serviceModalRating: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     backgroundColor: 'rgba(245, 166, 35, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   serviceModalRatingText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '800',
   },
   serviceModalTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    lineHeight: 26,
+    fontSize: 17,
+    fontWeight: '800',
+    lineHeight: 23,
     letterSpacing: -0.3,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   serviceModalPriceContainer: {
-    marginTop: 4,
+    marginTop: 2,
   },
   serviceModalPriceLabel: {
-    fontSize: 12.5,
+    fontSize: 11.5,
     fontWeight: '600',
   },
   serviceModalPriceVal: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '900',
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
   },
   serviceModalPriceUnit: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   serviceModalEscrowBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 14,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 12,
   },
   serviceModalEscrowTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
-    marginBottom: 3,
+    marginBottom: 2,
   },
   serviceModalEscrowDesc: {
-    fontSize: 12.5,
-    lineHeight: 18,
+    fontSize: 11.5,
+    lineHeight: 16,
   },
   serviceModalSectionTitle: {
-    fontSize: 15,
+    fontSize: 13.5,
     fontWeight: '800',
     letterSpacing: -0.2,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   serviceModalDescText: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 13,
+    lineHeight: 19,
   },
   serviceModalDeliverablesList: {
-    gap: 10,
+    gap: 8,
   },
   serviceModalDeliverableRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
   serviceModalDeliverableText: {
-    fontSize: 13.5,
-    lineHeight: 19,
+    fontSize: 12.5,
+    lineHeight: 18,
     flex: 1,
   },
   serviceModalFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderTopWidth: 1,
-    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 12,
   },
   serviceModalFooterRateLabel: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: '600',
   },
   serviceModalFooterRateVal: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
     letterSpacing: -0.4,
   },
@@ -3113,18 +3021,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 13,
-    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
     shadowColor: '#3fb668',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
   serviceModalBookCtaText: {
     color: '#ffffff',
-    fontSize: 14.5,
+    fontSize: 13.5,
     fontWeight: '800',
   },
 });

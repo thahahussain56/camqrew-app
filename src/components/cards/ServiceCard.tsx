@@ -36,7 +36,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
     .trim();
 
   return (
-    <View style={[styles.cardOuter, { backgroundColor: colors.surfaceCard, borderColor: colors.border }, style]}>
+    <View style={[styles.cardOuter, { backgroundColor: colors.surfaceCard }, style]}>
       {/* ── Top Image Banner ── */}
       <TouchableOpacity activeOpacity={0.92} onPress={onPressView} style={styles.imageContainer}>
         <Image 
@@ -79,7 +79,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
 
           {/* Rating & Escrow Indicator */}
           <View style={styles.ratingBox}>
-            <Star size={11} color={colors.accent} fill={colors.accent} style={{ marginRight: 3 }} />
+            <Star size={10} color={colors.accent} fill={colors.accent} style={{ marginRight: 3 }} />
             <Text style={[styles.ratingVal, { color: colors.textPrimary }]}>
               {creatorRating.toFixed(1)}
             </Text>
@@ -135,8 +135,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
             style={[
               styles.viewBtn,
               { 
-                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9',
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : '#e2e8f0',
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#eef2f6',
               }
             ]}
             onPress={onPressView}
@@ -162,19 +161,18 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
 
 const styles = StyleSheet.create({
   cardOuter: {
-    borderRadius: 14,
+    borderRadius: 16,
     overflow: 'hidden',
-    borderWidth: 1,
-    marginBottom: 10,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
     elevation: 3,
   },
   imageContainer: {
     width: '100%',
-    height: 135,
+    height: 140,
     backgroundColor: '#0a0d12',
     position: 'relative',
   },
@@ -184,21 +182,19 @@ const styles = StyleSheet.create({
   },
   topBadgesRow: {
     position: 'absolute',
-    top: 8,
-    left: 8,
-    right: 8,
+    top: 10,
+    left: 10,
+    right: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     zIndex: 2,
   },
   serviceTypeBadge: {
-    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     paddingHorizontal: 8,
-    paddingVertical: 2.5,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   serviceTypeBadgeText: {
     color: '#ffffff',
@@ -207,12 +203,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   categoryBadge: {
-    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     paddingHorizontal: 8,
-    paddingVertical: 2.5,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
+    paddingVertical: 3,
+    borderRadius: 8,
     maxWidth: '55%',
   },
   categoryBadgeText: {
@@ -236,7 +230,7 @@ const styles = StyleSheet.create({
     maxWidth: '48%',
   },
   creatorPillText: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: '800',
     letterSpacing: 0.3,
   },
@@ -260,7 +254,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   serviceTitle: {
-    fontSize: 14.5,
+    fontSize: 15,
     fontWeight: '800',
     marginTop: 6,
     lineHeight: 19,
@@ -272,7 +266,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   descriptionSnippet: {
-    fontSize: 11.5,
+    fontSize: 12,
     lineHeight: 16,
     marginTop: 4,
   },
@@ -283,11 +277,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   priceLabel: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '500',
   },
   priceValue: {
-    fontSize: 16,
+    fontSize: 16.5,
     fontWeight: '900',
     letterSpacing: -0.3,
   },
@@ -302,33 +296,32 @@ const styles = StyleSheet.create({
   },
   viewBtn: {
     flex: 1,
-    height: 35,
+    height: 36,
     borderRadius: 10,
-    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   viewBtnText: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '700',
   },
   bookBtn: {
     flex: 1,
-    height: 35,
+    height: 36,
     borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#3fb668',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.22,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 2,
   },
   bookBtnText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '800',
   },
 });
