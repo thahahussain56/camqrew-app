@@ -1,5 +1,7 @@
 import { supabase } from './supabaseClient';
 import { User, UserRole } from '../types/auth';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 
 export const authApi = {
   sendOTP: async (phone: string): Promise<{ success: boolean; message: string }> => {
@@ -296,6 +298,69 @@ export const authApi = {
       throw new Error(error.message);
     }
     return { success: true, message: 'Password reset link sent to ' + email };
+  },
+
+  signInWithOAuth: async (provider: 'google' | 'apple', role: 'customer' | 'professional' = 'customer'): Promise<{ token: string; user: User } | null> => {
+    const redirectUrl = Linking.createURL('auth/callback');
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: redirectUrl,
+        skipBrowserRedirect: true,
+        queryParams: provider === 'google' ? {
+          access_type: 'offline',
+          prompt: 'consent',
+        } : undefined,
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+    if (!data?.url) {
+      throw new Error('Could not initiate social authentication.');
+    }
+
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+    if (result.type === 'success' && result.url) {
+      const urlStr = result.url;
+      const fragment = urlStr.includes('#') ? urlStr.split('#')[1] : '';
+      const query = urlStr.includes('?') ? urlStr.split('?')[1] : '';
+      const params = new URLSearchParams(fragment || query);
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+
+      if (accessToken) {
+        const { data: sessionData, error: sessionErr } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || '',
+        });
+        if (sessionErr) throw new Error(sessionErr.message);
+        if (sessionData?.session) {
+          const { data: dbUser } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', sessionData.session.user.id)
+            .maybeSingle();
+
+          return {
+            token: sessionData.session.access_token,
+            user: {
+              id: sessionData.session.user.id,
+              name: dbUser?.name || sessionData.session.user.user_metadata?.full_name || 'User',
+              email: sessionData.session.user.email || '',
+              phone: dbUser?.phone || '',
+              role: dbUser?.role || role,
+              avatar: dbUser?.avatar || sessionData.session.user.user_metadata?.avatar_url || '',
+              subscription_tier: dbUser?.subscription_tier || 'free',
+              subscription_status: dbUser?.subscription_status || 'inactive',
+              createdAt: dbUser?.created_at || new Date().toISOString(),
+            },
+          };
+        }
+      }
+    }
+    return null;
   },
 
   deleteAccount: async (): Promise<void> => {

@@ -16,6 +16,7 @@ import { useAuthStore } from '../../store/authStore';
 import { authApi } from '../../api/authApi';
 import { Button } from '../../components/ui/Button';
 import { Toast } from '../../components/ui/Toast';
+import { GoogleIcon, AppleIcon } from '../../components/ui/SocialAuthIcons';
 
 // ------------------------------------------------------------------
 // Inline plain TextInput to avoid any gesture/focus issues on iOS
@@ -105,6 +106,30 @@ export const SignInScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const showError = (msg: string) => { setToastType('error'); setToast(msg); };
   const showSuccess = (msg: string) => { setToastType('success'); setToast(msg); };
+
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null);
+
+  const handleOAuth = async (provider: 'google' | 'apple') => {
+    setOauthLoading(provider);
+    try {
+      const res = await authApi.signInWithOAuth(provider);
+      if (res && res.user && res.token) {
+        await login(res.user, res.token);
+        if (!res.user.phone || res.user.phone.trim() === '') {
+          navigation.replace('RoleSelection', {
+            email: res.user.email,
+            name: res.user.name,
+          });
+        } else {
+          navigation.replace('MainApp');
+        }
+      }
+    } catch (e: any) {
+      showError(e.message || `Failed to sign in with ${provider}.`);
+    } finally {
+      setOauthLoading(null);
+    }
+  };
 
   const handleEmailLogin = async () => {
     if (!email.trim()) { showError('Please enter your email address.'); return; }
@@ -252,6 +277,34 @@ export const SignInScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             </>
           )}
 
+          {/* Social Auth Divider */}
+          <View style={styles.dividerRow}>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dividerText, { color: colors.textSecondary }]}>OR CONTINUE WITH</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+          </View>
+
+          {/* Social Auth Buttons */}
+          <View style={styles.socialRow}>
+            <TouchableOpacity
+              style={[styles.socialBtn, { backgroundColor: colors.inputBackground }]}
+              onPress={() => handleOAuth('google')}
+              disabled={oauthLoading !== null}
+            >
+              <GoogleIcon size={18} />
+              <Text style={[styles.socialBtnText, { color: colors.textPrimary }]}>Google</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.socialBtn, { backgroundColor: colors.inputBackground }]}
+              onPress={() => handleOAuth('apple')}
+              disabled={oauthLoading !== null}
+            >
+              <AppleIcon size={18} color={colors.textPrimary} />
+              <Text style={[styles.socialBtnText, { color: colors.textPrimary }]}>Apple</Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.footerRow}>
             <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Don't have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('RoleSelection', { email, phone })}>
@@ -296,5 +349,37 @@ const styles = StyleSheet.create({
   modeBtn: { flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center' },
   modeBtnActive: { backgroundColor: '#3fb668' },
   modeBtnText: { fontSize: 13, fontWeight: '700' },
-  footerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 18,
+    gap: 10,
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
+  dividerText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  socialRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  socialBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  socialBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  footerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 22 },
 });
