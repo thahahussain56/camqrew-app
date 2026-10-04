@@ -254,7 +254,7 @@ export const SignInScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
           <View style={styles.footerRow}>
             <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+            <TouchableOpacity onPress={() => navigation.navigate('RoleSelection', { email, phone })}>
               <Text style={{ color: '#3fb668', fontSize: 14, fontWeight: '700' }}>Sign Up</Text>
             </TouchableOpacity>
           </View>
