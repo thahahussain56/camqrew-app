@@ -309,7 +309,7 @@ export const SignUpScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         <View style={suStyles.headerArea}>
           <Image
-            source={isDark ? require('../../../assets/camcrew-logo-white.png') : require('../../../assets/camcrew-logo-dark.png')}
+            source={isDark ? require('../../../assets/camqrew-logo-white.png') : require('../../../assets/camqrew-logo-dark.png')}
             style={suStyles.logo}
           />
           <Text style={[suStyles.heroTitle, { color: colors.textPrimary }]}>Create Your{'\n'}Account</Text>

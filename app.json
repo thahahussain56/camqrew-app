@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "in.camcrew.app",
+      "bundleIdentifier": "in.camqrew.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -24,7 +24,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#06080a"
       },
-      "package": "in.camcrew.app"
+      "package": "in.camqrew.app"
     },
     "androidNavigationBar": {
       "backgroundColor": "#06080a",
@@ -41,7 +41,7 @@
         "@stripe/stripe-react-native",
         {
           "enableApplePay": true,
-          "merchantIdentifier": "merchant.in.camcrew.app"
+          "merchantIdentifier": "merchant.in.camqrew.app"
         }
       ],
       "expo-image",

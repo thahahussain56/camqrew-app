@@ -184,7 +184,7 @@ export const SignInScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         <View style={styles.headerArea}>
           <Image
-            source={isDark ? require('../../../assets/camcrew-logo-white.png') : require('../../../assets/camcrew-logo-dark.png')}
+            source={isDark ? require('../../../assets/camqrew-logo-white.png') : require('../../../assets/camqrew-logo-dark.png')}
             style={styles.logo}
           />
           <Text style={[styles.heroTitle, { color: colors.textPrimary }]}>Welcome Back</Text>

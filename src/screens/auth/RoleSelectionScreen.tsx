@@ -66,7 +66,7 @@ export const RoleSelectionScreen: React.FC<{ navigation: any; route?: any }> = (
   const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState(initialEmail);
   const [phone, setPhone] = useState(initialPhone);
-  const [password, setPassword] = useState('camcrewPass123!');
+  const [password, setPassword] = useState('camqrewPass123!');
 
   // Location State
   const [locationState, setLocationState] = useState('');
@@ -178,7 +178,7 @@ export const RoleSelectionScreen: React.FC<{ navigation: any; route?: any }> = (
           name: fullName.trim(),
           email: email.trim().toLowerCase(),
           phone: cleanPhone || '9876543210',
-          password: password || 'camcrewPass123!',
+          password: password || 'camqrewPass123!',
         });
         await login(res.user, res.token);
       } else {
@@ -186,7 +186,7 @@ export const RoleSelectionScreen: React.FC<{ navigation: any; route?: any }> = (
           name: fullName.trim() || companyName.trim(),
           email: email.trim().toLowerCase(),
           phone: cleanPhone || '9876543210',
-          password: password || 'camcrewPass123!',
+          password: password || 'camqrewPass123!',
           title: selectedRoleType === 'business'
             ? `${companyName.trim() || fullName.trim()} • Studio & Production Agency`
             : (proTitle.trim() || 'Visual Storyteller & Creator'),
@@ -229,7 +229,7 @@ export const RoleSelectionScreen: React.FC<{ navigation: any; route?: any }> = (
             <ArrowLeft size={20} color={colors.textPrimary} />
           </TouchableOpacity>
           <Text style={[styles.brandTitle, { color: colors.textPrimary }]}>
-            CAM<Text style={{ color: '#3fb668' }}>CREW</Text>
+            CAM<Text style={{ color: '#3fb668' }}>QREW</Text>
           </Text>
           <View style={{ width: 36 }} />
         </View>
