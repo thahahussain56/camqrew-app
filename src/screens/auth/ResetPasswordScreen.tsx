@@ -5,6 +5,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Toast } from '../../components/ui/Toast';
 import { Lock } from 'lucide-react-native';
+import { authApi } from '../../api/authApi';
 
 export const ResetPasswordScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors, isDark } = useTheme();
@@ -12,26 +13,42 @@ export const ResetPasswordScreen: React.FC<{ navigation: any }> = ({ navigation 
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'error' | 'success'>('error');
 
   const handleReset = async () => {
-    if (!password || password !== confirmPassword) {
+    if (!password || password.length < 6) {
+      setToastType('error');
+      setToastMessage('Password must be at least 6 characters.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setToastType('error');
       setToastMessage('Passwords do not match.');
       return;
     }
     setLoading(true);
-    setTimeout(() => {
+    try {
+      await authApi.updatePassword(password);
+      setToastType('success');
+      setToastMessage('Password updated successfully! Please sign in.');
+      setTimeout(() => {
+        navigation.navigate('SignIn');
+      }, 1500);
+    } catch (e: any) {
+      setToastType('error');
+      setToastMessage(e.message || 'Failed to update password.');
+    } finally {
       setLoading(false);
-      navigation.navigate('SignIn');
-    }, 1000);
+    }
   };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Toast visible={!!toastMessage} message={toastMessage} type="error" onDismiss={() => setToastMessage('')} />
+      <Toast visible={!!toastMessage} message={toastMessage} type={toastType} onDismiss={() => setToastMessage('')} />
 
       <View style={styles.header}>
         <Image
-          source={isDark ? require('../../../assets/camcrew-logo-white.png') : require('../../../assets/camcrew-logo-dark.png')}
+          source={isDark ? require('../../../assets/camqrew-logo-white.png') : require('../../../assets/camqrew-logo-dark.png')}
           style={styles.logo}
         />
         <Text style={[styles.title, { color: colors.textPrimary }]}>Reset Password</Text>

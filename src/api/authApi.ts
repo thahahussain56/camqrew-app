@@ -293,11 +293,19 @@ export const authApi = {
   },
 
   forgotPassword: async (email: string): Promise<{ success: boolean; message: string }> => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase());
     if (error) {
       throw new Error(error.message);
     }
     return { success: true, message: 'Password reset link sent to ' + email };
+  },
+
+  updatePassword: async (password: string): Promise<{ success: boolean; message: string }> => {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+      throw new Error(error.message);
+    }
+    return { success: true, message: 'Password updated successfully.' };
   },
 
   signInWithOAuth: async (provider: 'google' | 'apple', role: 'customer' | 'professional' = 'customer'): Promise<{ token: string; user: User } | null> => {
