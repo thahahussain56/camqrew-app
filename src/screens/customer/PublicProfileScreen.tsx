@@ -1161,7 +1161,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                 <ShieldCheck size={18} color={colors.accent} style={{ marginRight: 8 }} />
                 <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
-                  Camcrew Trust & Safety
+                  Camqrew Trust & Safety
                 </Text>
               </View>
               <Text style={{ fontSize: 12.5, lineHeight: 18, color: colors.textSecondary, marginBottom: 12 }}>
@@ -1617,7 +1617,7 @@ export const PublicProfileScreen: React.FC<{ navigation: any; route: any }> = ({
                     100% Milestone Escrow Protected
                   </Text>
                   <Text style={[styles.serviceModalEscrowDesc, { color: colors.textSecondary }]}>
-                    Your advance payment is securely held in Camcrew Escrow and only released when deliverables meet your satisfaction.
+                    Your advance payment is securely held in Camqrew Escrow and only released when deliverables meet your satisfaction.
                   </Text>
                 </View>
               </View>

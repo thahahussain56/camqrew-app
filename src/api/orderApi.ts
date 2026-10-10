@@ -18,6 +18,7 @@ const mapOrder = (row: any): Order => {
     awb_code: row.awb_code,
     courier_name: row.courier_name,
     shiprocket_order_id: row.shiprocket_order_id,
+    shipment_id: row.shipment_id,
   };
 };
 
@@ -79,6 +80,23 @@ export const orderApi = {
 
     if (error) {
       console.warn('Error fetching orders:', error);
+      return [];
+    }
+
+    return (data || []).map(mapOrder);
+  },
+
+  getSellerOrders: async (): Promise<Order[]> => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return [];
+
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Error fetching seller orders:', error);
       return [];
     }
 

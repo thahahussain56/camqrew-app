@@ -49,7 +49,7 @@ export const OnboardingScreen: React.FC<{ navigation: any }> = ({ navigation }) 
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <Image
-          source={isDark ? require('../../../assets/camcrew-logo-white.png') : require('../../../assets/camcrew-logo-dark.png')}
+          source={isDark ? require('../../../assets/camqrew-logo-white.png') : require('../../../assets/camqrew-logo-dark.png')}
           style={styles.logo}
         />
         <TouchableOpacity style={styles.skipButton} onPress={() => navigation.navigate('SignIn')}>

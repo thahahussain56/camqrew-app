@@ -22,8 +22,8 @@ export const SplashScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <Image
           source={
             isDark
-              ? require('../../../assets/camcrew-logo-white.png')
-              : require('../../../assets/camcrew-logo-dark.png')
+              ? require('../../../assets/camqrew-logo-white.png')
+              : require('../../../assets/camqrew-logo-dark.png')
           }
           style={styles.logoImage}
         />

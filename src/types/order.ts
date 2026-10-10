@@ -38,4 +38,5 @@ export interface Order {
   awb_code?: string;
   courier_name?: string;
   shiprocket_order_id?: string;
+  shipment_id?: string;
 }

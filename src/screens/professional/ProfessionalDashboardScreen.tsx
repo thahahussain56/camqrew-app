@@ -1,16 +1,21 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, Linking } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { professionalApi } from '../../api/professionalApi';
 import { bookingApi } from '../../api/bookingApi';
 import { productApi } from '../../api/productApi';
+import { orderApi } from '../../api/orderApi';
+import { supabase } from '../../api/supabaseClient';
+import { createShiprocketOrder, generateShippingLabel, getShiprocketTrackingUrl } from '../../api/shiprocketService';
 import { ProfessionalProfile, MenuDishItem } from '../../types/professional';
 import { Product } from '../../types/product';
 import { Booking } from '../../types/booking';
+import { Order } from '../../types/order';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
 import { BookingCard } from '../../components/cards/BookingCard';
 import { ProductCard } from '../../components/cards/ProductCard';
 import { EarningsChart } from '../../components/charts/EarningsChart';
@@ -18,7 +23,8 @@ import { BookingsDonut } from '../../components/charts/BookingsDonut';
 import { Toast } from '../../components/ui/Toast';
 import { ListProductModal } from '../../components/forms/ListProductModal';
 import { ListMenuDishModal } from '../../components/forms/ListMenuDishModal';
-import { DollarSign, Calendar, Eye, Star, Edit3, Bell, PlusCircle, LayoutDashboard, ShoppingBag, FolderGit2, Film, UtensilsCrossed, Trash2, Plus, Clock } from 'lucide-react-native';
+import { CreatorPickupModal, CreatorPickupData } from '../../components/forms/CreatorPickupModal';
+import { DollarSign, Calendar, Eye, Star, Edit3, Bell, PlusCircle, LayoutDashboard, ShoppingBag, FolderGit2, Film, UtensilsCrossed, Trash2, Plus, Clock, Building2, Truck, ExternalLink, Download, Package } from 'lucide-react-native';
 
 type DashTab = 'overview' | 'bookings' | 'sales_rentals' | 'listings';
 
@@ -37,6 +43,13 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
   const [vegOnlyFilter, setVegOnlyFilter] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const [activeTab, setActiveTab] = useState<DashTab>('overview');
+
+  // Creator Shiprocket Logistics State
+  const [creatorPickup, setCreatorPickup] = useState<CreatorPickupData | null>(null);
+  const [showPickupModal, setShowPickupModal] = useState(false);
+  const [sellerOrders, setSellerOrders] = useState<Order[]>([]);
+  const [fulfillingOrderId, setFulfillingOrderId] = useState<string | null>(null);
+  const [generatingLabelOrderId, setGeneratingLabelOrderId] = useState<string | null>(null);
 
   const isBaker = Boolean(
     profile?.categories?.some(c =>
@@ -166,9 +179,139 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
       productApi.getUserProducts().then(res => {
         if (isMounted) setUserProducts(Array.isArray(res) ? res : []);
       });
+
+      if (user?.id) {
+        // Load creator studio pickup address
+        supabase
+          .from('addresses')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('label', 'Studio Pickup')
+          .maybeSingle()
+          .then(({ data: addrData }) => {
+            if (addrData && isMounted) {
+              setCreatorPickup({
+                name: user.name || 'Studio Owner',
+                phone: user.phone || '9999999999',
+                address: addrData.line1,
+                address2: addrData.line2 || '',
+                city: addrData.city,
+                state: addrData.state,
+                pincode: addrData.pincode,
+                pickup_nickname: `STUDIO-${user.id.slice(0, 8)}`,
+              });
+            } else if ((user as any).user_metadata?.pickup_address && isMounted) {
+              setCreatorPickup((user as any).user_metadata.pickup_address);
+            }
+          });
+
+        // Load incoming seller orders
+        orderApi.getSellerOrders().then(orders => {
+          if (isMounted) setSellerOrders(orders);
+        });
+      }
+
       return () => { isMounted = false; };
     }, [user?.id])
   );
+
+  const handleCreatorFulfillOrder = async (order: Order) => {
+    if (!creatorPickup) {
+      setShowPickupModal(true);
+      setToastMsg('Please configure your Studio Pickup Address first before requesting courier pickup!');
+      return;
+    }
+
+    setFulfillingOrderId(order.id);
+    try {
+      const rawAddress = order.shippingAddress || (order as any).shipping_address || {};
+      const rawItems = Array.isArray(order.items) ? order.items : [];
+      const mappedItems = rawItems.map((it: any, idx: number) => {
+        const prod = it.product || it;
+        return {
+          name: prod.name || prod.title || 'Gear Package',
+          sku: prod.sku || `SKU-${prod.id ? String(prod.id).slice(0, 8) : idx}`,
+          units: Number(it.quantity || 1),
+          selling_price: String(prod.price || prod.salePrice || Math.round((order.total || 1000) / (rawItems.length || 1))),
+        };
+      });
+
+      const response = await createShiprocketOrder({
+        order_id: order.id,
+        order_date: order.createdAt || new Date().toISOString(),
+        pickup_location: creatorPickup.pickup_nickname || `STUDIO-${user?.id?.slice(0, 8)}` || 'warehouse',
+        billing_customer_name: rawAddress.fullName || 'Customer',
+        billing_address: rawAddress.addressLine1 || 'Delivery Address',
+        billing_address_2: rawAddress.addressLine2 || '',
+        billing_city: rawAddress.city || 'Mumbai',
+        billing_pincode: rawAddress.pincode || '400001',
+        billing_state: rawAddress.state || 'Maharashtra',
+        billing_country: 'India',
+        billing_email: (order as any).customerEmail || (order as any).email || 'customer@client.in',
+        billing_phone: rawAddress.phone || '9999999999',
+        shipping_is_billing: true,
+        order_items: mappedItems,
+        payment_method: 'Prepaid',
+        sub_total: order.subtotal || order.total || 1000,
+        length: 20,
+        breadth: 20,
+        height: 15,
+        weight: 2.0,
+      });
+
+      // Update in Supabase
+      await supabase.from('orders').update({
+        awb_code: response.awb_code,
+        courier_name: response.courier_name,
+        shiprocket_order_id: response.order_id,
+        shipment_id: response.shipment_id,
+        status: 'shipped',
+      }).eq('id', order.id);
+
+      // Update local state
+      setSellerOrders(prev => prev.map(o => o.id === order.id ? {
+        ...o,
+        status: 'shipped',
+        awb_code: response.awb_code,
+        courier_name: response.courier_name,
+        shiprocket_order_id: response.order_id,
+        shipment_id: response.shipment_id,
+      } : o));
+
+      Alert.alert(
+        'Courier Pickup Scheduled! 🚚',
+        `Dispatched via ${response.courier_name}.\nAWB: ${response.awb_code}\n\nCourier agent will arrive at your studio for pickup.`
+      );
+    } catch (err: any) {
+      console.error('Shiprocket fulfillment error:', err);
+      Alert.alert('Fulfillment Notice', err.message || 'Could not schedule courier pickup.');
+    } finally {
+      setFulfillingOrderId(null);
+    }
+  };
+
+  const handleDownloadShippingLabel = async (order: Order) => {
+    const shipmentId = order.shipment_id || order.shiprocket_order_id || order.id;
+    setGeneratingLabelOrderId(order.id);
+    try {
+      const labelUrl = await generateShippingLabel(shipmentId);
+      if (labelUrl) {
+        await Linking.openURL(labelUrl);
+      } else {
+        Alert.alert('Label Processing', 'Label generation is in progress. Please retry in 30 seconds.');
+      }
+    } catch (err: any) {
+      console.error('Label generation error:', err);
+      Alert.alert('Label Notice', err.message || 'Could not download label. Ensure courier has assigned an AWB.');
+    } finally {
+      setGeneratingLabelOrderId(null);
+    }
+  };
+
+  const handleTrackShipment = (order: Order) => {
+    const url = getShiprocketTrackingUrl(order.awb_code, order.shiprocket_order_id);
+    Linking.openURL(url);
+  };
 
   const safeBookings = Array.isArray(upcomingBookings) ? upcomingBookings : [];
 
@@ -198,8 +341,8 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
         <Image
           source={
             isDark
-              ? require('../../../assets/camcrew-logo-white.png')
-              : require('../../../assets/camcrew-logo-dark.png')
+              ? require('../../../assets/camqrew-logo-white.png')
+              : require('../../../assets/camqrew-logo-dark.png')
           }
           style={styles.brandLogo}
         />
@@ -336,12 +479,222 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
 
       {/* ── SALES & RENTALS TAB ── */}
       {activeTab === 'sales_rentals' && (
-        <View style={{ padding: 40, alignItems: 'center', backgroundColor: colors.surfaceCard, borderRadius: 20 }}>
-          <ShoppingBag size={40} color={colors.textFaint} />
-          <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 16, marginTop: 10 }}>No Orders Yet</Text>
-          <Text style={{ color: colors.textSecondary, textAlign: 'center', marginTop: 8 }}>
-            Incoming sale orders and rental requests for your listed gear will appear here.
-          </Text>
+        <View style={{ gap: 14 }}>
+          {/* Creator Studio Pickup Hub Status Card */}
+          <Card
+            style={[
+              styles.studioPickupCard,
+              {
+                backgroundColor: colors.surfaceCard,
+                borderColor: creatorPickup ? 'rgba(63, 182, 104, 0.4)' : 'rgba(234, 179, 8, 0.4)',
+                borderWidth: 1.5,
+              },
+            ]}
+          >
+            <View style={styles.pickupHeaderRow}>
+              <View
+                style={[
+                  styles.pickupIconBox,
+                  { backgroundColor: creatorPickup ? 'rgba(63, 182, 104, 0.15)' : 'rgba(234, 179, 8, 0.15)' },
+                ]}
+              >
+                <Building2 size={20} color={creatorPickup ? colors.accent : colors.warning} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <Text style={[styles.pickupTitle, { color: colors.textPrimary }]}>
+                    {creatorPickup ? 'Studio Pickup Location Active' : 'Studio Pickup Address Required'}
+                  </Text>
+                  <Badge
+                    label={creatorPickup ? 'Shiprocket Verified' : 'Setup Needed'}
+                    variant={creatorPickup ? 'verified' : 'warning'}
+                  />
+                </View>
+                {creatorPickup?.pickup_nickname ? (
+                  <Text style={[styles.pickupNickname, { color: colors.textFaint }]}>
+                    Shiprocket Hub ID: {creatorPickup.pickup_nickname}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+
+            {creatorPickup ? (
+              <View style={[styles.pickupDetailsBox, { backgroundColor: colors.surfaceElevated }]}>
+                <Text style={[styles.pickupPersonName, { color: colors.textPrimary }]}>
+                  {creatorPickup.name} • {creatorPickup.phone}
+                </Text>
+                <Text style={[styles.pickupAddressText, { color: colors.textSecondary }]}>
+                  {creatorPickup.address}
+                  {creatorPickup.address2 ? `, ${creatorPickup.address2}` : ''}, {creatorPickup.city},{' '}
+                  {creatorPickup.state} - {creatorPickup.pincode}
+                </Text>
+              </View>
+            ) : (
+              <Text style={[styles.pickupDesc, { color: colors.textSecondary }]}>
+                Configure your studio address once so Shiprocket courier partners (Bluedart, Delhivery, DTDC) can pick up rental gear and sold equipment directly from your doorstep.
+              </Text>
+            )}
+
+            <Button
+              title={creatorPickup ? 'Edit Studio Address' : '+ Set Studio Pickup Address'}
+              variant={creatorPickup ? 'outline' : 'primary'}
+              size="sm"
+              icon={<Building2 size={14} color={creatorPickup ? colors.textPrimary : '#000000'} />}
+              onPress={() => setShowPickupModal(true)}
+              style={{ marginTop: 10, alignSelf: 'flex-start' }}
+            />
+          </Card>
+
+          {/* Section Header */}
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+              {isCaterer ? 'Incoming Catering Orders' : 'Incoming Gear Orders'} ({sellerOrders.length})
+            </Text>
+          </View>
+
+          {sellerOrders.length === 0 ? (
+            <View style={{ padding: 36, alignItems: 'center', backgroundColor: colors.surfaceCard, borderRadius: 20 }}>
+              <ShoppingBag size={40} color={colors.textFaint} />
+              <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 16, marginTop: 10 }}>
+                No Orders Yet
+              </Text>
+              <Text style={{ color: colors.textSecondary, textAlign: 'center', marginTop: 8, fontSize: 13, lineHeight: 18 }}>
+                Incoming orders for your gear will appear here. When buyers order, you can dispatch Shiprocket couriers with 1 tap.
+              </Text>
+            </View>
+          ) : (
+            sellerOrders.map((ord: Order) => {
+              const itemsList = Array.isArray(ord.items) ? ord.items : [];
+              const shippingAddr: any = ord.shippingAddress || {};
+              const isShipped = ord.status === 'shipped' || !!ord.awb_code;
+              const isFulfilling = fulfillingOrderId === ord.id;
+              const isGenerating = generatingLabelOrderId === ord.id;
+
+              return (
+                <Card
+                  key={ord.id}
+                  style={[styles.orderCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}
+                >
+                  {/* Status & Type Pills */}
+                  <View style={styles.orderTopRow}>
+                    <Badge
+                      label={(ord.status || 'placed').toUpperCase()}
+                      variant={isShipped ? 'success' : 'warning'}
+                    />
+                    <Text style={[styles.orderTypePill, { color: colors.textSecondary }]}>
+                      {ord.orderType === 'rental' ? '🎥 Rental' : '📦 Sale'}
+                    </Text>
+                    <Text style={[styles.orderDate, { color: colors.textFaint }]}>
+                      {ord.createdAt
+                        ? new Date(ord.createdAt).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                          })
+                        : ''}
+                    </Text>
+                  </View>
+
+                  <Text style={[styles.orderNumber, { color: colors.textPrimary }]}>
+                    Order #{String(ord.id).slice(0, 8).toUpperCase()}
+                  </Text>
+
+                  {/* Items Chips */}
+                  <View style={styles.orderItemsContainer}>
+                    {itemsList.map((item: any, idx: number) => {
+                      const prod = item.product || item;
+                      return (
+                        <View
+                          key={idx}
+                          style={[
+                            styles.orderItemChip,
+                            { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+                          ]}
+                        >
+                          <Package size={12} color={colors.accent} />
+                          <Text style={[styles.orderItemText, { color: colors.textPrimary }]} numberOfLines={1}>
+                            {prod.name || prod.title || 'Gear'} × {item.quantity || 1}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+
+                  {/* Customer Destination Info */}
+                  <View style={[styles.orderDestBox, { borderTopColor: colors.border }]}>
+                    <Text style={[styles.destClient, { color: colors.textPrimary }]}>
+                      Client: <Text style={{ fontWeight: '700' }}>{shippingAddr.fullName || 'Customer'}</Text>
+                    </Text>
+                    <Text style={[styles.destLocation, { color: colors.textSecondary }]}>
+                      📍{' '}
+                      {shippingAddr.city
+                        ? `${shippingAddr.city}, ${shippingAddr.state || ''} (${shippingAddr.pincode || ''})`
+                        : 'Delivery Address'}
+                    </Text>
+                    {shippingAddr.phone ? (
+                      <Text style={[styles.destPhone, { color: colors.textFaint }]}>
+                        📞 {shippingAddr.phone}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  {/* Courier Shipped Bar */}
+                  {isShipped && (
+                    <View
+                      style={[
+                        styles.shippedBanner,
+                        { backgroundColor: 'rgba(63, 182, 104, 0.12)', borderColor: 'rgba(63, 182, 104, 0.3)' },
+                      ]}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                        <Truck size={16} color={colors.accent} />
+                        <Text style={[styles.shippedText, { color: colors.accent }]}>
+                          {ord.courier_name || 'Shiprocket'} • AWB: {ord.awb_code || 'Pending'}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => handleTrackShipment(ord)}
+                        style={styles.trackLinkBtn}
+                      >
+                        <Text style={{ color: colors.accent, fontSize: 11, fontWeight: '700' }}>Track ↗</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {/* Price & Action Row */}
+                  <View style={[styles.orderActionRow, { borderTopColor: colors.border }]}>
+                    <View>
+                      <Text style={[styles.orderTotalLabel, { color: colors.textFaint }]}>Total Value</Text>
+                      <Text style={[styles.orderTotalAmount, { color: colors.textPrimary }]}>
+                        ₹{Number(ord.total || ord.subtotal || 0).toLocaleString('en-IN')}
+                      </Text>
+                    </View>
+
+                    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                      {!isShipped ? (
+                        <Button
+                          title="Schedule Courier Pickup"
+                          variant="primary"
+                          size="sm"
+                          loading={isFulfilling}
+                          icon={<Truck size={14} color="#000000" />}
+                          onPress={() => handleCreatorFulfillOrder(ord)}
+                        />
+                      ) : (
+                        <Button
+                          title="Download Label"
+                          variant="outline"
+                          size="sm"
+                          loading={isGenerating}
+                          icon={<Download size={14} color={colors.accent} />}
+                          onPress={() => handleDownloadShippingLabel(ord)}
+                        />
+                      )}
+                    </View>
+                  </View>
+                </Card>
+              );
+            })
+          )}
         </View>
       )}
 
@@ -740,6 +1093,19 @@ export const ProfessionalDashboardScreen: React.FC<{ navigation: any }> = ({ nav
           }}
         />
       )}
+
+      {/* Creator Studio Pickup Address Modal (Shiprocket) */}
+      <CreatorPickupModal
+        visible={showPickupModal}
+        onClose={() => setShowPickupModal(false)}
+        initialData={creatorPickup}
+        userId={user?.id}
+        userEmail={user?.email}
+        onSuccess={(updated) => {
+          setCreatorPickup(updated);
+          setToastMsg('Studio Pickup Address successfully verified with Shiprocket! 📦');
+        }}
+      />
     </ScrollView>
   );
 };
@@ -1078,4 +1444,142 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: '#16a34a',
   },
+  studioPickupCard: {
+    padding: 16,
+    borderRadius: 16,
+  },
+  pickupHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pickupIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickupTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  pickupNickname: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  pickupDetailsBox: {
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 12,
+  },
+  pickupPersonName: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  pickupAddressText: {
+    fontSize: 12,
+    marginTop: 3,
+    lineHeight: 16,
+  },
+  pickupDesc: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 10,
+  },
+  orderCard: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 4,
+  },
+  orderTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  orderTypePill: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  orderDate: {
+    fontSize: 11,
+    marginLeft: 'auto',
+  },
+  orderNumber: {
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  orderItemsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 10,
+  },
+  orderItemChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    gap: 4,
+  },
+  orderItemText: {
+    fontSize: 11,
+    fontWeight: '600',
+    maxWidth: 200,
+  },
+  orderDestBox: {
+    borderTopWidth: 1,
+    paddingTop: 10,
+    marginBottom: 10,
+  },
+  destClient: {
+    fontSize: 12,
+  },
+  destLocation: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  destPhone: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  shippedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 8,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 10,
+  },
+  shippedText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  trackLinkBtn: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  orderActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    paddingTop: 12,
+  },
+  orderTotalLabel: {
+    fontSize: 10,
+    textTransform: 'uppercase',
+  },
+  orderTotalAmount: {
+    fontSize: 16,
+    fontWeight: '900',
+    marginTop: 1,
+  },
 });
+

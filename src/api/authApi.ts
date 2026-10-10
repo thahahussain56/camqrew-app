@@ -107,12 +107,28 @@ export const authApi = {
   },
 
   login: async (email: string, pass: string): Promise<{ token: string; user: User }> => {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check if email exists in users table first
+    const { data: userRecord } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', cleanEmail)
+      .maybeSingle();
+
+    if (!userRecord) {
+      throw new Error('This email ID is not registered with Camqrew. Please sign up to create an account.');
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
+      email: cleanEmail,
       password: pass,
     });
 
     if (error || !data.session) {
+      if (error?.message?.toLowerCase().includes('invalid login credentials')) {
+        throw new Error('Incorrect password. Please try again or reset your password.');
+      }
       throw new Error(error?.message || 'Invalid credentials');
     }
 
@@ -130,8 +146,8 @@ export const authApi = {
       token: data.session.access_token,
       user: {
         id: data.user.id,
-        name: userProfile?.name || email.split('@')[0],
-        email: email,
+        name: userProfile?.name || cleanEmail.split('@')[0],
+        email: cleanEmail,
         phone: userProfile?.phone || '',
         role: (userProfile?.role as UserRole) || 'customer',
         avatar: userProfile?.avatar || userProfile?.avatar_url || '',
@@ -293,11 +309,24 @@ export const authApi = {
   },
 
   forgotPassword: async (email: string): Promise<{ success: boolean; message: string }> => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase());
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check if email exists in users table first
+    const { data: userRecord } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', cleanEmail)
+      .maybeSingle();
+
+    if (!userRecord) {
+      throw new Error('This email ID is not registered with Camqrew. Please check the email or sign up.');
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail);
     if (error) {
       throw new Error(error.message);
     }
-    return { success: true, message: 'Password reset link sent to ' + email };
+    return { success: true, message: 'Password reset link sent to ' + cleanEmail };
   },
 
   updatePassword: async (password: string): Promise<{ success: boolean; message: string }> => {

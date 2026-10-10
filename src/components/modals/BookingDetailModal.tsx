@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ShootContractModal } from './ShootContractModal';
 import { PhotoProofingModal } from './PhotoProofingModal';
 import { CallSheetModal } from './CallSheetModal';
+import { InvoiceModal } from './InvoiceModal';
 
 interface BookingDetailModalProps {
   visible: boolean;
@@ -42,6 +43,7 @@ export const BookingDetailModal: React.FC<BookingDetailModalProps> = ({
   const [showContract, setShowContract] = useState(false);
   const [showVault, setShowVault] = useState(false);
   const [showCallSheet, setShowCallSheet] = useState(false);
+  const [showInvoice, setShowInvoice] = useState(false);
 
   if (!booking) return null;
 
@@ -254,6 +256,21 @@ export const BookingDetailModal: React.FC<BookingDetailModalProps> = ({
                 <ChevronRight size={16} color={colors.textSecondary} style={{ marginLeft: 'auto' }} />
               </TouchableOpacity>
 
+              {/* Lifetime GST Tax Invoice (18%) */}
+              {isPaid && (
+                <TouchableOpacity 
+                  style={[styles.viewContractBtn, { backgroundColor: 'rgba(63, 182, 104, 0.08)', borderColor: '#3fb668', marginTop: 8 }]}
+                  activeOpacity={0.8}
+                  onPress={() => setShowInvoice(true)}
+                >
+                  <FileText size={15} color="#3fb668" style={{ marginRight: 6 }} />
+                  <Text style={[styles.viewContractBtnText, { color: '#3fb668', fontWeight: '800' }]}>
+                    📄 View & Download GST Tax Invoice (18%)
+                  </Text>
+                  <ChevronRight size={16} color="#3fb668" style={{ marginLeft: 'auto' }} />
+                </TouchableOpacity>
+              )}
+
               {Boolean(booking.contractSignature) && (
                 <View style={[styles.detailRow, { borderTopWidth: 1, borderTopColor: colors.borderLight, paddingTop: 10, marginTop: 6 }]}>
                   <FileText size={16} color={colors.accent} />
@@ -434,6 +451,13 @@ export const BookingDetailModal: React.FC<BookingDetailModalProps> = ({
         visible={showCallSheet}
         booking={booking}
         onClose={() => setShowCallSheet(false)}
+      />
+
+      {/* Permanent GST Tax Invoice Modal */}
+      <InvoiceModal
+        visible={showInvoice}
+        bookingId={booking.id}
+        onClose={() => setShowInvoice(false)}
       />
     </>
   );

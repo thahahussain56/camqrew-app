@@ -134,7 +134,7 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         {/* Brand Logo Row Above Location */}
         <View style={styles.brandHeaderRow}>
           <Image
-            source={isDark ? require('../../../assets/camcrew-logo-white.png') : require('../../../assets/camcrew-logo-dark.png')}
+            source={isDark ? require('../../../assets/camqrew-logo-white.png') : require('../../../assets/camqrew-logo-dark.png')}
             style={styles.brandLogo}
             resizeMode="contain"
           />

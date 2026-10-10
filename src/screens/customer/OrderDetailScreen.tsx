@@ -9,6 +9,7 @@ import { trackingService, LiveDeliveryTracking } from '../../services/trackingSe
 import { Package, Download, ShieldCheck, RefreshCw, CheckCircle2, Clock, Truck, Phone, Navigation, ExternalLink } from 'lucide-react-native';
 import { IOSNavBar } from '../../components/navigation/IOSNavBar';
 import { useNavBarHeight } from '../../hooks/useNavBarHeight';
+import { InvoiceModal } from '../../components/modals/InvoiceModal';
 
 export const OrderDetailScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
   const { colors } = useTheme();
@@ -18,6 +19,7 @@ export const OrderDetailScreen: React.FC<{ navigation: any; route: any }> = ({ n
   const [escrow, setEscrow] = useState<EscrowDepositRecord | null>(null);
   const [tracking, setTracking] = useState<LiveDeliveryTracking | null>(null);
   const [loading, setLoading] = useState(false);
+  const [invoiceVisible, setInvoiceVisible] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -153,6 +155,18 @@ export const OrderDetailScreen: React.FC<{ navigation: any; route: any }> = ({ n
               </View>
             ))}
           </View>
+
+          {tracking.trackingUrl && (
+            <TouchableOpacity
+              style={[styles.trackLiveBtn, { borderColor: colors.accent }]}
+              onPress={() => Linking.openURL(tracking.trackingUrl)}
+            >
+              <ExternalLink size={14} color={colors.accent} />
+              <Text style={[styles.trackLiveBtnText, { color: colors.accent }]}>
+                Track Live on Courier Portal ↗
+              </Text>
+            </TouchableOpacity>
+          )}
         </Card>
       )}
 
@@ -224,14 +238,21 @@ export const OrderDetailScreen: React.FC<{ navigation: any; route: any }> = ({ n
       </Card>
 
       <Button
-        title="Download Tax Invoice (PDF)"
+        title="Download Tax Invoice (18% GST)"
         variant="outline"
         size="lg"
         icon={<Download size={18} color={colors.accent} />}
-        onPress={() => Alert.alert('Invoice Downloaded', 'Tax invoice PDF generated.')}
+        onPress={() => setInvoiceVisible(true)}
         style={{ marginVertical: 10 }}
       />
     </ScrollView>
+
+    {/* Permanent Lifetime Tax Invoice Modal */}
+    <InvoiceModal
+      visible={invoiceVisible}
+      orderId={orderId}
+      onClose={() => setInvoiceVisible(false)}
+    />
     </View>
   );
 };
@@ -377,4 +398,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginVertical: 2,
   },
+  trackLiveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 14,
+    gap: 6,
+  },
+  trackLiveBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
 });
+

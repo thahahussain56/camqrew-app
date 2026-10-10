@@ -132,15 +132,18 @@ export const SignInScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   const handleEmailLogin = async () => {
-    if (!email.trim()) { showError('Please enter your email address.'); return; }
+    const cleanEmail = email.trim().toLowerCase();
+    const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!cleanEmail) { showError('Please enter your email address.'); return; }
+    if (!EMAIL_REGEX.test(cleanEmail)) { showError('Please enter a valid email address (e.g. name@domain.com).'); return; }
     if (!password) { showError('Please enter your password.'); return; }
     setLoading(true);
     try {
-      const res = await authApi.login(email.trim(), password);
+      const res = await authApi.login(cleanEmail, password);
       await login(res.user, res.token);
       navigation.replace('MainApp');
     } catch (e: any) {
-      showError(e.message?.includes('Invalid') ? 'Invalid email or password.' : (e.message || 'Login failed.'));
+      showError(e.message || 'Login failed.');
     } finally { setLoading(false); }
   };
 

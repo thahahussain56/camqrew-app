@@ -7,9 +7,12 @@ import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import {
   Calendar, MapPin, ShieldCheck, Check, X, CreditCard,
-  MessageSquare, ChevronRight, Lock, Clock
+  MessageSquare, ChevronRight, Lock, Clock, Camera, FileText
 } from 'lucide-react-native';
 import { BookingDetailModal } from '../modals/BookingDetailModal';
+import { PhotoProofingModal } from '../modals/PhotoProofingModal';
+import { CallSheetModal } from '../modals/CallSheetModal';
+import { InvoiceModal } from '../modals/InvoiceModal';
 
 interface BookingCardProps {
   booking: Booking;
@@ -34,6 +37,9 @@ export const BookingCard: React.FC<BookingCardProps> = ({
 }) => {
   const { colors, isDark } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
+  const [vaultVisible, setVaultVisible] = useState(false);
+  const [callSheetVisible, setCallSheetVisible] = useState(false);
+  const [invoiceVisible, setInvoiceVisible] = useState(false);
 
   const isPaid = booking.status === 'confirmed' || booking.status === 'escrow_held' || booking.status === 'completed';
   const isAccepted = booking.status === 'accepted';
@@ -172,16 +178,51 @@ export const BookingCard: React.FC<BookingCardProps> = ({
 
         {/* Action Button Section */}
 
-        {/* 1. If Paid / Confirmed: Show Chat with Creator Button ONLY (Never ask for payment again) */}
-        {isPaid && onChat && (
-          <TouchableOpacity
-            style={[styles.actionBtnPrimary, { backgroundColor: colors.accent }]}
-            activeOpacity={0.85}
-            onPress={onChat}
-          >
-            <MessageSquare size={16} color="#ffffff" style={{ marginRight: 6 }} />
-            <Text style={styles.actionBtnText}>Chat with Creator 💬</Text>
-          </TouchableOpacity>
+        {/* 1. If Paid / Confirmed: Show Camqrew Vault, Call Sheet, and Chat */}
+        {isPaid && (
+          <View style={{ marginTop: 10, gap: 8 }}>
+            <View style={styles.shootActionRow}>
+              <TouchableOpacity
+                style={[styles.shootToolBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}
+                activeOpacity={0.8}
+                onPress={() => setVaultVisible(true)}
+              >
+                <Camera size={13} color={colors.accent} style={{ marginRight: 4 }} />
+                <Text style={[styles.shootToolBtnText, { color: colors.textPrimary }]}>Vault</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.shootToolBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}
+                activeOpacity={0.8}
+                onPress={() => setCallSheetVisible(true)}
+              >
+                <FileText size={13} color={colors.accent} style={{ marginRight: 4 }} />
+                <Text style={[styles.shootToolBtnText, { color: colors.textPrimary }]}>Call Sheet</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.shootToolBtn, { backgroundColor: 'rgba(63, 182, 104, 0.08)', borderColor: '#3fb668' }]}
+                activeOpacity={0.8}
+                onPress={() => setInvoiceVisible(true)}
+              >
+                <FileText size={13} color="#3fb668" style={{ marginRight: 4 }} />
+                <Text style={[styles.shootToolBtnText, { color: '#3fb668', fontWeight: '800' }]}>Invoice</Text>
+              </TouchableOpacity>
+            </View>
+
+            {onChat && (
+              <TouchableOpacity
+                style={[styles.actionBtnPrimary, { backgroundColor: colors.accent, marginTop: 0 }]}
+                activeOpacity={0.85}
+                onPress={onChat}
+              >
+                <MessageSquare size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={styles.actionBtnText}>
+                  {isProfessionalMode ? 'Chat with Client 💬' : 'Chat with Creator 💬'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         )}
 
         {/* 2. If Accepted & Unpaid: Show Pay Now Button */}
@@ -229,6 +270,27 @@ export const BookingCard: React.FC<BookingCardProps> = ({
         onChat={onChat}
         onReleaseMilestone={onReleaseMilestone}
         isProfessionalMode={isProfessionalMode}
+      />
+
+      {/* Camqrew Vault (Client Photo Proofing) Modal */}
+      <PhotoProofingModal
+        visible={vaultVisible}
+        booking={booking}
+        onClose={() => setVaultVisible(false)}
+      />
+
+      {/* Digital Call Sheet Modal */}
+      <CallSheetModal
+        visible={callSheetVisible}
+        booking={booking}
+        onClose={() => setCallSheetVisible(false)}
+      />
+
+      {/* Lifetime Accessible GST Tax Invoice Modal */}
+      <InvoiceModal
+        visible={invoiceVisible}
+        bookingId={booking.id}
+        onClose={() => setInvoiceVisible(false)}
       />
     </>
   );
@@ -345,4 +407,22 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 13,
   },
+  shootActionRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  shootToolBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  shootToolBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
 });
+

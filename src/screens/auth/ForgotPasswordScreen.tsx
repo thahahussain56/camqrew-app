@@ -15,16 +15,22 @@ export const ForgotPasswordScreen: React.FC<{ navigation: any }> = ({ navigation
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async () => {
-    if (!email) {
+    const cleanEmail = email.trim().toLowerCase();
+    const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!cleanEmail) {
       setToastMessage('Please enter your registered email address.');
+      return;
+    }
+    if (!EMAIL_REGEX.test(cleanEmail)) {
+      setToastMessage('Please enter a valid email address (e.g. name@domain.com).');
       return;
     }
     setLoading(true);
     try {
-      await authApi.forgotPassword(email);
+      await authApi.forgotPassword(cleanEmail);
       setSubmitted(true);
-    } catch (e) {
-      setToastMessage('Failed to send reset link.');
+    } catch (e: any) {
+      setToastMessage(e?.message || 'Failed to send reset link.');
     } finally {
       setLoading(false);
     }
@@ -36,7 +42,7 @@ export const ForgotPasswordScreen: React.FC<{ navigation: any }> = ({ navigation
 
       <View style={styles.header}>
         <Image
-          source={isDark ? require('../../../assets/camcrew-logo-white.png') : require('../../../assets/camcrew-logo-dark.png')}
+          source={isDark ? require('../../../assets/camqrew-logo-white.png') : require('../../../assets/camqrew-logo-dark.png')}
           style={styles.logo}
         />
         <Text style={[styles.title, { color: colors.textPrimary }]}>Forgot Password</Text>

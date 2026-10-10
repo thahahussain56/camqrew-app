@@ -279,7 +279,7 @@ export const QuotationSummaryScreen: React.FC<QuotationSummaryScreenProps> = ({ 
             <View style={[styles.escrowBadge, { backgroundColor: colors.accentGlow }]}>
               <ShieldCheck size={13} color={colors.accent} />
               <Text style={[styles.escrowText, { color: colors.accent }]}>
-                {isBaker ? 'Protected by Camcrew Escrow until order delivery' : 'Final price confirmed & protected by Escrow after booking'}
+                {isBaker ? 'Protected by Camqrew Escrow until order delivery' : 'Final price confirmed & protected by Escrow after booking'}
               </Text>
             </View>
           </View>

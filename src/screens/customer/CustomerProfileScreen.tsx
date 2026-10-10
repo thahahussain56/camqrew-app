@@ -352,7 +352,7 @@ export const CustomerProfileScreen: React.FC<{ navigation: any }> = ({ navigatio
         {/* ── Brand Logo Header ──────────────────────────────── */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 16, paddingHorizontal: 16 }}>
           <Image
-            source={isDark ? require('../../../assets/camcrew-logo-white.png') : require('../../../assets/camcrew-logo-dark.png')}
+            source={isDark ? require('../../../assets/camqrew-logo-white.png') : require('../../../assets/camqrew-logo-dark.png')}
             style={{ width: 140, height: 32 }}
             resizeMode="contain"
           />

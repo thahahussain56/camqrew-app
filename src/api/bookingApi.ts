@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 import { Booking, BookingStatus } from '../types/booking';
 import { notificationService } from '../services/notificationService';
 import { computeCategoryMilestones } from '../utils/escrowUtils';
+import { invoiceService } from '../services/invoiceService';
 
 const mapBooking = (b: any): Booking => {
   const loc = b.location_details?.address || b.location_details?.city || (typeof b.location_details === 'string' ? b.location_details : '') || '';
@@ -339,6 +340,25 @@ export const bookingApi = {
       .single();
 
     if (error) throw new Error(error.message);
+
+    // Record escrow payment in escrow_payments table
+    try {
+      await supabase.from('escrow_payments').insert([{
+        booking_id: bookingId,
+        amount: advance,
+        status: 'held_in_escrow',
+        transaction_id: `tx_esc_${Date.now()}`,
+      }]);
+    } catch (e) {
+      console.warn('Escrow payment insert log notice:', e);
+    }
+
+    // Generate and archive lifetime GST tax invoice
+    try {
+      await invoiceService.createOrGetBookingInvoice(bookingId);
+    } catch (e) {
+      console.warn('Invoice generation during escrow payment warning:', e);
+    }
 
     // Notify professional/studio that advance escrow is paid and dates confirmed
     try {

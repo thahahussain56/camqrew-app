@@ -123,15 +123,18 @@ export const SignInScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const ok = (msg: string) => { setToastType('success'); setToast(msg); };
 
   const handleEmailLogin = async () => {
-    if (!email.trim()) { err('Please enter your email.'); return; }
+    const cleanEmail = email.trim().toLowerCase();
+    const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!cleanEmail) { err('Please enter your email.'); return; }
+    if (!EMAIL_REGEX.test(cleanEmail)) { err('Please enter a valid email address.'); return; }
     if (!password) { err('Please enter your password.'); return; }
     setLoading(true);
     try {
-      const res = await authApi.login(email.trim().toLowerCase(), password);
+      const res = await authApi.login(cleanEmail, password);
       await login(res.user, res.token);
       navigation.replace('MainApp');
     } catch (e: any) {
-      err(e.message?.includes('Invalid') ? 'Wrong email or password.' : (e.message || 'Login failed.'));
+      err(e.message || 'Login failed.');
     } finally { setLoading(false); }
   };
 
@@ -290,8 +293,10 @@ export const SignUpScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const err = (msg: string) => { setToastType('error'); setToast(msg); };
 
   const handleSignUp = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!name.trim()) { err('Full name is required.'); return; }
-    if (!email.includes('@')) { err('Enter a valid email address.'); return; }
+    if (!cleanEmail || !EMAIL_REGEX.test(cleanEmail)) { err('Enter a valid email address (e.g. name@domain.com).'); return; }
     if (phone.replace(/\D/g, '').length < 10) { err('Enter a valid 10-digit phone.'); return; }
     if (password.length < 8) { err('Password must be at least 8 characters.'); return; }
     const { isValid } = evaluatePasswordStrength(password);
@@ -299,7 +304,7 @@ export const SignUpScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     if (password !== confirm) { err('Passwords do not match.'); return; }
     setLoading(true);
     try {
-      const res = await authApi.registerCustomer({ name: name.trim(), email: email.trim().toLowerCase(), phone: phone.replace(/\D/g, ''), password });
+      const res = await authApi.registerCustomer({ name: name.trim(), email: cleanEmail, phone: phone.replace(/\D/g, ''), password });
       await login(res.user, res.token);
       navigation.replace('MainApp');
     } catch (e: any) { err(e.message || 'Registration failed.'); }
@@ -430,9 +435,10 @@ export const ProfessionalSignUpScreen: React.FC<{ navigation: any }> = ({ naviga
   const err = (msg: string) => { setToastType('error'); setToast(msg); };
 
   const validate = (): boolean => {
+    const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (step === 0) {
       if (!name.trim()) { err('Full name is required.'); return false; }
-      if (!email.includes('@')) { err('Enter a valid email.'); return false; }
+      if (!email.trim() || !EMAIL_REGEX.test(email.trim().toLowerCase())) { err('Enter a valid email address (e.g. name@domain.com).'); return false; }
       if (phone.replace(/\D/g, '').length < 10) { err('Enter a valid 10-digit phone.'); return false; }
       if (password.length < 8) { err('Password must be at least 8 characters.'); return false; }
       const { isValid } = evaluatePasswordStrength(password);
