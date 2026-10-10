@@ -20,6 +20,8 @@ import { Toast } from '../../components/ui/Toast';
 import { LocationCascader } from '../../components/forms/LocationCascader';
 import { CategoryDropdown } from '../../components/forms/CategoryDropdown';
 import { PROFESSIONAL_CATEGORIES, getArchetype } from '../../constants/categories';
+import { PasswordStrengthView } from '../../components/ui/PasswordStrengthView';
+import { evaluatePasswordStrength } from '../../utils/passwordStrength';
 
 const { width } = Dimensions.get('window');
 
@@ -291,7 +293,9 @@ export const SignUpScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     if (!name.trim()) { err('Full name is required.'); return; }
     if (!email.includes('@')) { err('Enter a valid email address.'); return; }
     if (phone.replace(/\D/g, '').length < 10) { err('Enter a valid 10-digit phone.'); return; }
-    if (password.length < 6) { err('Password must be at least 6 characters.'); return; }
+    if (password.length < 8) { err('Password must be at least 8 characters.'); return; }
+    const { isValid } = evaluatePasswordStrength(password);
+    if (!isValid) { err('Please choose a stronger password meeting the security criteria.'); return; }
     if (password !== confirm) { err('Passwords do not match.'); return; }
     setLoading(true);
     try {
@@ -330,8 +334,9 @@ export const SignUpScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           <Field label="Mobile Number * (+91)" placeholder="9876543210" value={phone} onChangeText={setPhone}
             keyboardType="phone-pad" autoCapitalize="none" textContentType="telephoneNumber" />
           {/* Supabase Auth password */}
-          <Field label="Password * (min 6 chars)" placeholder="Choose a strong password" value={password}
+          <Field label="Password * (min 8 chars)" placeholder="Choose a strong password" value={password}
             onChangeText={setPassword} secureTextEntry textContentType="newPassword" />
+          <PasswordStrengthView password={password} />
           <Field label="Confirm Password *" placeholder="Re-enter your password" value={confirm}
             onChangeText={setConfirm} secureTextEntry textContentType="newPassword" />
 
@@ -429,7 +434,9 @@ export const ProfessionalSignUpScreen: React.FC<{ navigation: any }> = ({ naviga
       if (!name.trim()) { err('Full name is required.'); return false; }
       if (!email.includes('@')) { err('Enter a valid email.'); return false; }
       if (phone.replace(/\D/g, '').length < 10) { err('Enter a valid 10-digit phone.'); return false; }
-      if (password.length < 6) { err('Password must be at least 6 characters.'); return false; }
+      if (password.length < 8) { err('Password must be at least 8 characters.'); return false; }
+      const { isValid } = evaluatePasswordStrength(password);
+      if (!isValid) { err('Please choose a stronger password meeting the security criteria.'); return false; }
       if (password !== confirm) { err('Passwords do not match.'); return false; }
     }
     if (step === 1) {
@@ -486,7 +493,7 @@ export const ProfessionalSignUpScreen: React.FC<{ navigation: any }> = ({ naviga
 
         <View style={proStyles.headerArea}>
           <Image
-            source={isDark ? require('../../../assets/camcrew-logo-white.png') : require('../../../assets/camcrew-logo-dark.png')}
+            source={isDark ? require('../../../assets/camqrew-logo-white.png') : require('../../../assets/camqrew-logo-dark.png')}
             style={suStyles.logo}
           />
           <Text style={[proStyles.heroTitle, { color: colors.textPrimary }]}>Join as a Pro</Text>
@@ -534,8 +541,9 @@ export const ProfessionalSignUpScreen: React.FC<{ navigation: any }> = ({ naviga
                 keyboardType="email-address" autoCapitalize="none" textContentType="emailAddress" />
               <Field label="Mobile Number * (+91)" placeholder="9876543210" value={phone} onChangeText={setPhone}
                 keyboardType="phone-pad" autoCapitalize="none" textContentType="telephoneNumber" />
-              <Field label="Password * (min 6 chars)" placeholder="Choose a strong password" value={password}
+              <Field label="Password * (min 8 chars)" placeholder="Choose a strong password" value={password}
                 onChangeText={setPassword} secureTextEntry textContentType="newPassword" />
+              <PasswordStrengthView password={password} />
               <Field label="Confirm Password *" placeholder="Re-enter your password" value={confirm}
                 onChangeText={setConfirm} secureTextEntry textContentType="newPassword" />
             </>

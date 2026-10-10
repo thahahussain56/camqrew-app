@@ -6,6 +6,8 @@ import { Button } from '../../components/ui/Button';
 import { Toast } from '../../components/ui/Toast';
 import { Lock } from 'lucide-react-native';
 import { authApi } from '../../api/authApi';
+import { PasswordStrengthView } from '../../components/ui/PasswordStrengthView';
+import { evaluatePasswordStrength } from '../../utils/passwordStrength';
 
 export const ResetPasswordScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors, isDark } = useTheme();
@@ -16,9 +18,15 @@ export const ResetPasswordScreen: React.FC<{ navigation: any }> = ({ navigation 
   const [toastType, setToastType] = useState<'error' | 'success'>('error');
 
   const handleReset = async () => {
-    if (!password || password.length < 6) {
+    if (!password || password.length < 8) {
       setToastType('error');
-      setToastMessage('Password must be at least 6 characters.');
+      setToastMessage('Password must be at least 8 characters.');
+      return;
+    }
+    const { isValid } = evaluatePasswordStrength(password);
+    if (!isValid) {
+      setToastType('error');
+      setToastMessage('Please choose a stronger password meeting the security criteria.');
       return;
     }
     if (password !== confirmPassword) {
@@ -66,6 +74,7 @@ export const ResetPasswordScreen: React.FC<{ navigation: any }> = ({ navigation 
           isPassword
           leftIcon={<Lock size={18} color={colors.textSecondary} />}
         />
+        <PasswordStrengthView password={password} />
         <Input
           label="Confirm New Password"
           placeholder="••••••••"
