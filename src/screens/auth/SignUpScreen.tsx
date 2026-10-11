@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   TextInput as RNTextInput,
   Dimensions,
   Image,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../hooks/useTheme';
@@ -228,6 +230,141 @@ const siStyles = StyleSheet.create({
 });
 
 // ─────────────────────────────────────────────────────────────────
+// EMAIL OTP MODAL (Shared between Customer and Pro Sign Up)
+// ─────────────────────────────────────────────────────────────────
+const EmailOtpModal: React.FC<{
+  visible: boolean;
+  email: string;
+  onSuccess: (verifiedSession?: any) => void;
+  onClose: () => void;
+}> = ({ visible, email, onSuccess, onClose }) => {
+  const { colors } = useTheme();
+  const [otp, setOtp] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [timer, setTimer] = useState(60);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    let interval: any;
+    if (visible && timer > 0) {
+      interval = setInterval(() => setTimer(t => (t > 0 ? t - 1 : 0)), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [visible, timer]);
+
+  const handleVerify = async () => {
+    if (!otp.trim()) {
+      setErrorMsg('Please enter the 6-digit verification code.');
+      return;
+    }
+    setErrorMsg('');
+    setVerifying(true);
+    try {
+      const res = await authApi.verifyEmailOtp(email, otp.trim());
+      onSuccess(res);
+    } catch (e: any) {
+      setErrorMsg(e.message || 'Invalid verification code.');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (timer > 0 || resending) return;
+    setErrorMsg('');
+    setResending(true);
+    try {
+      await authApi.sendEmailOtp(email);
+      setTimer(60);
+    } catch (e: any) {
+      setErrorMsg(e.message || 'Failed to resend code.');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <View style={{ width: '100%', maxWidth: 360, backgroundColor: colors.surfaceCard, borderRadius: 24, padding: 24, alignItems: 'center' }}>
+          <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(63, 182, 104, 0.15)', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+            <Text style={{ fontSize: 26 }}>✉️</Text>
+          </View>
+
+          <Text style={{ fontSize: 20, fontWeight: '800', color: colors.textPrimary, marginBottom: 8, textAlign: 'center' }}>
+            Verify Your Email
+          </Text>
+
+          <Text style={{ fontSize: 13, color: colors.textSecondary, textAlign: 'center', lineHeight: 18, marginBottom: 12 }}>
+            We've sent a 6-digit verification code to
+          </Text>
+
+          <View style={{ backgroundColor: colors.inputBackground, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, marginBottom: 20 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary }}>{email}</Text>
+          </View>
+
+          {!!errorMsg && (
+            <View style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', padding: 10, borderRadius: 10, width: '100%', marginBottom: 16 }}>
+              <Text style={{ color: '#ef4444', fontSize: 12, textAlign: 'center', fontWeight: '600' }}>{errorMsg}</Text>
+            </View>
+          )}
+
+          <RNTextInput
+            style={{
+              width: '100%',
+              height: 52,
+              backgroundColor: colors.inputBackground,
+              borderRadius: 14,
+              fontSize: 24,
+              fontWeight: '800',
+              textAlign: 'center',
+              letterSpacing: 8,
+              color: colors.textPrimary,
+              marginBottom: 20,
+            }}
+            placeholder="••••••"
+            placeholderTextColor="#777"
+            value={otp}
+            onChangeText={(t) => setOtp(t.replace(/\D/g, '').slice(0, 6))}
+            keyboardType="number-pad"
+            maxLength={6}
+            autoFocus
+          />
+
+          <TouchableOpacity
+            style={{ width: '100%', height: 48, backgroundColor: colors.accent, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}
+            onPress={handleVerify}
+            disabled={verifying || otp.length < 6}
+          >
+            {verifying ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Verify & Continue →</Text>
+            )}
+          </TouchableOpacity>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 }}>
+            <Text style={{ fontSize: 12, color: colors.textSecondary }}>Didn't receive code?</Text>
+            {timer > 0 ? (
+              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textPrimary }}>Resend in {timer}s</Text>
+            ) : (
+              <TouchableOpacity onPress={handleResend} disabled={resending}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.accent }}>{resending ? 'Sending…' : 'Resend'}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <TouchableOpacity onPress={onClose} style={{ padding: 6 }}>
+            <Text style={{ fontSize: 13, color: colors.textSecondary, fontWeight: '600' }}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────
 // CUSTOMER SIGN UP SCREEN
 // ─────────────────────────────────────────────────────────────────
 export const SignUpScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
@@ -242,6 +379,7 @@ export const SignUpScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState('');
   const [toastType, setToastType] = useState<'error' | 'success'>('error');
+  const [showOtpModal, setShowOtpModal] = useState(false);
 
   const err = (msg: string) => { setToastType('error'); setToast(msg); };
 
@@ -255,13 +393,31 @@ export const SignUpScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const { isValid } = evaluatePasswordStrength(password);
     if (!isValid) { err('Please choose a stronger password meeting the security criteria.'); return; }
     if (password !== confirm) { err('Passwords do not match.'); return; }
+    
     setLoading(true);
     try {
+      await authApi.sendEmailOtp(cleanEmail);
+      setShowOtpModal(true);
+    } catch (e: any) {
+      err(e.message || 'Failed to send verification code.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onOtpVerified = async () => {
+    setShowOtpModal(false);
+    setLoading(true);
+    try {
+      const cleanEmail = email.trim().toLowerCase();
       const res = await authApi.registerCustomer({ name: name.trim(), email: cleanEmail, phone: phone.replace(/\D/g, ''), password });
       await login(res.user, res.token);
       navigation.replace('MainApp');
-    } catch (e: any) { err(e.message || 'Registration failed.'); }
-    finally { setLoading(false); }
+    } catch (e: any) {
+      err(e.message || 'Registration failed.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -322,6 +478,13 @@ export const SignUpScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
+
+      <EmailOtpModal
+        visible={showOtpModal}
+        email={email.trim().toLowerCase()}
+        onSuccess={onOtpVerified}
+        onClose={() => setShowOtpModal(false)}
+      />
     </KeyboardAvoidingView>
   );
 };
@@ -362,6 +525,7 @@ export const ProfessionalSignUpScreen: React.FC<{ navigation: any }> = ({ naviga
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState('');
   const [toastType, setToastType] = useState<'error' | 'success'>('error');
+  const [showOtpModal, setShowOtpModal] = useState(false);
 
   // Step 0 — users
   const [name, setName] = useState('');
@@ -416,6 +580,19 @@ export const ProfessionalSignUpScreen: React.FC<{ navigation: any }> = ({ naviga
   };
 
   const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      await authApi.sendEmailOtp(email.trim().toLowerCase());
+      setShowOtpModal(true);
+    } catch (e: any) {
+      err(e.message || 'Failed to send verification code.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onOtpVerified = async () => {
+    setShowOtpModal(false);
     setLoading(true);
     try {
       const res = await authApi.registerProfessional({
@@ -614,6 +791,13 @@ export const ProfessionalSignUpScreen: React.FC<{ navigation: any }> = ({ naviga
           )}
         </View>
       </ScrollView>
+
+      <EmailOtpModal
+        visible={showOtpModal}
+        email={email.trim().toLowerCase()}
+        onSuccess={onOtpVerified}
+        onClose={() => setShowOtpModal(false)}
+      />
     </KeyboardAvoidingView>
   );
 };
