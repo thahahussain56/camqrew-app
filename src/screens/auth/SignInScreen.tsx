@@ -88,17 +88,9 @@ export const SignInScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors, isDark } = useTheme();
   const { login } = useAuthStore();
 
-  const [mode, setMode] = useState<'email' | 'phone'>('email');
-
   // Email fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
-  // Phone OTP fields
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpTimer, setOtpTimer] = useState(0);
 
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState('');
@@ -147,35 +139,6 @@ export const SignInScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     } finally { setLoading(false); }
   };
 
-  const handleSendOtp = async () => {
-    const cleaned = phone.replace(/\D/g, '').slice(-10);
-    if (cleaned.length < 10) { showError('Enter a valid 10-digit mobile number.'); return; }
-    setLoading(true);
-    try {
-      const res = await authApi.sendOTP(cleaned);
-      showSuccess(res.message);
-      setOtpSent(true);
-      setOtpTimer(30);
-      const timer = setInterval(() => {
-        setOtpTimer(prev => { if (prev <= 1) { clearInterval(timer); return 0; } return prev - 1; });
-      }, 1000);
-    } catch (e: any) {
-      showError(e.message || 'Failed to send OTP.');
-    } finally { setLoading(false); }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (otp.length < 6) { showError('Enter the full 6-digit OTP.'); return; }
-    setLoading(true);
-    try {
-      const res = await authApi.verifyOTP(phone, otp);
-      await login(res.user, res.token);
-      navigation.replace('MainApp');
-    } catch (e: any) {
-      showError('Invalid OTP. Please try again.');
-    } finally { setLoading(false); }
-  };
-
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
@@ -195,90 +158,31 @@ export const SignInScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.surfaceCard }]}>
-          {/* Mode Switcher */}
-          <View style={[styles.modeSwitcher, { backgroundColor: colors.surfaceCard }]}>
-            <TouchableOpacity
-              style={[styles.modeBtn, mode === 'email' && styles.modeBtnActive]}
-              onPress={() => setMode('email')}
-            >
-              <Text style={[styles.modeBtnText, { color: mode === 'email' ? '#fff' : colors.textSecondary }]}>
-                Email & Password
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modeBtn, mode === 'phone' && styles.modeBtnActive]}
-              onPress={() => setMode('phone')}
-            >
-              <Text style={[styles.modeBtnText, { color: mode === 'phone' ? '#fff' : colors.textSecondary }]}>
-                Phone OTP
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {mode === 'email' ? (
-            <>
-              <Field
-                testID="input-email"
-                label="Email Address"
-                placeholder="you@example.com"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                textContentType="username"
-              />
-              <Field
-                testID="input-password"
-                label="Password"
-                placeholder="Your password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                textContentType="password"
-              />
-              <TouchableOpacity
-                style={{ alignSelf: 'flex-end', marginTop: -4, marginBottom: 16 }}
-                onPress={() => navigation.navigate('ForgotPassword')}
-              >
-                <Text style={{ color: '#3fb668', fontSize: 13, fontWeight: '600' }}>Forgot Password?</Text>
-              </TouchableOpacity>
-              <Button testID="btn-login" title="Sign In" variant="primary" size="lg" loading={loading} onPress={handleEmailLogin} />
-            </>
-          ) : (
-            <>
-              <Field
-                label="Mobile Number (+91)"
-                placeholder="9876543210"
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-                textContentType="telephoneNumber"
-              />
-              {!otpSent ? (
-                <Button title="Send OTP" variant="primary" size="lg" loading={loading} onPress={handleSendOtp} />
-              ) : (
-                <>
-                  <Field
-                    label="6-Digit OTP"
-                    placeholder="123456"
-                    value={otp}
-                    onChangeText={setOtp}
-                    keyboardType="number-pad"
-                    textContentType="oneTimeCode"
-                  />
-                  <TouchableOpacity
-                    disabled={otpTimer > 0}
-                    onPress={handleSendOtp}
-                    style={{ alignSelf: 'flex-end', marginTop: -4, marginBottom: 16 }}
-                  >
-                    <Text style={{ color: otpTimer > 0 ? colors.textFaint : '#3fb668', fontSize: 13, fontWeight: '600' }}>
-                      {otpTimer > 0 ? `Resend in ${otpTimer}s` : 'Resend OTP'}
-                    </Text>
-                  </TouchableOpacity>
-                  <Button title="Verify & Sign In" variant="primary" size="lg" loading={loading} onPress={handleVerifyOtp} />
-                </>
-              )}
-            </>
-          )}
+          <Field
+            testID="input-email"
+            label="Email Address"
+            placeholder="you@example.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            textContentType="username"
+          />
+          <Field
+            testID="input-password"
+            label="Password"
+            placeholder="Your password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            textContentType="password"
+          />
+          <TouchableOpacity
+            style={{ alignSelf: 'flex-end', marginTop: -4, marginBottom: 16 }}
+            onPress={() => navigation.navigate('ForgotPassword')}
+          >
+            <Text style={{ color: '#3fb668', fontSize: 13, fontWeight: '600' }}>Forgot Password?</Text>
+          </TouchableOpacity>
+          <Button testID="btn-login" title="Sign In" variant="primary" size="lg" loading={loading} onPress={handleEmailLogin} />
 
           {/* Social Auth Divider */}
           <View style={styles.dividerRow}>
@@ -310,7 +214,7 @@ export const SignInScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
           <View style={styles.footerRow}>
             <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('RoleSelection', { email, phone })}>
+            <TouchableOpacity onPress={() => navigation.navigate('RoleSelection', { email })}>
               <Text style={{ color: '#3fb668', fontSize: 14, fontWeight: '700' }}>Sign Up</Text>
             </TouchableOpacity>
           </View>

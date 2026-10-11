@@ -179,68 +179,21 @@ export const SignInScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         {/* Card */}
         <View style={siStyles.card}>
-          {/* Mode Switcher */}
-          <View style={siStyles.switcher}>
-            {(['email', 'phone'] as const).map(m => (
-              <TouchableOpacity
-                key={m}
-                onPress={() => setMode(m)}
-                style={[siStyles.switchBtn, mode === m && siStyles.switchBtnActive]}
-              >
-                <Text style={{ fontSize: 13, fontWeight: '700', color: mode === m ? '#fff' : '#888' }}>
-                  {m === 'email' ? '✉️  Email & Password' : '📱  Phone OTP'}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {mode === 'email' ? (
-            <>
-              <Field label="Email Address" placeholder="you@example.com" value={email} onChangeText={setEmail}
-                keyboardType="email-address" autoCapitalize="none" textContentType="username" />
-              <Field label="Password" placeholder="Your password" value={password} onChangeText={setPassword}
-                secureTextEntry textContentType="password" />
-              <TouchableOpacity style={{ alignSelf: 'flex-end', marginTop: -8, marginBottom: 20 }}
-                onPress={() => navigation.navigate('ForgotPassword')}>
-                <Text style={{ color: '#3fb668', fontSize: 13, fontWeight: '700' }}>Forgot Password?</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={siStyles.cta} onPress={handleEmailLogin} disabled={loading}>
-                <LinearGradient colors={['#3fb668', '#FF9A00']} style={siStyles.ctaInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900', letterSpacing: 0.5 }}>
-                    {loading ? 'Signing In…' : 'Sign In →'}
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <Field label="Mobile Number" placeholder="9876543210 (India)" value={phone} onChangeText={setPhone}
-                keyboardType="phone-pad" autoCapitalize="none" textContentType="telephoneNumber" />
-              {!otpSent ? (
-                <TouchableOpacity style={siStyles.cta} onPress={handleSendOtp} disabled={loading}>
-                  <LinearGradient colors={['#3fb668', '#FF9A00']} style={siStyles.ctaInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900' }}>{loading ? 'Sending…' : 'Send OTP →'}</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              ) : (
-                <>
-                  <Field label="6-Digit OTP Code" placeholder="123456" value={otp} onChangeText={setOtp}
-                    keyboardType="number-pad" autoCapitalize="none" textContentType="oneTimeCode" />
-                  <TouchableOpacity disabled={otpTimer > 0} style={{ alignSelf: 'flex-end', marginTop: -8, marginBottom: 20 }}
-                    onPress={handleSendOtp}>
-                    <Text style={{ color: otpTimer > 0 ? '#ccc' : '#3fb668', fontSize: 13, fontWeight: '700' }}>
-                      {otpTimer > 0 ? `Resend in ${otpTimer}s` : 'Resend OTP'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={siStyles.cta} onPress={handleVerifyOtp} disabled={loading}>
-                    <LinearGradient colors={['#3fb668', '#FF9A00']} style={siStyles.ctaInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                      <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900' }}>{loading ? 'Verifying…' : 'Verify & Sign In →'}</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </>
-              )}
-            </>
-          )}
+          <Field label="Email Address" placeholder="you@example.com" value={email} onChangeText={setEmail}
+            keyboardType="email-address" autoCapitalize="none" textContentType="username" />
+          <Field label="Password" placeholder="Your password" value={password} onChangeText={setPassword}
+            secureTextEntry textContentType="password" />
+          <TouchableOpacity style={{ alignSelf: 'flex-end', marginTop: -8, marginBottom: 20 }}
+            onPress={() => navigation.navigate('ForgotPassword')}>
+            <Text style={{ color: '#3fb668', fontSize: 13, fontWeight: '700' }}>Forgot Password?</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={siStyles.cta} onPress={handleEmailLogin} disabled={loading}>
+            <LinearGradient colors={['#3fb668', '#FF9A00']} style={siStyles.ctaInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900', letterSpacing: 0.5 }}>
+                {loading ? 'Signing In…' : 'Sign In →'}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
 
           <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 20, gap: 4 }}>
             <Text style={{ color: '#888', fontSize: 14 }}>Don't have an account?</Text>
